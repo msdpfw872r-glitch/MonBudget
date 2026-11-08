@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.4.2
+ * Version : 0.4.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -16,6 +16,8 @@
  *   0.4.0  FRE (Fidag)  Écrans Importer, À trier (liste + détail sur iPad), Factures de carte,
  *                       cartes « à faire » de l'accueil, listes déroulantes.
  *   0.4.2  FRE (Fidag)  À trier : lignes de la liste qui ne se chevauchent plus, loupe, choix de l'ordre.
+ *   0.4.3  FRE (Fidag)  À trier sur iPad : liste et formulaire défilent chacun de leur côté ;
+ *                       barre latérale étroite (icône + mot) jusqu'à 1280 px ; lignes de liste compactes.
  */
 
 @font-face {
@@ -510,10 +512,42 @@ details.note summary { cursor: pointer; min-height: 44px; }
 .search input::placeholder { color: var(--texte-2); opacity: 1; }
 .order-switch { display: flex; flex-wrap: wrap; gap: 10px; }
 .order-switch .pick { padding: 6px 16px; }
-/* Liste de gauche seulement si la place suffit (iPad paysage plein écran) ; sinon « 2 sur 7 ». */
-.sort-list { display: none; }
-@media (min-width: 1150px) {
-  .sort-list { display: flex; }
-  .progress-text { display: none; }
-}
 .pick-person { overflow-wrap: anywhere; padding: 6px 8px; }
+
+/* ---------- 0.4.3 : À trier en deux colonnes indépendantes, barre latérale étroite ---------- */
+
+/* iPhone et iPad étroit : une seule colonne, la page défile, « 2 sur 7 » affiché. */
+.sort-list { display: none; }
+
+@media (min-width: 900px) {
+  /* L'écran « À trier » occupe juste la hauteur de l'écran : chaque colonne défile seule. */
+  .view.view-fill { height: 100vh; height: 100dvh; overflow: hidden; padding-bottom: calc(16px + env(safe-area-inset-bottom)); gap: 14px; }
+  .view-fill .sort-layout { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .view-fill .sort-list {
+    display: flex; position: static; max-height: none; height: 100%;
+    width: 300px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  }
+  .view-fill .sort-card { height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .view-fill .progress-text { display: none; }
+  .view-fill .page-head .sub { margin-top: 0; }
+
+  /* Lignes compactes : nom sur une ligne (coupé avec « … »), date + nombre de fois en dessous. */
+  .sort-item { min-height: 60px; padding: 6px 12px; gap: 8px; }
+  .sort-item .row-text { gap: 0; }
+  .sort-item .row-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+  .sort-item .row-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Barre latérale étroite (iPad jusqu'à 1280 px) : l'icône avec son mot en dessous, comme les onglets. */
+@media (min-width: 900px) and (max-width: 1279px) {
+  .sidebar { width: 108px; padding-left: calc(8px + env(safe-area-inset-left)); padding-right: 8px; gap: 6px; }
+  .brand { display: none; }
+  .sidebar .nav-link, .sidebar .btn-import {
+    position: relative; flex-direction: column; justify-content: center; text-align: center;
+    gap: 4px; min-height: 76px; padding: 8px 4px; font-size: 15px;
+  }
+  .sidebar .btn-import { border-radius: 16px; }
+  .sidebar .nav-link .badge { position: absolute; top: 4px; right: 6px; min-width: 28px; height: 28px; font-size: 15px; }
+  .update { left: calc(50% + 54px); }
+  .view { padding-left: 28px; padding-right: 28px; }
+}

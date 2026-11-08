@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.4.2
+ * Version : 0.4.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,11 +13,12 @@
  *   0.4.0  FRE (Fidag)  Première version.
  *   0.4.2  FRE (Fidag)  Loupe « Chercher une catégorie » ; ordre « commerces fréquents d'abord » ;
  *                       liste limitée (fluide avec plus de 1000 opérations) ; lignes qui ne se chevauchent plus.
+ *   0.4.3  FRE (Fidag)  iPad : liste et formulaire défilent séparément ; la liste garde sa position.
  */
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
-import { formatAmount, formatDateLong, displayName } from '../src/core/format.js';
+import { formatAmount, formatDateLong, formatDateShort, displayName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify } from '../src/core/regles.js';
 import { orderPending, countByMerchant, searchCategories } from '../src/core/tri.js';
@@ -149,7 +150,7 @@ function listPane(data, current) {
   return `<section class="card list sort-list" aria-label="Opérations à trier">
     ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
         <span class="row-text"><span class="row-title">${esc(displayName(t.description))}</span>
-        <span class="row-sub">${esc(formatDateLong(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
+        <span class="row-sub">${esc(formatDateShort(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
         <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
     ${rest > 0 ? `<p class="note pad">et ${rest} autre${rest > 1 ? 's' : ''}…</p>` : ''}
@@ -184,7 +185,9 @@ export function trierView() {
         return;
       }
 
-      const paint = () => {
+      const paint = ({ keepDetailScroll = false, showCurrent = true } = {}) => {
+        const listTop = root.querySelector('.sort-list')?.scrollTop ?? 0;
+        const detailTop = root.querySelector('.sort-card')?.scrollTop ?? 0;
         let tx = data.pending.find((t) => t.id === state.currentId);
         if (!tx) {
           tx = data.pending[0];
@@ -199,6 +202,16 @@ export function trierView() {
         for (const el of root.querySelectorAll('[data-color]')) el.style.setProperty('--c', el.dataset.color);
         message = ''; // le message « C’est noté » ne s’affiche qu’une fois
         bindSearch();
+        // La liste reste où elle était ; l'opération choisie reste visible.
+        const list = root.querySelector('.sort-list');
+        if (list) {
+          list.scrollTop = listTop;
+          const cur = list.querySelector('[aria-pressed="true"]');
+          if (showCurrent && cur && (cur.offsetTop < list.scrollTop || cur.offsetTop + cur.offsetHeight > list.scrollTop + list.clientHeight)) {
+            list.scrollTop = cur.offsetTop - 8;
+          }
+        }
+        if (keepDetailScroll) { const card = root.querySelector('.sort-card'); if (card) card.scrollTop = detailTop; }
         return tx;
       };
 
@@ -220,7 +233,10 @@ export function trierView() {
       };
 
       let tx = paint();
-      const redraw = () => { tx = paint(); };
+      // Choix dans le formulaire : on reste au même endroit du formulaire.
+      const redraw = () => { tx = paint({ keepDetailScroll: true, showCurrent: false }); };
+      // Autre opération : formulaire remis en haut.
+      const goTo = () => { tx = paint(); };
 
       // Un seul gestionnaire par écran (remplacé à chaque affichage ; main.js le retire en quittant).
       root.onclick = async (e) => {
@@ -234,12 +250,12 @@ export function trierView() {
           root.querySelector('[data-valider]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } else if ('autre' in b.dataset) { state.showAll = true; redraw(); root.querySelector('.group-title')?.scrollIntoView({ block: 'nearest' }); }
         else if (b.dataset.ordre) { state.order = b.dataset.ordre; state.currentId = null; this.render(root); }
-        else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); redraw(); }
+        else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); goTo(); }
         else if ('passer' in b.dataset) {
           const i = data.pending.indexOf(tx);
           state.currentId = data.pending[(i + 1) % data.pending.length].id;
           resetChoice();
-          redraw();
+          goTo();
           window.scrollTo(0, 0);
         } else if ('valider' in b.dataset) {
           const err = root.querySelector('.form-error');

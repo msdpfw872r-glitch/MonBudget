@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.4.0
+ * Version : 0.4.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,7 @@
  *                       asynchrones (lecture de la base), message si le stockage est indisponible.
  *   0.4.0  FRE (Fidag)  Importer, À trier, Factures de carte ; pastille du nombre à trier ;
  *                       accueil avec opérations à trier et factures à vérifier.
+ *   0.4.3  FRE (Fidag)  « À trier » remplit l'écran (colonnes qui défilent séparément).
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -150,6 +151,8 @@ async function paint(v, root, ticket) {
 
 async function renderMain(id, ticket) {
   lastMainRoute = id;
+  // « À trier » remplit l'écran : la liste et le formulaire défilent chacun de leur côté (iPad).
+  view.classList.toggle('view-fill', id === 'trier');
   const v = VIEWS[id]([]);
   document.title = `${v.title} — Mon Budget`;
   await paint(v, view, ticket);

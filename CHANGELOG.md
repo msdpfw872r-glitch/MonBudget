@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.4.3 — 2026-11-08 — FRE (Fidag)
+- À trier sur iPad : l'écran tient dans la hauteur de l'écran ; la liste des opérations et le formulaire défilent **chacun de leur côté**. La liste garde sa position et l'opération choisie reste visible.
+- Barre latérale étroite sur les iPad jusqu'à 1280 px de large (icône avec le mot en dessous, comme les onglets) : plus de place pour la liste et le formulaire. La liste est de nouveau affichée dès 900 px.
+- Lignes de la liste plus compactes : nom sur une ligne (coupé avec « … » s'il est long), date et nombre de fois en dessous.
+
 ## 0.4.2 — 2026-11-08 — FRE (Fidag)
 - À trier : loupe « Chercher une catégorie » (sans tenir compte des accents ; plusieurs mots possibles, par ex. « caisse mal »).
 - À trier : ordre « Commerces fréquents d'abord » (par défaut) ou « Par date ». La case « Toujours classer » indique combien d'autres opérations du même commerce seront classées en même temps.
