@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+  index.html — Mon Budget : page unique de l'app.
+  Version : 0.2.0
+  Auteur  : FRE (Fidag)
+  Date    : 2026-11-08
+  Historique :
+    0.2.0  FRE (Fidag)  Coquille PWA : navigation iPad (barre latérale) / iPhone (onglets), écrans vides.
+-->
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Mon Budget</title>
+  <meta name="description" content="Journal des dépenses et recettes">
+  <meta name="theme-color" content="#F3F6F4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mon Budget">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preload" href="fonts/atkinson-hyperlegible-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/atkinson-hyperlegible-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip" href="#vue">Aller au contenu</a>
+  <div class="shell">
+    <nav class="sidebar" aria-label="Navigation principale">
+      <span class="brand">Mon Budget</span>
+      <div class="sidebar-links" data-nav="main"></div>
+      <div class="sidebar-bottom">
+        <a class="btn btn-primary btn-import" href="#/importer" data-route="importer">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>Importer
+        </a>
+        <a class="nav-link" href="#/reglages" data-route="reglages">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages
+        </a>
+      </div>
+    </nav>
+
+    <main id="vue" class="view" tabindex="-1"></main>
+
+    <nav class="tabbar" aria-label="Navigation principale" data-nav="tabs"></nav>
+  </div>
+
+  <dialog id="fenetre" class="sheet" aria-labelledby="fenetre-titre">
+    <div class="sheet-head">
+      <h2 id="fenetre-titre"></h2>
+      <button type="button" class="btn btn-secondary" data-close>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Fermer
+      </button>
+    </div>
+    <div class="sheet-body" id="fenetre-contenu"></div>
+  </dialog>
+
+  <div class="update" id="maj" role="status" hidden>
+    <span>Nouvelle version disponible</span>
+    <button type="button" class="btn btn-primary" id="maj-bouton">Mettre à jour</button>
+  </div>
+
+  <noscript><p class="noscript">Mon Budget a besoin de JavaScript. Ouvrez l'app avec Safari.</p></noscript>
+</body>
+</html>

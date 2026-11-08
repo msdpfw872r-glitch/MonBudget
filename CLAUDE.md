@@ -1,8 +1,12 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.0.0
+- Version du brief : 1.1.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
+
+Historique du brief :
+- 1.0.0 — FRE (Fidag) — Première version.
+- 1.1.0 — FRE (Fidag) — § 2.1 fait : le dépôt existe déjà sous le nom `msdpfw872r-glitch/MonBudget` (public) ; adresse publiée `https://msdpfw872r-glitch.github.io/MonBudget/` (chemins relatifs obligatoires dans l'app). Structure `app/` en place depuis la v0.2.0.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 

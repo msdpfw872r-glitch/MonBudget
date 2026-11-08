@@ -2,16 +2,20 @@
  * ubs.test.mjs — Tests de l'import UBS et des outils communs.
  * Lancer : node --test tests/
  *
- * Version : 0.1.0
+ * Version : 0.2.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
+ *
+ * Historique :
+ *   0.1.0  FRE (Fidag)  Première version.
+ *   0.2.0  FRE (Fidag)  Code déplacé sous app/src/ (chemins d'import adaptés).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { readXlsx, looksLikeZip } from '../src/core/xlsx.js';
-import { parseAmount, parseDateCH, merchantKey } from '../src/core/text.js';
-import * as ubs from '../src/importers/ubs.js';
+import { readXlsx, looksLikeZip } from '../app/src/core/xlsx.js';
+import { parseAmount, parseDateCH, merchantKey } from '../app/src/core/text.js';
+import * as ubs from '../app/src/importers/ubs.js';
 
 const fixture = (name) => readFile(new URL('./fixtures/' + name, import.meta.url));
 

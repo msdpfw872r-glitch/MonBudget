@@ -2,17 +2,29 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.1.1
+- Version : 0.2.0
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
 
 | Fichier | Rôle |
 |---|---|
-| `src/core/xlsx.js` | Lecture des fichiers Excel (.xlsx) sans dépendance, dans Safari et Node |
-| `src/core/text.js` | Montants suisses, dates, clé commerçant (règles), empreinte anti-doublon |
-| `src/importers/ubs.js` | Import de l'export « Transactions » UBS (Excel) |
+| `app/` | L'app publiée (page unique, styles, service worker, manifeste, police, icônes) |
+| `app/js/main.js` | Navigation et écrans |
+| `app/src/core/xlsx.js` | Lecture des fichiers Excel (.xlsx) sans dépendance, dans Safari et Node |
+| `app/src/core/text.js` | Montants suisses, dates, clé commerçant (règles), empreinte anti-doublon |
+| `app/src/core/format.js` | Affichage : `CHF 1’234.50`, « mardi 14 octobre » |
+| `app/src/importers/ubs.js` | Import de l'export « Transactions » UBS (Excel) |
+| `app/src/data/seed.json` | Personnes, comptes et catégories de départ |
+| `.github/workflows/` | Tests à chaque push, publication GitHub Pages depuis `main` |
 | `tests/` | Tests automatiques et fichiers d'exemple anonymisés |
+
+## Essayer l'app sur l'ordinateur
+
+```
+npm start
+```
+puis ouvrir http://localhost:8080 (Python 3 requis).
 
 ## Lancer les tests
 
