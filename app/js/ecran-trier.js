@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.4.0
+ * Version : 0.4.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,8 @@
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
+ *   0.4.2  FRE (Fidag)  Loupe « Chercher une catégorie » ; ordre « commerces fréquents d'abord » ;
+ *                       liste limitée (fluide avec plus de 1000 opérations) ; lignes qui ne se chevauchent plus.
  */
 
 import { icon, esc } from './ui.js';
@@ -18,6 +20,7 @@ import { getDb } from './store.js';
 import { formatAmount, formatDateLong, displayName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify } from '../src/core/regles.js';
+import { orderPending, countByMerchant, searchCategories } from '../src/core/tri.js';
 
 /** Catégories proposées d'office avant « Autre… » (les plus utilisées passent devant). */
 const FAVORITES = {
@@ -25,15 +28,18 @@ const FAVORITES = {
   recette: ['rente-avs', 'rente-lpp-2e-pilier', 'remboursement-caisse-maladie', 'autres-revenus', 'virement-entrant'],
 };
 const SHOWN = 5;
+/** Nombre d'opérations montrées dans la liste de gauche (iPad). */
+const LIST_MAX = 50;
 
 // État de l'écran (gardé entre deux affichages).
-const state = { currentId: null, personId: null, categoryId: null, remember: true, showAll: false, message: '' };
+const state = { currentId: null, personId: null, categoryId: null, remember: true, showAll: false, message: '', order: 'frequent', query: '' };
 
 function resetChoice() {
   state.personId = null;
   state.categoryId = null;
   state.remember = true;
   state.showAll = false;
+  state.query = '';
 }
 
 async function load(db) {
@@ -44,10 +50,11 @@ async function load(db) {
     db.getAll('accounts'),
     db.getAllWhere('transactions', 'status', 'classee'),
   ]);
-  pending.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  const sorted = orderPending(pending, state.order);
+  const counts = countByMerchant(pending);
   const usage = new Map();
   for (const t of classified) usage.set(t.categoryId, (usage.get(t.categoryId) ?? 0) + 1);
-  return { pending, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage };
+  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage };
 }
 
 function favoritesFor(type, categories, usage) {
@@ -87,6 +94,7 @@ function detail(tx, data) {
   const allOfType = data.categories.filter((c) => c.type === type);
   if (allOfType.length && !favs.length) favs.push(...allOfType.slice(0, SHOWN));
   const position = data.pending.indexOf(tx) + 1;
+  const same = data.counts.get(tx.merchantKey) ?? 1;
   return `<section class="card sort-card" aria-labelledby="op-nom">
       <div class="sort-head">
         <div class="row-text">
@@ -96,22 +104,28 @@ function detail(tx, data) {
         <span class="sort-amount ${tx.amount < 0 ? '' : 'positive'}">${formatAmount(tx.amount)}</span>
       </div>
       <p class="row-sub">Texte de la banque : ${esc(tx.description)}${tx.bankCategory ? `<br>Classement de la banque : ${esc(tx.bankCategory)}` : ''}</p>
-      <p class="progress-text only-narrow">${position} sur ${data.pending.length}</p>
+      <p class="progress-text">${position} sur ${data.pending.length}</p>
 
       <h2>Pour qui ?</h2>
       <div class="picks picks-people">${personButtons(data.people, state.personId)}</div>
 
       <h2>C’est quoi ?</h2>
-      <div class="picks picks-cats">${categoryButtons(favs, state.categoryId)}
+      <label class="search">
+        ${icon('loupe')}<span class="visually-hidden">Chercher une catégorie</span>
+        <input type="search" data-chercher value="${esc(state.query)}" placeholder="Chercher une catégorie" autocomplete="off" enterkeyhint="search">
+      </label>
+      <div class="picks picks-cats" data-resultats${state.query ? '' : ' hidden'}>${state.query ? searchButtons(data, state.query) : ''}</div>
+      <div class="picks picks-cats" data-favoris${state.query ? ' hidden' : ''}>${categoryButtons(favs, state.categoryId)}
         ${state.showAll ? '' : '<button type="button" class="pick" data-autre aria-expanded="false">Autre…</button>'}</div>
-      ${state.showAll ? `<h3 class="group-title">${type === 'depense' ? 'Autres dépenses' : 'Autres rentrées'}</h3>
+      ${state.showAll ? `<div data-autres${state.query ? ' hidden' : ''}><h3 class="group-title">${type === 'depense' ? 'Autres dépenses' : 'Autres rentrées'}</h3>
         <div class="picks picks-cats">${categoryButtons(others(type), state.categoryId)}</div>
         <h3 class="group-title">${type === 'depense' ? 'Rentrées' : 'Dépenses'}</h3>
-        <div class="picks picks-cats">${categoryButtons(others(type === 'depense' ? 'recette' : 'depense'), state.categoryId)}</div>` : ''}
+        <div class="picks picks-cats">${categoryButtons(others(type === 'depense' ? 'recette' : 'depense'), state.categoryId)}</div></div>` : ''}
 
       <label class="choice choice-check remember">
         <input type="checkbox" data-remember${state.remember ? ' checked' : ''}>
-        <span>Toujours classer <strong>${esc(name)}</strong> comme ça</span>
+        <span>Toujours classer <strong>${esc(name)}</strong> comme ça${same > 1
+          ? `<br><span class="row-sub">Les ${same - 1} autre${same > 2 ? 's' : ''} opération${same > 2 ? 's' : ''} de ce commerce en attente ${same > 2 ? 'seront classées' : 'sera classée'} aussi.</span>` : ''}</span>
       </label>
       <p class="form-error" role="alert" tabindex="-1" hidden></p>
       <div class="sort-buttons">
@@ -121,14 +135,31 @@ function detail(tx, data) {
     </section>`;
 }
 
+function searchButtons(data, query) {
+  const found = searchCategories(data.categories, query);
+  return found.length ? categoryButtons(found, state.categoryId)
+    : '<p class="note">Aucune catégorie ne correspond. Essayez un autre mot, ou ajoutez-la dans Réglages.</p>';
+}
+
+/** Liste de gauche (iPad) : l'opération en cours et les suivantes, au plus LIST_MAX. */
 function listPane(data, current) {
-  return `<section class="card list sort-list only-wide" aria-label="Opérations à trier">
-    ${data.pending.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
+  const i = Math.max(0, data.pending.indexOf(current));
+  const shown = data.pending.slice(i, i + LIST_MAX);
+  const rest = data.pending.length - shown.length;
+  return `<section class="card list sort-list" aria-label="Opérations à trier">
+    ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
         <span class="row-text"><span class="row-title">${esc(displayName(t.description))}</span>
-        <span class="row-sub">${esc(formatDateLong(t.date))}</span></span>
-        <span class="row-title">${formatAmount(t.amount)}</span>
+        <span class="row-sub">${esc(formatDateLong(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
+        <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
+    ${rest > 0 ? `<p class="note pad">et ${rest} autre${rest > 1 ? 's' : ''}…</p>` : ''}
   </section>`;
+}
+
+function orderSwitch() {
+  const b = (mode, label) => `<button type="button" class="pick" data-ordre="${mode}" aria-pressed="${state.order === mode}">${label}</button>`;
+  return `<div class="order-switch" role="group" aria-label="Ordre des opérations">
+    ${b('frequent', 'Commerces fréquents d’abord')}${b('date', 'Par date')}</div>`;
 }
 
 /** Écran « À trier ». */
@@ -140,7 +171,7 @@ export function trierView() {
       const db = await getDb();
       const data = await load(db);
       const head = (sub) => `<div class="page-head"><div><h1>À trier</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div></div>`;
-      const message = state.message ? `<p class="flash" role="status">${esc(state.message)}</p>` : '';
+      let message = state.message ? `<p class="flash" role="status">${esc(state.message)}</p>` : '';
       state.message = '';
 
       if (!data.pending.length) {
@@ -153,47 +184,78 @@ export function trierView() {
         return;
       }
 
-      let tx = data.pending.find((t) => t.id === state.currentId);
-      if (!tx) {
-        tx = data.pending[0];
-        state.currentId = tx.id;
-        resetChoice();
-      }
-      // Achat par carte : la titulaire de la carte est proposée d'avance.
-      if (state.personId === null) state.personId = data.accounts.get(tx.accountId)?.personId ?? null;
+      const paint = () => {
+        let tx = data.pending.find((t) => t.id === state.currentId);
+        if (!tx) {
+          tx = data.pending[0];
+          state.currentId = tx.id;
+          resetChoice();
+        }
+        // Achat par carte : la titulaire de la carte est proposée d'avance.
+        if (state.personId === null) state.personId = data.accounts.get(tx.accountId)?.personId ?? null;
+        root.innerHTML = `${head(`${data.pending.length} opération${data.pending.length > 1 ? 's' : ''} à classer`)}${message}
+          ${data.pending.length > 1 ? orderSwitch() : ''}
+          <div class="sort-layout">${listPane(data, tx)}${detail(tx, data)}</div>`;
+        for (const el of root.querySelectorAll('[data-color]')) el.style.setProperty('--c', el.dataset.color);
+        message = ''; // le message « C’est noté » ne s’affiche qu’une fois
+        bindSearch();
+        return tx;
+      };
 
-      root.innerHTML = `${head(`${data.pending.length} opération${data.pending.length > 1 ? 's' : ''} à classer`)}${message}
-        <div class="sort-layout">${listPane(data, tx)}${detail(tx, data)}</div>`;
-      for (const el of root.querySelectorAll('[data-color]')) el.style.setProperty('--c', el.dataset.color);
+      // Recherche : les résultats changent à chaque lettre, sans redessiner l'écran (le clavier reste ouvert).
+      const bindSearch = () => {
+        const input = root.querySelector('[data-chercher]');
+        input?.addEventListener('input', () => {
+          state.query = input.value;
+          const res = root.querySelector('[data-resultats]');
+          const fav = root.querySelector('[data-favoris]');
+          const more = root.querySelectorAll('[data-autres]');
+          const on = Boolean(input.value.trim());
+          res.hidden = !on;
+          fav.hidden = on;
+          more.forEach((m) => { m.hidden = on; });
+          res.innerHTML = on ? searchButtons(data, input.value) : '';
+        });
+        root.querySelector('[data-remember]')?.addEventListener('change', (e) => { state.remember = e.target.checked; });
+      };
 
-      const rerender = () => this.render(root);
+      let tx = paint();
+      const redraw = () => { tx = paint(); };
+
       // Un seul gestionnaire par écran (remplacé à chaque affichage ; main.js le retire en quittant).
       root.onclick = async (e) => {
         const b = e.target.closest('button');
         if (!b) return;
-        if (b.dataset.person) { state.personId = b.dataset.person; rerender(); }
-        else if (b.dataset.category) { state.categoryId = b.dataset.category; rerender(); }
-        else if ('autre' in b.dataset) { state.showAll = true; await rerender(); root.querySelector('.group-title')?.scrollIntoView({ block: 'nearest' }); }
-        else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); rerender(); }
+        if (b.dataset.person) { state.personId = b.dataset.person; redraw(); }
+        else if (b.dataset.category) {
+          state.categoryId = b.dataset.category;
+          state.query = '';
+          redraw();
+          root.querySelector('[data-valider]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else if ('autre' in b.dataset) { state.showAll = true; redraw(); root.querySelector('.group-title')?.scrollIntoView({ block: 'nearest' }); }
+        else if (b.dataset.ordre) { state.order = b.dataset.ordre; state.currentId = null; this.render(root); }
+        else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); redraw(); }
         else if ('passer' in b.dataset) {
           const i = data.pending.indexOf(tx);
           state.currentId = data.pending[(i + 1) % data.pending.length].id;
           resetChoice();
-          rerender();
+          redraw();
+          window.scrollTo(0, 0);
         } else if ('valider' in b.dataset) {
           const err = root.querySelector('.form-error');
           try {
             const i = data.pending.indexOf(tx);
             const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: state.remember });
-            const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i)).find((t) => t.id !== tx.id);
+            const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i))
+              .find((t) => t.id !== tx.id && !(res.rule && t.merchantKey === tx.merchantKey));
             state.currentId = next?.id ?? null;
             resetChoice();
             state.message = res.alsoClassified
               ? `C’est noté. ${res.alsoClassified} autre${res.alsoClassified > 1 ? 's opérations' : ' opération'} du même commerce ${res.alsoClassified > 1 ? 'ont' : 'a'} été classée${res.alsoClassified > 1 ? 's' : ''} aussi.`
               : 'C’est noté.';
             document.dispatchEvent(new CustomEvent('donnees-modifiees'));
-            await rerender();
-            root.querySelector('.flash')?.focus?.();
+            await this.render(root);
+            window.scrollTo(0, 0);
           } catch (ex) {
             err.textContent = ex instanceof ReglageError ? ex.message : 'Cela n’a pas marché. Réessayez.';
             err.hidden = false;
@@ -201,7 +263,6 @@ export function trierView() {
           }
         }
       };
-      root.querySelector('[data-remember]')?.addEventListener('change', (e) => { state.remember = e.target.checked; });
     },
   };
 }

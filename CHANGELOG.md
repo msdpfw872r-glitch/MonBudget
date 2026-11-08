@@ -1,5 +1,11 @@
 # Historique des versions
 
+## 0.4.2 — 2026-11-08 — FRE (Fidag)
+- À trier : loupe « Chercher une catégorie » (sans tenir compte des accents ; plusieurs mots possibles, par ex. « caisse mal »).
+- À trier : ordre « Commerces fréquents d'abord » (par défaut) ou « Par date ». La case « Toujours classer » indique combien d'autres opérations du même commerce seront classées en même temps.
+- À trier (iPad) : les lignes de la liste ne se chevauchent plus ; montants sur une seule ligne ; liste limitée aux 50 suivantes pour rester fluide avec plus de 1000 opérations. La liste n'apparaît que si l'écran est assez large (1150 px et plus) ; sinon le détail prend toute la largeur avec « 1 sur 739 ».
+- 46 tests automatiques.
+
 ## 0.4.1 — 2026-11-08 — FRE (Fidag)
 - UBS : l'export « Transactions » est accepté en **CSV** comme en Excel. Importer le même relevé dans les deux formats ne crée pas de doublon.
 - Lecteur CSV sans dépendance (`app/src/core/csv.js`) : séparateur « ; », « , » ou tabulation deviné, guillemets, encodages UTF-8, UTF-16 et Windows-1252 (accents d'Excel).

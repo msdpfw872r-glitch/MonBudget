@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.4.1
+ * Version : 0.4.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -14,9 +14,10 @@
  *   0.3.0  FRE (Fidag)  Nouveaux fichiers : base de données, réglages, outils d'interface.
  *   0.4.0  FRE (Fidag)  Nouveaux fichiers : import, règles, factures de carte, écrans.
  *   0.4.1  FRE (Fidag)  Lecteur CSV.
+ *   0.4.2  FRE (Fidag)  Aides de tri (tri.js).
  */
 
-const VERSION = '0.4.1';
+const VERSION = '0.4.2';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -39,6 +40,7 @@ const FILES = [
   './src/core/cartes.js',
   './src/core/import.js',
   './src/core/csv.js',
+  './src/core/tri.js',
   './src/data/db.js',
   './src/core/text.js',
   './src/core/xlsx.js',
