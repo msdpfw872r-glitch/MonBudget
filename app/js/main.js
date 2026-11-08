@@ -1,34 +1,26 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.2.0
+ * Version : 0.3.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
- * Navigation par adresse (#/accueil, #/trier, #/journal, #/resume, #/importer, #/reglages).
+ * Navigation par adresse (#/accueil, #/trier, #/journal, #/resume, #/importer, #/reglages[/…]).
  * Sur iPad (≥ 900 px de large), Importer et Réglages s'ouvrent dans une fenêtre centrée ;
  * sur iPhone, ils prennent tout l'écran avec un bouton « Retour ».
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version : coquille, écrans vides, service worker.
+ *   0.3.0  FRE (Fidag)  Sous-pages de Réglages (personnes, comptes, catégories), écrans
+ *                       asynchrones (lecture de la base), message si le stockage est indisponible.
  */
 
-import { APP_VERSION } from './version.js';
 import { formatDateLong, formatMonth } from '../src/core/format.js';
+import { icon } from './ui.js';
+import { getDb } from './store.js';
+import { reglagesView } from './ecran-reglages.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
-
-/* Icônes au trait (même dessin que la maquette). */
-const ICONS = {
-  accueil: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
-  trier: '<path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/>',
-  journal: '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
-  resume: '<path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/>',
-  importer: '<path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/>',
-  reglages: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
-  retour: '<path d="M15 6l-6 6 6 6"/>',
-};
-const icon = (name) => `<svg aria-hidden="true" viewBox="0 0 24 24">${ICONS[name]}</svg>`;
 
 /** Écrans principaux (barre latérale et onglets). */
 const MAIN_ROUTES = [
@@ -38,9 +30,9 @@ const MAIN_ROUTES = [
   { id: 'resume', label: 'Résumé' },
 ];
 /** Écrans ouverts en fenêtre sur iPad. */
-const SHEET_ROUTES = { importer: 'Importer un relevé', reglages: 'Réglages' };
+const SHEET_ROUTES = ['importer', 'reglages'];
 
-/* ---------- Contenu des écrans (vides pour l'instant) ---------- */
+/* ---------- Contenu des écrans ---------- */
 
 function emptyCard(iconName, title, text) {
   return `<section class="card empty">
@@ -50,8 +42,10 @@ function emptyCard(iconName, title, text) {
   </section>`;
 }
 
+const staticView = (title, html) => ({ title, parent: null, render(root) { root.innerHTML = html(); } });
+
 const VIEWS = {
-  accueil() {
+  accueil: () => staticView('Accueil', () => {
     const today = new Date();
     return `<div class="page-head">
         <div>
@@ -63,59 +57,42 @@ const VIEWS = {
       ${emptyCard('importer', 'Pas encore d’opérations',
         'Pour commencer, importez le fichier de votre banque. Vos opérations apparaîtront ici.')}
       <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
-  },
-  trier() {
-    return `<div class="page-head"><div><h1>À trier</h1></div></div>
+  }),
+  trier: () => staticView('À trier', () => `<div class="page-head"><div><h1>À trier</h1></div></div>
       ${emptyCard('trier', 'Rien à trier',
-        'Quand vous importerez un relevé, les opérations à classer apparaîtront ici, une à la fois.')}`;
-  },
-  journal() {
-    return `<div class="page-head"><div><h1>Journal</h1>
+        'Quand vous importerez un relevé, les opérations à classer apparaîtront ici, une à la fois.')}`),
+  journal: () => staticView('Journal', () => `<div class="page-head"><div><h1>Journal</h1>
         <p class="sub">${formatMonth(new Date())}</p></div></div>
       ${emptyCard('journal', 'Le journal est vide',
-        'Toutes vos dépenses et rentrées seront listées ici, mois par mois.')}`;
-  },
-  resume() {
-    return `<div class="page-head"><div><h1>Résumé du mois</h1>
+        'Toutes vos dépenses et rentrées seront listées ici, mois par mois.')}`),
+  resume: () => staticView('Résumé', () => `<div class="page-head"><div><h1>Résumé du mois</h1>
         <p class="sub">${formatMonth(new Date())}</p></div></div>
       ${emptyCard('resume', 'Pas encore de résumé',
-        'Le résumé montrera ce qui est entré, ce qui est sorti, et pour qui.')}`;
-  },
-  importer() {
-    return emptyCard('importer', 'Bientôt disponible',
-      'Ici, vous choisirez le fichier téléchargé depuis votre banque (UBS, BCVs ou Mastercard).');
-  },
-  reglages() {
-    return `<section class="card">
-        <h2>À propos</h2>
-        <dl class="info-list">
-          <dt>Application</dt><dd>Mon Budget</dd>
-          <dt>Version</dt><dd>${APP_VERSION}</dd>
-        </dl>
-      </section>
-      ${emptyCard('reglages', 'Comptes, personnes et catégories',
-        'Ces réglages arriveront dans la prochaine version.')}`;
-  },
+        'Le résumé montrera ce qui est entré, ce qui est sorti, et pour qui.')}`),
+  importer: () => staticView('Importer un relevé', () => emptyCard('importer', 'Bientôt disponible',
+      'Ici, vous choisirez le fichier téléchargé depuis votre banque (UBS, BCVs ou Mastercard).')),
+  reglages: (path) => reglagesView(path),
 };
 
 /* ---------- Navigation ---------- */
 
 const view = document.getElementById('vue');
 const dialog = document.getElementById('fenetre');
+const dialogBody = document.getElementById('fenetre-contenu');
+const dialogBack = dialog.querySelector('[data-back]');
 let lastMainRoute = 'accueil';
+let renderCount = 0;
 
 function buildNav() {
-  document.querySelector('[data-nav="main"]').innerHTML = MAIN_ROUTES.map((r) =>
-    `<a class="nav-link" href="#/${r.id}" data-route="${r.id}">${icon(r.id)}${r.label}${
-      r.id === 'trier' ? '<span class="badge" data-count="trier" hidden></span>' : ''}</a>`).join('');
-  document.querySelector('[data-nav="tabs"]').innerHTML = MAIN_ROUTES.map((r) =>
-    `<a class="tab" href="#/${r.id}" data-route="${r.id}">${icon(r.id)}${r.label}${
-      r.id === 'trier' ? '<span class="badge" data-count="trier" hidden></span>' : ''}</a>`).join('');
+  const link = (cls) => (r) => `<a class="${cls}" href="#/${r.id}" data-route="${r.id}">${icon(r.id)}${r.label}${
+    r.id === 'trier' ? '<span class="badge" data-count="trier" hidden></span>' : ''}</a>`;
+  document.querySelector('[data-nav="main"]').innerHTML = MAIN_ROUTES.map(link('nav-link')).join('');
+  document.querySelector('[data-nav="tabs"]').innerHTML = MAIN_ROUTES.map(link('tab')).join('');
 }
 
 function currentRoute() {
-  const id = location.hash.replace(/^#\/?/, '');
-  return id in VIEWS ? id : 'accueil';
+  const [id, ...path] = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  return id in VIEWS ? { id, path } : { id: 'accueil', path: [] };
 }
 
 function markCurrent(id) {
@@ -125,42 +102,67 @@ function markCurrent(id) {
   }
 }
 
-function renderMain(id) {
-  lastMainRoute = id;
-  view.innerHTML = VIEWS[id]();
-  const title = MAIN_ROUTES.find((r) => r.id === id).label;
-  document.title = `${title} — Mon Budget`;
+function storageError(root) {
+  root.innerHTML = `<section class="card alert" role="alert">
+    <h2>${icon('attention')}Les données ne peuvent pas être lues</h2>
+    <p>Fermez l’app complètement puis rouvrez-la. Si le message revient, ouvrez l’app avec Safari
+    (pas en navigation privée).</p></section>`;
 }
 
-function render() {
-  const id = currentRoute();
-  if (id in SHEET_ROUTES) {
-    document.title = `${SHEET_ROUTES[id]} — Mon Budget`;
+/** Affiche un écran ; ignore le résultat si une autre navigation a eu lieu entre-temps. */
+async function paint(v, root, ticket) {
+  try {
+    await v.render(root);
+  } catch (e) {
+    if (ticket === renderCount) storageError(root);
+    console.error(e);
+  }
+}
+
+async function renderMain(id, ticket) {
+  lastMainRoute = id;
+  const v = VIEWS[id]([]);
+  document.title = `${v.title} — Mon Budget`;
+  await paint(v, view, ticket);
+}
+
+async function render() {
+  const ticket = ++renderCount;
+  const { id, path } = currentRoute();
+
+  if (SHEET_ROUTES.includes(id)) {
+    const v = VIEWS[id](path);
+    document.title = `${v.title} — Mon Budget`;
     markCurrent(id);
     if (WIDE.matches) {
-      if (!view.innerHTML) renderMain(lastMainRoute);
-      document.getElementById('fenetre-titre').textContent = SHEET_ROUTES[id];
-      document.getElementById('fenetre-contenu').innerHTML = VIEWS[id]();
+      if (!view.innerHTML) renderMain(lastMainRoute, ticket);
+      document.getElementById('fenetre-titre').textContent = v.title;
+      dialogBack.hidden = !v.parent;
+      dialogBack.setAttribute('href', v.parent ?? '#/');
       if (!dialog.open) dialog.showModal();
+      await paint(v, dialogBody, ticket);
+      dialog.scrollTop = 0;
     } else {
       if (dialog.open) dialog.close();
-      view.innerHTML = `<div class="page-head"><div><h1>${SHEET_ROUTES[id]}</h1></div>
-          <a class="btn btn-secondary" href="#/${lastMainRoute}">${icon('retour')}Retour</a></div>
-        ${VIEWS[id]()}`;
-      view.focus({ preventScroll: true });
+      const back = v.parent ?? `#/${lastMainRoute}`;
+      view.innerHTML = `<div class="page-head"><div><h1>${v.title}</h1></div>
+          <a class="btn btn-secondary" href="${back}">${icon('retour')}Retour</a></div>
+        <div class="stack" id="sous-vue"></div>`;
       window.scrollTo(0, 0);
+      view.focus({ preventScroll: true });
+      await paint(v, document.getElementById('sous-vue'), ticket);
     }
     return;
   }
   if (dialog.open) dialog.close();
-  renderMain(id);
   markCurrent(id);
-  view.focus({ preventScroll: true });
   window.scrollTo(0, 0);
+  await renderMain(id, ticket);
+  view.focus({ preventScroll: true });
 }
 
 dialog.addEventListener('close', () => {
-  if (currentRoute() in SHEET_ROUTES) location.hash = `#/${lastMainRoute}`;
+  if (SHEET_ROUTES.includes(currentRoute().id)) location.hash = `#/${lastMainRoute}`;
 });
 dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
 WIDE.addEventListener('change', render);
@@ -168,6 +170,8 @@ window.addEventListener('hashchange', render);
 
 buildNav();
 render();
+// Ouvre la base dès le démarrage (installe les données de départ au premier lancement).
+getDb().catch(() => {});
 
 /* ---------- Hors ligne et mise à jour ---------- */
 

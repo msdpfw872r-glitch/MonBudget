@@ -1,5 +1,13 @@
 # Historique des versions
 
+## 0.3.0 — 2026-11-08 — FRE (Fidag)
+- Données enregistrées sur l'appareil (IndexedDB, `app/src/data/db.js`), conservées après fermeture de l'app ; Safari est prié de ne pas les effacer (`navigator.storage.persist()`).
+- Données de départ (`seed.json`) installées au premier lancement seulement : les modifications ne sont jamais écrasées.
+- Réglages : « Pour qui » (nom, couleur), « Mes comptes » (nom, compte ou carte, banque), « Mes catégories » (nom, dépense ou rentrée, « ne pas compter dans les totaux », mettre de côté).
+- Suppression toujours confirmée, et refusée en mots simples si l'élément est encore utilisé par des opérations ou des règles.
+- Couleurs proposées pour les personnes toutes lisibles (contraste ≥ 4,5:1, vérifié par un test).
+- 21 tests automatiques.
+
 ## 0.2.0 — 2026-11-08 — FRE (Fidag)
 - Coquille de l'app installable (PWA) dans `app/` : navigation iPad (barre latérale, ≥ 900 px) et iPhone (onglets en bas), écrans Accueil, À trier, Journal, Résumé (vides), Importer et Réglages en fenêtre centrée sur iPad.
 - Police Atkinson Hyperlegible copiée dans l'app (licence OFL), couleurs de la maquette, aucune requête vers Internet (Content-Security-Policy `default-src 'self'`).

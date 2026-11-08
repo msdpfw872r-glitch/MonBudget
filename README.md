@@ -2,7 +2,7 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.2.0
+- Version : 0.3.0
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
@@ -11,6 +11,9 @@ Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes �
 |---|---|
 | `app/` | L'app publiée (page unique, styles, service worker, manifeste, police, icônes) |
 | `app/js/main.js` | Navigation et écrans |
+| `app/js/ecran-reglages.js` | Écrans Réglages (personnes, comptes, catégories) |
+| `app/src/data/db.js` | Stockage sur l'appareil (IndexedDB ; version en mémoire pour les tests) |
+| `app/src/core/reglages.js` | Données de départ et règles de modification des réglages |
 | `app/src/core/xlsx.js` | Lecture des fichiers Excel (.xlsx) sans dépendance, dans Safari et Node |
 | `app/src/core/text.js` | Montants suisses, dates, clé commerçant (règles), empreinte anti-doublon |
 | `app/src/core/format.js` | Affichage : `CHF 1’234.50`, « mardi 14 octobre » |

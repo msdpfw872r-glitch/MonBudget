@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.2.0
+ * Version : 0.3.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,8 @@
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version : couleurs, police, barre latérale (≥ 900 px),
  *                       onglets en bas (< 900 px), fenêtre centrée, bandeau de mise à jour.
+ *   0.3.0  FRE (Fidag)  Listes, formulaires, choix (boutons radio), pastilles de personne,
+ *                       fenêtre de confirmation, boutons « Supprimer », [hidden] toujours respecté.
  */
 
 @font-face {
@@ -52,6 +54,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
@@ -244,6 +247,7 @@ p { margin: 0; }
   color: var(--texte);
   box-shadow: 0 20px 60px rgba(28, 40, 38, 0.3);
 }
+.sheet { overflow-y: auto; overscroll-behavior: contain; }
 .sheet::backdrop { background: rgba(28, 40, 38, 0.45); }
 .sheet-head {
   position: sticky; top: 0;
@@ -280,3 +284,93 @@ p { margin: 0; }
   .sheet[open] { animation: monte 0.18s ease-out; }
   @keyframes monte { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
+
+/* ---------- Listes (Réglages) ---------- */
+
+.stack { display: flex; flex-direction: column; gap: 20px; }
+.card.list { padding: 0; gap: 0; overflow: hidden; }
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 68px; padding: 10px 20px;
+  text-decoration: none; color: var(--texte);
+}
+.row + .row { border-top: 1px solid var(--trait-doux); }
+.row:hover { background: var(--fond); color: var(--texte); }
+.row > svg { color: var(--texte-2); }
+.row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row-title { font-size: 20px; font-weight: 700; }
+.row-sub { font-size: 19px; font-weight: 400; color: var(--texte-2); }
+.group-title { font-size: 20px; color: var(--texte-2); margin-top: 4px; }
+.footnote { text-align: center; color: var(--texte-2); }
+.note.pad { padding: 20px; }
+
+.card-accent { border: 2px solid #CFE5DF; }
+.card-line { display: flex; align-items: center; gap: 14px; }
+.round-icon {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 26px;
+  background: var(--accent-doux); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tag {
+  display: inline-block; padding: 4px 14px; border-radius: 12px;
+  background: var(--c, var(--texte-2)); color: #FFFFFF; font-weight: 700;
+}
+
+/* ---------- Formulaires ---------- */
+
+.form { gap: 22px; }
+.field { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.field > span, .field > legend { font-size: 20px; font-weight: 700; padding: 0; margin-bottom: 8px; }
+input[type="text"], input:not([type]) {
+  font: inherit; font-size: 20px; color: var(--texte);
+  min-height: var(--tactile); padding: 0 16px;
+  border: 2px solid var(--trait); border-radius: 14px; background: var(--surface);
+  width: 100%;
+}
+input:not([type]):focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-doux); }
+
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.choice {
+  display: flex; align-items: center; gap: 12px;
+  min-height: var(--tactile); padding: 8px 14px;
+  border: 2px solid var(--trait); border-radius: 14px; background: var(--surface);
+  font-size: 20px; cursor: pointer;
+}
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); font-weight: 700; }
+.choice input { width: 24px; height: 24px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.choice-check { align-items: flex-start; padding: 14px; }
+.choice-check input { margin-top: 2px; }
+.choice-check:has(input:checked) { font-weight: 400; }
+.swatch { width: 28px; height: 28px; border-radius: 14px; background: var(--c); flex-shrink: 0; }
+
+.form-error {
+  margin: 0; padding: 14px 16px; border-radius: 14px;
+  background: var(--alerte-fond); color: var(--alerte-texte); font-weight: 700;
+  border: 2px solid var(--alerte-trait);
+}
+.actions { display: flex; flex-direction: column; gap: 12px; }
+
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.btn-danger { background: #A3271B; color: #FFFFFF; }
+.btn-danger:hover { background: #7E1E15; color: #FFFFFF; }
+.btn-danger-outline { background: var(--surface); color: #A3271B; border: 2px solid #E3B7B2; }
+.btn-danger-outline:hover { border-color: #A3271B; color: #A3271B; }
+
+.alert { background: var(--alerte-fond); color: var(--alerte-texte); border: 2px solid var(--alerte-trait); }
+.alert h2 { display: flex; align-items: center; gap: 10px; }
+
+/* ---------- Fenêtre de confirmation ---------- */
+
+.confirm {
+  border: 0; padding: 26px; border-radius: var(--rayon);
+  width: min(480px, calc(100vw - 40px));
+  background: var(--surface); color: var(--texte);
+  box-shadow: 0 20px 60px rgba(28, 40, 38, 0.35);
+}
+.confirm::backdrop { background: rgba(28, 40, 38, 0.5); }
+.confirm form { display: flex; flex-direction: column; gap: 14px; }
+.confirm p { font-size: 20px; color: var(--texte-2); }
+.confirm-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+
+.sheet-head h2 { flex-grow: 1; }

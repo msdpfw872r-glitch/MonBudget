@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.2.0
+ * Version : 0.3.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,9 +11,10 @@
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version.
+ *   0.3.0  FRE (Fidag)  Nouveaux fichiers : base de données, réglages, outils d'interface.
  */
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -24,7 +25,12 @@ const FILES = [
   './css/app.css',
   './js/main.js',
   './js/version.js',
+  './js/ui.js',
+  './js/store.js',
+  './js/ecran-reglages.js',
   './src/core/format.js',
+  './src/core/reglages.js',
+  './src/data/db.js',
   './src/core/text.js',
   './src/core/xlsx.js',
   './src/importers/ubs.js',

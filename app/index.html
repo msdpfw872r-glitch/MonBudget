@@ -1,17 +1,18 @@
 <!doctype html>
 <!--
   index.html — Mon Budget : page unique de l'app.
-  Version : 0.2.0
+  Version : 0.3.0
   Auteur  : FRE (Fidag)
   Date    : 2026-11-08
   Historique :
     0.2.0  FRE (Fidag)  Coquille PWA : navigation iPad (barre latérale) / iPhone (onglets), écrans vides.
+    0.3.0  FRE (Fidag)  Bouton « Retour » dans la fenêtre (sous-pages de Réglages), fenêtre de confirmation.
 -->
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Mon Budget</title>
   <meta name="description" content="Journal des dépenses et recettes">
@@ -52,12 +53,26 @@
 
   <dialog id="fenetre" class="sheet" aria-labelledby="fenetre-titre">
     <div class="sheet-head">
+      <a class="btn btn-secondary" href="#/" data-back hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Retour
+      </a>
       <h2 id="fenetre-titre"></h2>
       <button type="button" class="btn btn-secondary" data-close>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Fermer
       </button>
     </div>
     <div class="sheet-body" id="fenetre-contenu"></div>
+  </dialog>
+
+  <dialog id="confirmer" class="confirm" aria-labelledby="confirmer-titre">
+    <form method="dialog">
+      <h2 id="confirmer-titre"></h2>
+      <p></p>
+      <div class="confirm-buttons">
+        <button class="btn btn-secondary" value="annuler" data-annuler>Annuler</button>
+        <button class="btn btn-danger" value="ok" data-ok>Confirmer</button>
+      </div>
+    </form>
   </dialog>
 
   <div class="update" id="maj" role="status" hidden>
