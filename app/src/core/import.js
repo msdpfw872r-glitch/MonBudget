@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.4.0
+ * Version : 0.4.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -14,9 +14,11 @@
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version (UBS).
+ *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
  */
 
 import { readXlsx, looksLikeZip } from './xlsx.js';
+import { decodeText, looksLikeText, parseCsv } from './csv.js';
 import { merchantKey } from './text.js';
 import { ReglageError, normRef, assignBankRef } from './reglages.js';
 import { findRule, applyRule } from './regles.js';
@@ -36,24 +38,26 @@ export const bankName = (format) => BANK_NAMES[format] ?? 'cette banque';
  */
 export async function readBankFile(data) {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  let sheets = [];
   if (looksLikeZip(bytes)) {
-    let book;
     try {
-      book = await readXlsx(bytes);
+      sheets = (await readXlsx(bytes)).sheets.map((s) => s.rows);
     } catch {
       throw new ReglageError('Ce fichier n’a pas pu être ouvert. Téléchargez-le à nouveau depuis votre banque.');
     }
-    for (const sheet of book.sheets) {
-      for (const imp of IMPORTERS) {
-        if (imp.detect(sheet.rows)) {
-          const res = imp.parse(sheet.rows);
-          if (!res.transactions.length) throw new ReglageError('Ce fichier ne contient aucune opération.');
-          return { ...res, format: imp.FORMAT_ID, label: imp.FORMAT_LABEL };
-        }
+  } else if (looksLikeText(bytes)) {
+    sheets = [parseCsv(decodeText(bytes))];
+  }
+  for (const rows of sheets) {
+    for (const imp of IMPORTERS) {
+      if (imp.detect(rows)) {
+        const res = imp.parse(rows);
+        if (!res.transactions.length) throw new ReglageError('Ce fichier ne contient aucune opération.');
+        return { ...res, format: imp.FORMAT_ID, label: imp.FORMAT_LABEL };
       }
     }
   }
-  throw new ReglageError('Ce fichier n’est pas reconnu. Choisissez le fichier des opérations téléchargé depuis votre banque (pour UBS : « Transactions », au format Excel).');
+  throw new ReglageError('Ce fichier n’est pas reconnu. Choisissez le fichier des opérations téléchargé depuis votre banque (pour UBS : « Transactions », en Excel ou en CSV).');
 }
 
 /** Comptes de l'app qui reçoivent ce format de fichier. */
@@ -135,6 +139,9 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     };
     if (tx.isCardBillPayment && billCategory) {
       tx = { ...tx, categoryId: billCategory.id, personId: null, status: 'classee' };
+    } else if (t.isCardPaymentReceived && acc.kind === 'carte' && billCategory) {
+      // Règlement de la facture vu du côté de la carte : ni une rentrée, ni une dépense.
+      tx = { ...tx, isCardBillPayment: false, categoryId: billCategory.id, personId: null, status: 'classee' };
     } else {
       tx.isCardBillPayment = false;
       const rule = findRule(rules, tx.merchantKey);

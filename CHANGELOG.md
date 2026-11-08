@@ -1,5 +1,11 @@
 # Historique des versions
 
+## 0.4.1 — 2026-11-08 — FRE (Fidag)
+- UBS : l'export « Transactions » est accepté en **CSV** comme en Excel. Importer le même relevé dans les deux formats ne crée pas de doublon.
+- Lecteur CSV sans dépendance (`app/src/core/csv.js`) : séparateur « ; », « , » ou tabulation deviné, guillemets, encodages UTF-8, UTF-16 et Windows-1252 (accents d'Excel).
+- Variantes UBS prévues, à confirmer sur un vrai fichier : en-têtes anglais / allemands, colonnes « Débit » / « Crédit », « Description1…3 », IBAN au-dessus du tableau, numéro de carte complet ramené à ****1234, règlement reçu sur une carte (ni rentrée ni dépense).
+- 44 tests automatiques.
+
 ## 0.4.0 — 2026-11-08 — FRE (Fidag)
 - Import UBS de bout en bout : choisir le fichier, l'app reconnaît la banque, demande une seule fois à qui appartient chaque carte (****1234), montre le résumé (trouvées, classées toutes seules, à trier, déjà importées), puis importe.
 - Anti-doublon : réimporter le même fichier ou des périodes qui se chevauchent n'ajoute rien.

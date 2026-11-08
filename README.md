@@ -2,7 +2,7 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.4.0
+- Version : 0.4.1
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
@@ -14,6 +14,7 @@ Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes �
 | `app/js/ecran-reglages.js` | Écrans Réglages (personnes, comptes, catégories) |
 | `app/src/data/db.js` | Stockage sur l'appareil (IndexedDB ; version en mémoire pour les tests) |
 | `app/src/core/reglages.js` | Données de départ et règles de modification des réglages |
+| `app/src/core/csv.js` | Lecture des fichiers CSV (encodage, séparateur) |
 | `app/src/core/import.js` | Import de bout en bout : lecture, comptes et cartes, doublons, annulation |
 | `app/src/core/regles.js` | Règles retenues (classement automatique) |
 | `app/src/core/cartes.js` | Factures de carte : rattacher les achats au prélèvement LSV |
@@ -41,6 +42,8 @@ npm test
 (Node 18 ou plus récent ; aucune installation de paquet nécessaire.)
 
 ## Import UBS — ce qui est géré
+
+- Export « Transactions » en Excel (.xlsx) **ou en CSV** (séparateur et encodage devinés).
 
 - En-têtes en français, recherchés dans les 25 premières lignes (lignes de titre tolérées).
 - Montants `8'700.00`, `-2’550.00`, `1 234,50` ou vraies cellules numériques.

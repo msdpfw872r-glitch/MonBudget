@@ -1,12 +1,13 @@
 /**
  * text.js — Outils communs : montants, dates, texte des opérations, empreintes.
  *
- * Version : 0.1.0
+ * Version : 0.4.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.1.0  FRE (Fidag)  Première version.
+ *   0.4.1  FRE (Fidag)  parseDateCH accepte une heure après la date.
  */
 
 /** Enlève les accents et met en majuscules. */
@@ -56,7 +57,8 @@ export function parseDateCH(v) {
   if (typeof v === 'number') return excelSerialToIso(v);
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   const s = String(v ?? '').trim();
-  let m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/);
+  // Une heure éventuelle après la date (« 03.10.2026 14:22 ») est ignorée.
+  let m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
   if (m) {
     let y = parseInt(m[3], 10);
     if (y < 100) y += 2000;
