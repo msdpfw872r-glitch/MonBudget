@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>À trier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 20px 20px 24px">
+
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <a href="Main.dc.html" style="text-decoration: none; height: 48px; padding: 0 14px 0 6px; display: flex; align-items: center; gap: 4px; font-size: 19px; color: #1D6F61">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Fermer</a>
+    <span style="font-size: 19px; font-weight: 700">{{position}} sur 7</span>
+  </div>
+  <div style="height: 10px; border-radius: 5px; background: #D9E1DE"><div style="width: {{progress}}; height: 10px; border-radius: 5px; background: #1D6F61"></div></div>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 2px rgba(28,40,38,0.08)">
+    <span style="font-size: 17px; color: #4F5E5B">Mardi 14 octobre · BCVs</span>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+      <span style="font-size: 26px; font-weight: 700">Migros Sion</span>
+      <span style="font-size: 26px; font-weight: 700; white-space: nowrap">− 64.80</span>
+    </div>
+    <span style="font-size: 14px; color: #4F5E5B">Texte de la banque : MIGROS M SION 1950 CARTE XXXX4567</span>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700">Pour qui ?</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+        <button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700">C’est quoi ?</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+        <button type="button" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+      </sc-for>
+    </div>
+  </section>
+
+  <label style="display: flex; align-items: center; gap: 14px; background: #FFFFFF; border-radius: 18px; padding: 14px 16px; font-size: 18px; cursor: pointer">
+    <input type="checkbox" checked="{{remember}}" onChange="{{toggleRemember}}" style="width: 28px; height: 28px; accent-color: #1D6F61; flex-shrink: 0; margin: 0">
+    <span>Toujours classer <strong>Migros</strong> comme ça</span>
+  </label>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: auto">
+    <button type="button" onClick="{{next}}" style="font-family: inherit; height: 64px; border-radius: 20px; background: #FFFFFF; border: 2px solid #D9E1DE; color: #1C2826; font-size: 19px; cursor: pointer">Passer</button>
+    <button type="button" onClick="{{next}}" style="grid-column: span 2; font-family: inherit; height: 64px; border-radius: 20px; background: #1D6F61; border: none; color: #FFFFFF; font-size: 21px; font-weight: 700; cursor: pointer">Valider</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { person: 'menage', cat: 'alim', remember: true, position: 1 };
+  }
+  renderVals() {
+    const s = this.state;
+    const colors = { maman: '#8A3466', papa: '#2D5B99', menage: '#8C5A00' };
+    const people = [
+      { id: 'maman', label: 'Maman' },
+      { id: 'papa', label: 'Papa' },
+      { id: 'menage', label: 'Ménage' }
+    ].map((p) => {
+      const on = s.person === p.id;
+      const c = colors[p.id];
+      return {
+        label: p.label,
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ person: p.id }),
+        style: 'font-family: inherit; height: 60px; border-radius: 18px; font-size: 19px; font-weight: 700; cursor: pointer; ' +
+          (on ? 'background: ' + c + '; color: #FFFFFF; border: 3px solid ' + c + ';'
+              : 'background: #FFFFFF; color: ' + c + '; border: 2px solid ' + c + ';')
+      };
+    });
+    const cats = [
+      { id: 'alim', label: 'Alimentation' },
+      { id: 'droguerie', label: 'Ménage, droguerie' },
+      { id: 'pharma', label: 'Pharmacie' },
+      { id: 'resto', label: 'Restaurants' },
+      { id: 'cadeaux', label: 'Cadeaux' },
+      { id: 'autre', label: 'Autre…' }
+    ].map((c) => {
+      const on = s.cat === c.id;
+      return {
+        label: c.label,
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ cat: c.id }),
+        style: 'font-family: inherit; min-height: 56px; border-radius: 16px; font-size: 18px; cursor: pointer; padding: 6px 10px; ' +
+          (on ? 'background: #E1F0EC; color: #14524A; border: 3px solid #1D6F61; font-weight: 700;'
+              : 'background: #FFFFFF; color: #1C2826; border: 2px solid #D9E1DE;')
+      };
+    });
+    return {
+      people,
+      cats,
+      remember: s.remember,
+      toggleRemember: () => this.setState({ remember: !s.remember }),
+      position: s.position,
+      progress: Math.round((s.position / 7) * 100) + '%',
+      next: () => this.setState({ position: s.position >= 7 ? 1 : s.position + 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

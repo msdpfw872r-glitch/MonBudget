@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Réglages et sauvegarde</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 20px 20px 100px">
+
+  <a href="Main.dc.html" style="text-decoration: none; height: 48px; padding: 0 14px 0 6px; display: flex; align-items: center; gap: 4px; font-size: 19px; color: #1D6F61; align-self: flex-start">
+    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Retour</a>
+  <h1 style="margin: 0; font-size: 30px; font-weight: 700">Réglages</h1>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #CFE5DF">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 24px; background: #E1F0EC; color: #1D6F61; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19 10a4 4 0 0 1 0 8z"/></svg>
+      </span>
+      <span style="display: flex; flex-direction: column">
+        <span style="font-size: 20px; font-weight: 700">Sauvegarde</span>
+        <span style="font-size: 17px; color: #4F5E5B">Dernière : jeudi 5 novembre</span>
+      </span>
+    </div>
+    <button type="button" style="font-family: inherit; height: 60px; border-radius: 18px; background: #1D6F61; border: none; color: #FFFFFF; font-size: 20px; font-weight: 700; cursor: pointer">Sauvegarder maintenant</button>
+    <button type="button" style="font-family: inherit; height: 52px; border-radius: 16px; background: #FFFFFF; border: 2px solid #D9E1DE; color: #1C2826; font-size: 18px; cursor: pointer">Restaurer une sauvegarde</button>
+  </section>
+
+  <section style="background: #FFFFFF; border-radius: 24px; display: flex; flex-direction: column">
+    <a href="#regles" style="text-decoration: none; color: #1C2826; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 20px">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 19px; font-weight: 700">Règles retenues</span><span style="font-size: 16px; color: #4F5E5B">24 commerces reconnus</span></span>
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F5E5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+    <a href="#categories" style="text-decoration: none; color: #1C2826; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 20px; border-top: 1px solid #E6ECE9">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 19px; font-weight: 700">Mes catégories</span><span style="font-size: 16px; color: #4F5E5B">39 catégories</span></span>
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F5E5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+    <a href="#personnes" style="text-decoration: none; color: #1C2826; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 20px; border-top: 1px solid #E6ECE9">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 19px; font-weight: 700">Pour qui</span><span style="font-size: 16px; color: #4F5E5B">Maman, Papa, Ménage</span></span>
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F5E5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+    <a href="#comptes" style="text-decoration: none; color: #1C2826; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 20px; border-top: 1px solid #E6ECE9">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 19px; font-weight: 700">Mes comptes</span><span style="font-size: 16px; color: #4F5E5B">BCVs, Mastercard</span></span>
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F5E5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+  </section>
+
+  <section id="regles" style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font-size: 17px; font-weight: 700; color: #4F5E5B">Exemples de règles retenues</h2>
+    <div style="background: #FFFFFF; border-radius: 18px; padding: 4px 16px; display: flex; flex-direction: column; font-size: 17px">
+      <div style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 0"><strong>Migros</strong><span>Alimentation · <span style="color: #8C5A00; font-weight: 700">Ménage</span></span></div>
+      <div style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-top: 1px solid #E6ECE9"><strong>Groupe Mutuel</strong><span>Caisse maladie · <span style="color: #2D5B99; font-weight: 700">Papa</span></span></div>
+    </div>
+  </section>
+
+  <p style="margin: 0; font-size: 14px; color: #4F5E5B; text-align: center">Mon Budget · version 0.1.0</p>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #FFFFFF; border-top: 1px solid #D9E1DE; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="Main.dc.html" aria-current="page" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #1D6F61; font-size: 15px; font-weight: 700; border-top: 4px solid #1D6F61">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="Trier.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>À trier</a>
+    <a href="Journal.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Journal</a>
+    <a href="Resume.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/></svg>Résumé</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

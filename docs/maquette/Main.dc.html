@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 28px 20px 100px">
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-start">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 style="margin: 0; font-size: 32px; font-weight: 700">Bonjour !</h1>
+      <p style="margin: 0; font-size: 19px; color: #4F5E5B">Dimanche 8 novembre</p>
+    </div>
+    <a href="Reglages.dc.html" aria-label="Réglages" style="width: 56px; height: 56px; border-radius: 28px; background: #FFFFFF; border: 1px solid #D9E1DE; display: flex; align-items: center; justify-content: center; color: #1C2826">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </a>
+  </div>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(28,40,38,0.08)">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #4F5E5B">Novembre 2026</h2>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 17px; color: #4F5E5B">Il reste ce mois-ci</span>
+      <span style="font-size: 40px; font-weight: 700; color: #1D6F61">CHF 1’517.40</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <div style="background: #E1F0EC; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; color: #1D4F47">Rentrées</span>
+        <span style="font-size: 22px; font-weight: 700; color: #1D4F47">+ 5’430.00</span>
+      </div>
+      <div style="background: #F3F6F4; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; color: #4F5E5B">Dépenses</span>
+        <span style="font-size: 22px; font-weight: 700">− 3’912.60</span>
+      </div>
+    </div>
+  </section>
+
+  <a href="Trier.dc.html" style="text-decoration: none; background: #FFF1E0; border: 2px solid #F0C48A; border-radius: 24px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; color: #6E3C00">
+    <span style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 26px; background: #8A4B00; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700">7</span>
+    <span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1">
+      <span style="font-size: 20px; font-weight: 700">Opérations à trier</span>
+      <span style="font-size: 17px">Environ 2 minutes</span>
+    </span>
+    <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+  </a>
+
+  <a href="Importer.dc.html" style="text-decoration: none; height: 64px; border-radius: 20px; background: #1D6F61; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 21px; font-weight: 700">
+    <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+    Importer un relevé
+  </a>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700">Dépenses pour qui ?</h2>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; font-size: 19px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 14px; height: 14px; border-radius: 7px; background: #8C5A00"></span>Ménage</span><strong>2’184.30</strong></div>
+      <div style="height: 10px; border-radius: 5px; background: #F3F6F4"><div style="width: 56%; height: 10px; border-radius: 5px; background: #8C5A00"></div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; font-size: 19px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 14px; height: 14px; border-radius: 7px; background: #8A3466"></span>Maman</span><strong>941.95</strong></div>
+      <div style="height: 10px; border-radius: 5px; background: #F3F6F4"><div style="width: 24%; height: 10px; border-radius: 5px; background: #8A3466"></div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; font-size: 19px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 14px; height: 14px; border-radius: 7px; background: #2D5B99"></span>Papa</span><strong>786.35</strong></div>
+      <div style="height: 10px; border-radius: 5px; background: #F3F6F4"><div style="width: 20%; height: 10px; border-radius: 5px; background: #2D5B99"></div></div>
+    </div>
+  </section>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #FFFFFF; border-top: 1px solid #D9E1DE; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="Main.dc.html" aria-current="page" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #1D6F61; font-size: 15px; font-weight: 700; border-top: 4px solid #1D6F61">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="Trier.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>À trier</a>
+    <a href="Journal.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Journal</a>
+    <a href="Resume.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/></svg>Résumé</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+{
+  "_meta": {
+    "version": "0.1.0",
+    "auteur": "FRE (Fidag)",
+    "date": "2026-11-08",
+    "note": "Données de départ de l'app. Les icônes sont choisies dans l'app (pas d'emoji)."
+  },
+  "people": [
+    {
+      "id": "maman",
+      "name": "Maman",
+      "color": "#8A3466"
+    },
+    {
+      "id": "papa",
+      "name": "Papa",
+      "color": "#2D5B99"
+    },
+    {
+      "id": "menage",
+      "name": "Ménage",
+      "color": "#8C5A00"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "ubs",
+      "name": "UBS",
+      "kind": "compte",
+      "importFormat": "ubs-transactions-xlsx"
+    },
+    {
+      "id": "bcvs",
+      "name": "BCVs",
+      "kind": "compte",
+      "importFormat": "camt053"
+    },
+    {
+      "id": "mastercard",
+      "name": "Mastercard (Swisscard)",
+      "kind": "carte",
+      "importFormat": "swisscard-csv"
+    }
+  ],
+  "categories": [
+    {
+      "id": "logement-loyer-hypotheque",
+      "name": "Logement (loyer / hypothèque)",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "energie-et-charges",
+      "name": "Énergie et charges",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "entretien-maison-et-jardin",
+      "name": "Entretien maison et jardin",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "alimentation-et-courses",
+      "name": "Alimentation et courses",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "menage-et-droguerie",
+      "name": "Ménage et droguerie",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "caisse-maladie-primes",
+      "name": "Caisse maladie (primes)",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "medecin-et-hopital",
+      "name": "Médecin et hôpital",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "pharmacie",
+      "name": "Pharmacie",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "dentiste-et-lunettes",
+      "name": "Dentiste et lunettes",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "assurances-menage-et-rc",
+      "name": "Assurances ménage et RC",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "impots",
+      "name": "Impôts",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "voiture",
+      "name": "Voiture",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "transports-publics",
+      "name": "Transports publics",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "telephone-internet-et-tv",
+      "name": "Téléphone, internet et TV",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "abonnements",
+      "name": "Abonnements",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "vetements-et-chaussures",
+      "name": "Vêtements et chaussures",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "coiffeur-et-soins",
+      "name": "Coiffeur et soins",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "restaurants",
+      "name": "Restaurants",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "voyages-et-vacances",
+      "name": "Voyages et vacances",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "loisirs-et-sorties",
+      "name": "Loisirs et sorties",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "cadeaux",
+      "name": "Cadeaux",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "famille-et-petits-enfants",
+      "name": "Famille et petits-enfants",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "dons",
+      "name": "Dons",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "animaux",
+      "name": "Animaux",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "frais-bancaires",
+      "name": "Frais bancaires",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "epargne",
+      "name": "Épargne",
+      "type": "depense",
+      "excludeFromTotals": true
+    },
+    {
+      "id": "retrait-d-especes",
+      "name": "Retrait d'espèces",
+      "type": "depense",
+      "excludeFromTotals": true
+    },
+    {
+      "id": "virement-sortant",
+      "name": "Virement sortant",
+      "type": "depense",
+      "excludeFromTotals": true
+    },
+    {
+      "id": "divers",
+      "name": "Divers",
+      "type": "depense",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "rente-avs",
+      "name": "Rente AVS",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "rente-lpp-2e-pilier",
+      "name": "Rente LPP (2e pilier)",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "3e-pilier-rente-viagere",
+      "name": "3e pilier / rente viagère",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "prestations-complementaires",
+      "name": "Prestations complémentaires",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "remboursement-caisse-maladie",
+      "name": "Remboursement caisse maladie",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "interets-et-dividendes",
+      "name": "Intérêts et dividendes",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "revenus-locatifs",
+      "name": "Revenus locatifs",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "remboursement-d-impots",
+      "name": "Remboursement d'impôts",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "autres-revenus",
+      "name": "Autres revenus",
+      "type": "recette",
+      "excludeFromTotals": false
+    },
+    {
+      "id": "virement-entrant",
+      "name": "Virement entrant",
+      "type": "recette",
+      "excludeFromTotals": true
+    }
+  ]
+}

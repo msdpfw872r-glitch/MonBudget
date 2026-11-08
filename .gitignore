@@ -1,0 +1,14 @@
+# .gitignore — Version 0.1.1 — Auteur : FRE (Fidag)
+# Jamais de vraies données bancaires dans ce dépôt public.
+*.xml
+*.csv
+*.xlsx
+*.json
+!tests/fixtures/**
+!src/data/seed.json
+!app/src/data/seed.json
+!package.json
+!docs/maquette/canvas.json
+!app/manifest.webmanifest
+node_modules/
+.DS_Store

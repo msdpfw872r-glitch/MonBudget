@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Résumé du mois</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 28px 20px 100px">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <h1 style="margin: 0; font-size: 30px; font-weight: 700">Résumé</h1>
+    <p style="margin: 0; font-size: 19px; color: #4F5E5B">Octobre 2026</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <div style="background: #E1F0EC; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 15px; color: #1D4F47">Rentrées</span>
+      <span style="font-size: 19px; font-weight: 700; color: #1D4F47">5’430</span>
+    </div>
+    <div style="background: #FFFFFF; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 15px; color: #4F5E5B">Dépenses</span>
+      <span style="font-size: 19px; font-weight: 700">4’106</span>
+    </div>
+    <div style="background: #1D6F61; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 15px; color: #E1F0EC">Reste</span>
+      <span style="font-size: 19px; font-weight: 700; color: #FFFFFF">+ 1’324</span>
+    </div>
+  </div>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700">Où va l’argent</h2>
+    <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+      <div style="display: flex; flex-direction: column; gap: 5px">
+        <div style="display: flex; justify-content: space-between; font-size: 18px"><span>{{c.label}}</span><strong>{{c.amount}}</strong></div>
+        <div style="height: 10px; border-radius: 5px; background: #F3F6F4"><div style="{{c.barStyle}}"></div></div>
+      </div>
+    </sc-for>
+  </section>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 16px 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <div style="display: flex; flex-direction: column; gap: 4px; border-left: 0">
+      <span style="font-size: 16px; font-weight: 700; color: #8A3466">Maman</span>
+      <span style="font-size: 19px; font-weight: 700">1’012</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 16px; font-weight: 700; color: #2D5B99">Papa</span>
+      <span style="font-size: 19px; font-weight: 700">874</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 16px; font-weight: 700; color: #8C5A00">Ménage</span>
+      <span style="font-size: 19px; font-weight: 700">2’220</span>
+    </div>
+  </section>
+
+  <button type="button" style="font-family: inherit; height: 56px; border-radius: 18px; background: #FFFFFF; border: 2px solid #1D6F61; color: #1D6F61; font-size: 19px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
+    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6"/><path d="M4 20h16"/></svg>
+    Exporter le mois
+  </button>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #FFFFFF; border-top: 1px solid #D9E1DE; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="Main.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="Trier.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>À trier</a>
+    <a href="Journal.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Journal</a>
+    <a href="Resume.dc.html" aria-current="page" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #1D6F61; font-size: 15px; font-weight: 700; border-top: 4px solid #1D6F61">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/></svg>Résumé</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      ['Logement', 1450], ['Caisse maladie', 1024], ['Alimentation', 612],
+      ['Voiture', 386], ['Pharmacie', 148], ['Autres', 486]
+    ];
+    const max = 1450;
+    const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '’');
+    return {
+      cats: rows.map(([label, v]) => ({
+        label,
+        amount: fmt(v),
+        barStyle: 'height: 10px; border-radius: 5px; background: #1D6F61; width: ' + Math.round((v / max) * 100) + '%;'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Importer un relevé</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px 20px 100px">
+
+  <div style="display: flex; align-items: center; gap: 10px">
+    <a href="Main.dc.html" style="text-decoration: none; height: 48px; padding: 0 14px 0 6px; border-radius: 24px; display: flex; align-items: center; gap: 4px; font-size: 19px; color: #1D6F61">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Retour</a>
+  </div>
+  <h1 style="margin: 0; font-size: 30px; font-weight: 700">Importer un relevé</h1>
+
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700"><span style="color: #1D6F61">1.</span> De quel compte ?</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <button type="button" aria-pressed="true" style="font-family: inherit; text-align: left; min-height: 80px; border-radius: 18px; background: #E1F0EC; border: 3px solid #1D6F61; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; color: #1C2826; cursor: pointer">
+        <span style="font-size: 20px; font-weight: 700">BCVs</span>
+        <span style="font-size: 16px; color: #1D4F47">Compte privé</span>
+      </button>
+      <button type="button" aria-pressed="false" style="font-family: inherit; text-align: left; min-height: 80px; border-radius: 18px; background: #FFFFFF; border: 2px solid #D9E1DE; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; color: #1C2826; cursor: pointer">
+        <span style="font-size: 20px; font-weight: 700">Mastercard</span>
+        <span style="font-size: 16px; color: #4F5E5B">Carte de crédit</span>
+      </button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 700"><span style="color: #1D6F61">2.</span> Choisir le fichier</h2>
+    <button type="button" style="font-family: inherit; height: 64px; border-radius: 18px; background: #FFFFFF; border: 2px dashed #1D6F61; color: #1D6F61; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 20px; font-weight: 700; cursor: pointer">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Ouvrir mes fichiers
+    </button>
+    <p style="margin: 0; font-size: 16px; color: #4F5E5B">Le fichier téléchargé depuis l’e-banking (.xml ou .csv)</p>
+  </section>
+
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(28,40,38,0.08)">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 20px; background: #1D6F61; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+      </span>
+      <span style="display: flex; flex-direction: column">
+        <span style="font-size: 20px; font-weight: 700">Relevé bien lu</span>
+        <span style="font-size: 16px; color: #4F5E5B">BCVs · du 1er au 31 octobre</span>
+      </span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 18px">
+      <div style="display: flex; justify-content: space-between"><span>Opérations trouvées</span><strong>42</strong></div>
+      <div style="display: flex; justify-content: space-between"><span>Classées toutes seules</span><strong style="color: #1D6F61">35</strong></div>
+      <div style="display: flex; justify-content: space-between"><span>À trier par vous</span><strong style="color: #8A4B00">7</strong></div>
+      <div style="display: flex; justify-content: space-between; color: #4F5E5B"><span>Déjà importées (ignorées)</span><span>3</span></div>
+    </div>
+  </section>
+
+  <a href="Trier.dc.html" style="text-decoration: none; height: 64px; border-radius: 20px; background: #1D6F61; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 700">Trier les 7 opérations</a>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #FFFFFF; border-top: 1px solid #D9E1DE; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="Main.dc.html" aria-current="page" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #1D6F61; font-size: 15px; font-weight: 700; border-top: 4px solid #1D6F61">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+    <a href="Trier.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>À trier</a>
+    <a href="Journal.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Journal</a>
+    <a href="Resume.dc.html" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4F5E5B; font-size: 15px; border-top: 4px solid transparent">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/></svg>Résumé</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

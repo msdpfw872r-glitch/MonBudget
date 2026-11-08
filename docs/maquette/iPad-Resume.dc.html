@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Résumé (iPad)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D6F61}a:hover{color:#14524A}
+</style>
+</helmet>
+<div style="width: 1180px; height: 820px; box-sizing: border-box; background: #F3F6F4; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #1C2826; overflow: hidden; display: flex">
+<nav aria-label="Navigation principale" style="width: 250px; flex-shrink: 0; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #D9E1DE; padding: 28px 16px 20px; display: flex; flex-direction: column; gap: 8px">
+  <span style="font-size: 26px; font-weight: 700; padding: 0 14px 18px; color: #1D6F61">Mon Budget</span>
+  <a href="iPad-Accueil.dc.html" style="text-decoration: none; height: 60px; border-radius: 16px; padding: 0 14px; display: flex; align-items: center; gap: 14px; font-size: 20px; color: #1C2826;"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a><a href="iPad-Trier.dc.html" style="text-decoration: none; height: 60px; border-radius: 16px; padding: 0 14px; display: flex; align-items: center; gap: 14px; font-size: 20px; color: #1C2826;"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>À trier<span style="margin-left: auto; min-width: 32px; height: 32px; border-radius: 16px; background: #8A4B00; color: #FFFFFF; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center">7</span></a><a href="iPad-Journal.dc.html" style="text-decoration: none; height: 60px; border-radius: 16px; padding: 0 14px; display: flex; align-items: center; gap: 14px; font-size: 20px; color: #1C2826;"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Journal</a><a href="iPad-Resume.dc.html" aria-current="page" style="text-decoration: none; height: 60px; border-radius: 16px; padding: 0 14px; display: flex; align-items: center; gap: 14px; font-size: 20px; background: #E1F0EC; color: #14524A; font-weight: 700;"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6M3 20h18"/></svg>Résumé</a>
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+    <a href="Importer.dc.html" style="text-decoration: none; height: 64px; border-radius: 18px; background: #1D6F61; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 700"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>Importer</a>
+    <a href="Reglages.dc.html" style="text-decoration: none; height: 56px; border-radius: 16px; padding: 0 14px; display: flex; align-items: center; gap: 14px; font-size: 19px; color: #1C2826"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages</a>
+  </div>
+</nav>
+<main style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 32px 36px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <h1 style="margin: 0; font-size: 34px; font-weight: 700">Résumé</h1>
+    <p style="margin: 0; font-size: 20px; color: #4F5E5B">Octobre 2026</p>
+  </div>
+  <button type="button" style="font-family: inherit; height: 56px; padding: 0 22px; border-radius: 18px; background: #FFFFFF; border: 2px solid #1D6F61; color: #1D6F61; font-size: 19px; font-weight: 700; cursor: pointer">Exporter le mois</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+  <div style="background: #E1F0EC; border-radius: 24px; padding: 20px 22px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; color: #1D4F47">Rentrées</span><span style="font-size: 30px; font-weight: 700; color: #1D4F47">+ 5’430</span></div>
+  <div style="background: #FFFFFF; border-radius: 24px; padding: 20px 22px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; color: #4F5E5B">Dépenses</span><span style="font-size: 30px; font-weight: 700">− 4’106</span></div>
+  <div style="background: #1D6F61; border-radius: 24px; padding: 20px 22px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 18px; color: #E1F0EC">Reste</span><span style="font-size: 30px; font-weight: 700; color: #FFFFFF">+ 1’324</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start">
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(28,40,38,0.08)"><h2 style="margin: 0; font-size: 22px; font-weight: 700">Où va l’argent</h2><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Logement</span><strong>1’450</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 100%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Caisse maladie</span><strong>1’024</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 71%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Alimentation</span><strong>612</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 42%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Voiture</span><strong>386</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 27%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Pharmacie</span><strong>148</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 10%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 19px"><span>Autres</span><strong>486</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 34%; height: 12px; border-radius: 6px; background: #1D6F61"></div></div></div></section>
+  <section style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(28,40,38,0.08)"><h2 style="margin: 0; font-size: 22px; font-weight: 700">Dépenses pour qui ?</h2><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 20px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 8px; background: #8C5A00"></span>Ménage</span><strong>2’220.00</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 54%; height: 12px; border-radius: 6px; background: #8C5A00"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 20px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 8px; background: #8A3466"></span>Maman</span><strong>1’012.00</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 25%; height: 12px; border-radius: 6px; background: #8A3466"></div></div></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 20px"><span style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 8px; background: #2D5B99"></span>Papa</span><strong>874.00</strong></div><div style="height: 12px; border-radius: 6px; background: #F3F6F4"><div style="width: 21%; height: 12px; border-radius: 6px; background: #2D5B99"></div></div></div></section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
