@@ -1,7 +1,7 @@
 /**
  * db.js — Stockage des données sur l'appareil (IndexedDB), sans dépendance.
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,17 +15,18 @@
  *
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version : stores et index du modèle de données (schéma 1).
+ *   0.4.0  FRE (Fidag)  Schéma 2 : index merchantKey et cardBillId (rattachement aux factures de carte).
  */
 
 export const DB_NAME = 'mon-budget';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Stores et champs indexés (voir CLAUDE.md § 4, modèle de données). */
 export const STORES = {
   people: [],
   accounts: [],
   categories: ['type'],
-  transactions: ['accountId', 'personId', 'categoryId', 'status', 'date', 'importId', 'ruleId'],
+  transactions: ['accountId', 'personId', 'categoryId', 'status', 'date', 'importId', 'ruleId', 'merchantKey', 'cardBillId'],
   rules: ['merchantKey', 'personId', 'categoryId'],
   imports: ['accountId'],
   settings: [],

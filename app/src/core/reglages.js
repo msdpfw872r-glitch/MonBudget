@@ -1,7 +1,7 @@
 /**
  * reglages.js — Données de départ et réglages : comptes, personnes (« pour qui »), catégories.
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,8 @@
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version : installation des données de départ, ajout,
  *                       modification, archivage et suppression (avec vérification d'usage).
+ *   0.4.0  FRE (Fidag)  Cartes : titulaire (« pour qui » proposé), compte qui paie la facture,
+ *                       numéros reconnus dans les fichiers ; mise à jour des données de départ.
  */
 
 import { fold } from './text.js';
@@ -58,10 +60,36 @@ export async function installSeed(db, seed, now = new Date()) {
     ...(settings ?? {}),
     id: 'app',
     schemaVersion: SCHEMA_VERSION,
+    dataVersion: DATA_VERSION,
     seededAt: now.toISOString(),
     lastBackupAt: settings?.lastBackupAt ?? null,
   });
   return true;
+}
+
+/** Version des données de départ (augmente quand seed.json gagne des éléments). */
+export const DATA_VERSION = 2;
+
+/**
+ * Ajoute à une base existante les éléments de départ apparus dans une nouvelle version
+ * (seulement ceux dont l'identifiant manque ; rien n'est modifié ni supprimé).
+ * @returns {Promise<string[]>} identifiants ajoutés.
+ */
+export async function upgradeSeed(db, seed) {
+  const settings = await db.get('settings', 'app');
+  if (!settings?.seededAt || (settings.dataVersion ?? 1) >= DATA_VERSION) return [];
+  const added = [];
+  for (const store of ['people', 'accounts', 'categories']) {
+    const all = await db.getAll(store);
+    let order = nextOrder(all);
+    for (const item of seed[store]) {
+      if (all.some((o) => o.id === item.id)) continue;
+      await db.put(store, { ...(store === 'categories' ? { archived: false } : {}), ...item, order: order++ });
+      added.push(item.id);
+    }
+  }
+  await db.put('settings', { ...settings, dataVersion: DATA_VERSION, schemaVersion: SCHEMA_VERSION });
+  return added;
 }
 
 /* ---------- Outils ---------- */
@@ -135,6 +163,10 @@ export async function savePerson(db, { id, name, color }) {
 
 export async function deletePerson(db, id) {
   const u = await usage(db, 'personId', id);
+  const cards = (await db.getAll('accounts')).filter((a) => a.personId === id);
+  if (cards.length) {
+    throw new ReglageError(`Impossible de supprimer : ${cards.map((c) => c.name).join(', ')} est rattachée à cette personne. Changez-le d’abord dans Mes comptes.`);
+  }
   if (u.total) {
     throw new ReglageError(`Impossible de supprimer : cette personne est utilisée par ${usageText(u)}. Modifiez-les d’abord.`);
   }
@@ -149,22 +181,54 @@ export async function listAccounts(db) {
   return (await db.getAll('accounts')).sort(byOrder);
 }
 
-export async function saveAccount(db, { id, name, kind, importFormat }) {
+export async function saveAccount(db, { id, name, kind, importFormat, personId = null, billPaidFrom = null }) {
   const n = cleanName(name, 'ce compte');
   if (!ACCOUNT_KINDS.some((k) => k.id === kind)) throw new ReglageError('Choisissez s’il s’agit d’un compte ou d’une carte.');
   if (!IMPORT_FORMATS.some((f) => f.id === importFormat)) throw new ReglageError('Choisissez la banque.');
   const all = await checkUnique(db, 'accounts', n, id, 'Le compte');
+  if (kind !== 'carte') { personId = null; billPaidFrom = null; }
+  if (personId && !(await db.get('people', personId))) throw new ReglageError('Cette personne n’existe plus. Choisissez-en une autre.');
+  if (billPaidFrom) {
+    const payer = all.find((a) => a.id === billPaidFrom);
+    if (!payer || payer.kind !== 'compte' || payer.id === id) throw new ReglageError('Choisissez le compte sur lequel la facture est prélevée.');
+  }
+  const fields = { name: n, kind, importFormat, personId: personId || null, billPaidFrom: billPaidFrom || null };
   if (id) {
     const a = await mustGet(db, 'accounts', id);
-    return db.put('accounts', { ...a, name: n, kind, importFormat });
+    return db.put('accounts', { ...a, ...fields });
   }
-  return db.put('accounts', { id: newId(all, n), name: n, kind, importFormat, order: nextOrder(all) });
+  return db.put('accounts', { id: newId(all, n), ...fields, bankRefs: [], order: nextOrder(all) });
+}
+
+/** Normalise une référence de compte lue dans un fichier (IBAN, ****1234). */
+export function normRef(ref) {
+  return String(ref ?? '').replace(/\s+/g, '').toUpperCase();
+}
+
+/** Retient qu'une référence trouvée dans les fichiers de la banque appartient à ce compte. */
+export async function assignBankRef(db, accountId, ref) {
+  const r = normRef(ref);
+  const accounts = await db.getAll('accounts');
+  for (const a of accounts) {
+    const refs = (a.bankRefs ?? []).filter((x) => x !== r);
+    if (a.id === accountId) refs.push(r);
+    if (refs.length !== (a.bankRefs ?? []).length || a.id === accountId) await db.put('accounts', { ...a, bankRefs: refs });
+  }
+}
+
+export async function removeBankRef(db, accountId, ref) {
+  const a = await mustGet(db, 'accounts', accountId);
+  await db.put('accounts', { ...a, bankRefs: (a.bankRefs ?? []).filter((x) => x !== normRef(ref)) });
 }
 
 export async function deleteAccount(db, id) {
   const u = await usage(db, 'accountId', id);
   if (u.total) {
     throw new ReglageError(`Impossible de supprimer : ce compte contient encore ${usageText(u)}.`);
+  }
+  const cards = (await db.getAll('accounts')).filter((a) => a.billPaidFrom === id);
+  if (cards.length) {
+    throw new ReglageError(`Impossible de supprimer : la facture de ${cards.map((c) => c.name).join(' et de ')} est payée depuis ce compte.`);
   }
   await db.delete('accounts', id);
 }

@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,6 +13,8 @@
  *                       onglets en bas (< 900 px), fenêtre centrée, bandeau de mise à jour.
  *   0.3.0  FRE (Fidag)  Listes, formulaires, choix (boutons radio), pastilles de personne,
  *                       fenêtre de confirmation, boutons « Supprimer », [hidden] toujours respecté.
+ *   0.4.0  FRE (Fidag)  Écrans Importer, À trier (liste + détail sur iPad), Factures de carte,
+ *                       cartes « à faire » de l'accueil, listes déroulantes.
  */
 
 @font-face {
@@ -374,3 +376,115 @@ input:not([type]):focus { border-color: var(--accent); outline: none; box-shadow
 .confirm-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
 
 .sheet-head h2 { flex-grow: 1; }
+
+/* ---------- 0.4.0 : Importer, À trier, Factures ---------- */
+
+.only-wide { display: none; }
+@media (min-width: 900px) {
+  .only-wide { display: flex; }
+  .only-narrow { display: none; }
+}
+
+.btn-small { min-height: 48px; font-size: 19px; padding: 0 16px; }
+.btn-file { position: relative; overflow: hidden; }
+.btn-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+.btn-file:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+select {
+  font: inherit; font-size: 20px; color: var(--texte);
+  min-height: var(--tactile); padding: 0 12px;
+  border: 2px solid var(--trait); border-radius: 14px; background: var(--surface); width: 100%;
+}
+
+.counts { display: flex; flex-direction: column; }
+.count-line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 20px; }
+.count-line + .count-line { border-top: 1px solid var(--trait-doux); }
+.count-line strong { font-size: 22px; }
+
+.round-icon.ok { background: var(--accent); color: #FFFFFF; }
+
+.flash {
+  margin: 0; padding: 14px 18px; border-radius: 16px;
+  background: var(--accent-doux); color: var(--accent-fonce); font-weight: 700;
+  display: flex; align-items: center; gap: 10px;
+}
+.warn-box {
+  margin: 0; padding: 14px 18px; border-radius: 16px;
+  background: var(--alerte-fond); color: var(--alerte-texte); border: 2px solid var(--alerte-trait);
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.row-sub.warn { color: var(--alerte-texte); display: flex; align-items: center; gap: 6px; }
+.row-sub.warn svg { width: 22px; height: 22px; }
+
+.row-static:hover { background: none; }
+.row-static { flex-wrap: wrap; }
+
+.todo {
+  text-decoration: none; color: #6E3C00;
+  background: var(--alerte-fond); border: 2px solid var(--alerte-trait); border-radius: var(--rayon);
+  padding: 18px 20px; display: flex; align-items: center; gap: 16px;
+}
+.todo:hover { color: #6E3C00; border-color: var(--alerte-texte); }
+.todo .row-text { flex-grow: 1; }
+.todo .row-sub { color: #6E3C00; }
+.todo-count {
+  width: 56px; height: 56px; flex-shrink: 0; border-radius: 28px;
+  background: var(--alerte-texte); color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700;
+}
+
+/* Boutons de choix (pour qui, quoi) */
+.picks { display: grid; gap: 12px; }
+.picks-3 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.picks-1 { grid-template-columns: 1fr; }
+.picks-people { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.picks-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 600px) { .picks-cats { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); } }
+.pick {
+  font: inherit; font-size: 19px; min-height: var(--tactile); padding: 6px 12px;
+  border-radius: 16px; border: 2px solid var(--trait); background: var(--surface); color: var(--texte);
+  cursor: pointer; text-align: center;
+}
+.pick:hover { border-color: var(--texte-2); }
+.pick[aria-pressed="true"] { background: var(--accent-doux); color: var(--accent-fonce); border: 3px solid var(--accent); font-weight: 700; }
+.pick[aria-pressed="true"]::before { content: '✓ '; }
+.pick-person { color: var(--c); border-color: var(--c); font-weight: 700; min-height: 60px; }
+.pick-person:hover { border-color: var(--c); }
+.pick-person[aria-pressed="true"] { background: var(--c); color: #FFFFFF; border-color: var(--c); }
+.pick-big { min-height: 64px; font-size: 20px; font-weight: 700; text-align: left; padding: 8px 20px; }
+
+/* À trier */
+.sort-layout { display: flex; gap: 20px; align-items: flex-start; }
+.sort-list { width: 320px; flex-shrink: 0; flex-direction: column; padding: 8px; gap: 4px; max-height: calc(100dvh - 160px); overflow-y: auto; position: sticky; top: 20px; }
+.sort-item {
+  font: inherit; color: var(--texte); background: none; border: 0; border-radius: 16px;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  min-height: 64px; padding: 8px 14px; text-align: left; cursor: pointer;
+}
+.sort-item[aria-pressed="true"] { background: var(--accent-doux); box-shadow: inset 4px 0 0 var(--accent); }
+.sort-item .row-title { font-size: 19px; }
+.sort-card { flex-grow: 1; min-width: 0; gap: 16px; }
+.sort-card h2 { font-size: 21px; margin-top: 4px; }
+.sort-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.sort-name { font-size: 28px; font-weight: 700; }
+.sort-amount { font-size: 28px; font-weight: 700; white-space: nowrap; }
+.sort-amount.positive { color: var(--accent); }
+.progress-text { color: var(--texte-2); }
+.remember { background: var(--fond); border-color: transparent; }
+.sort-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+.sort-buttons .btn { min-height: 64px; }
+.btn-validate { padding: 0 48px; }
+@media (max-width: 899px) {
+  .sort-buttons .btn { flex: 1; }
+  .sort-name, .sort-amount { font-size: 24px; }
+}
+
+/* Factures : cases à cocher */
+.check-row { cursor: pointer; }
+.check-row input { width: 28px; height: 28px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.check-row .row-text { flex-grow: 1; }
+.check-row:has(input:checked) { background: var(--accent-doux); }
+
+.refs { display: flex; flex-wrap: wrap; gap: 10px; }
+.ref { display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 14px; border: 2px solid var(--trait); border-radius: 16px; font-size: 20px; }
+details.note summary { cursor: pointer; min-height: 44px; }

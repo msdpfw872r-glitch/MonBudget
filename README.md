@@ -2,7 +2,7 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.3.0
+- Version : 0.4.0
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
@@ -14,6 +14,10 @@ Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes �
 | `app/js/ecran-reglages.js` | Écrans Réglages (personnes, comptes, catégories) |
 | `app/src/data/db.js` | Stockage sur l'appareil (IndexedDB ; version en mémoire pour les tests) |
 | `app/src/core/reglages.js` | Données de départ et règles de modification des réglages |
+| `app/src/core/import.js` | Import de bout en bout : lecture, comptes et cartes, doublons, annulation |
+| `app/src/core/regles.js` | Règles retenues (classement automatique) |
+| `app/src/core/cartes.js` | Factures de carte : rattacher les achats au prélèvement LSV |
+| `app/js/ecran-importer.js`, `ecran-trier.js`, `ecran-factures.js` | Écrans Importer, À trier, Factures de carte |
 | `app/src/core/xlsx.js` | Lecture des fichiers Excel (.xlsx) sans dépendance, dans Safari et Node |
 | `app/src/core/text.js` | Montants suisses, dates, clé commerçant (règles), empreinte anti-doublon |
 | `app/src/core/format.js` | Affichage : `CHF 1’234.50`, « mardi 14 octobre » |
@@ -47,5 +51,6 @@ npm test
 
 ## À venir
 
+- Journal, Résumé du mois, export (0.5.0)
+- Sauvegarde / restauration (0.6.0)
 - BCVs (camt.053), Swisscard Mastercard (CSV)
-- Règles retenues, catégories, interface (voir la maquette)

@@ -1,9 +1,13 @@
 {
   "_meta": {
-    "version": "0.1.0",
+    "version": "0.4.0",
     "auteur": "FRE (Fidag)",
     "date": "2026-11-08",
-    "note": "Données de départ de l'app. Les icônes sont choisies dans l'app (pas d'emoji)."
+    "note": "Données de départ de l'app. Les icônes sont choisies dans l'app (pas d'emoji).",
+    "historique": [
+      "0.1.0 FRE (Fidag) Première version.",
+      "0.4.0 FRE (Fidag) Cartes UBS de Maman et de Papa (facture commune prélevée sur le compte UBS), catégorie « Paiement de la facture de carte »."
+    ]
   },
   "people": [
     {
@@ -28,6 +32,22 @@
       "name": "UBS",
       "kind": "compte",
       "importFormat": "ubs-transactions-xlsx"
+    },
+    {
+      "id": "carte-ubs-maman",
+      "name": "Carte UBS de Maman",
+      "kind": "carte",
+      "importFormat": "ubs-transactions-xlsx",
+      "personId": "maman",
+      "billPaidFrom": "ubs"
+    },
+    {
+      "id": "carte-ubs-papa",
+      "name": "Carte UBS de Papa",
+      "kind": "carte",
+      "importFormat": "ubs-transactions-xlsx",
+      "personId": "papa",
+      "billPaidFrom": "ubs"
     },
     {
       "id": "bcvs",
@@ -210,6 +230,13 @@
       "name": "Virement sortant",
       "type": "depense",
       "excludeFromTotals": true
+    },
+    {
+      "id": "paiement-facture-carte",
+      "name": "Paiement de la facture de carte",
+      "type": "depense",
+      "excludeFromTotals": true,
+      "isCardBill": true
     },
     {
       "id": "divers",

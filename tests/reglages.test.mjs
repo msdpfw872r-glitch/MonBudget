@@ -2,12 +2,13 @@
  * reglages.test.mjs — Tests des données de départ et des réglages (comptes, personnes, catégories).
  * Lancer : npm test
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version (base en mémoire, même interface qu'IndexedDB).
+ *   0.4.0  FRE (Fidag)  Cartes UBS de Maman et Papa : titulaire, compte qui paie la facture, numéros reconnus.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,8 +28,8 @@ test('données de départ installées une seule fois', async () => {
   const db = openMemoryDb();
   assert.equal(await R.installSeed(db, seed), true);
   assert.equal(await db.count('people'), 3);
-  assert.equal(await db.count('accounts'), 3);
-  assert.equal(await db.count('categories'), 39);
+  assert.equal(await db.count('accounts'), 5);
+  assert.equal(await db.count('categories'), 40);
   const s = await db.get('settings', 'app');
   assert.equal(s.schemaVersion, SCHEMA_VERSION);
   // Une modification de l'utilisatrice n'est pas écrasée au lancement suivant.
@@ -60,9 +61,12 @@ test('personnes : suppression refusée si utilisée', async () => {
   const db = await freshDb();
   await db.put('transactions', { id: 't1', personId: 'papa', categoryId: 'autres-revenus', accountId: 'ubs' });
   await db.put('rules', { id: 'r1', personId: 'papa', categoryId: 'autres-revenus', merchantKey: 'X' });
+  await assert.rejects(R.deletePerson(db, 'papa'), (e) => e instanceof R.ReglageError && /Carte UBS de Papa/.test(e.message));
+  await R.saveAccount(db, { id: 'carte-ubs-papa', name: 'Carte UBS de Papa', kind: 'carte', importFormat: 'ubs-transactions-xlsx', personId: null, billPaidFrom: 'ubs' });
   await assert.rejects(R.deletePerson(db, 'papa'), (e) => e instanceof R.ReglageError && /1 opération et 1 règle/.test(e.message));
-  await R.deletePerson(db, 'maman');
-  assert.equal(await db.count('people'), 2);
+  await R.savePerson(db, { name: 'Tante Rose', color: '#1D6F61' });
+  await R.deletePerson(db, 'tante-rose');
+  assert.equal(await db.count('people'), 3);
 });
 
 test('comptes : ajout, modification, suppression', async () => {
@@ -75,8 +79,30 @@ test('comptes : ajout, modification, suppression', async () => {
   await assert.rejects(R.saveAccount(db, { name: 'Autre', kind: 'compte', importFormat: 'inconnu' }), /banque/);
   await db.put('transactions', { id: 't1', accountId: 'ubs' });
   await assert.rejects(R.deleteAccount(db, 'ubs'), /ce compte contient encore 1 opération\./);
+  await db.delete('transactions', 't1');
+  await assert.rejects(R.deleteAccount(db, 'ubs'), /la facture de Carte UBS de Maman et de Carte UBS de Papa/);
   await R.deleteAccount(db, 'bcvs');
-  assert.deepEqual((await R.listAccounts(db)).map((x) => x.id), ['ubs', 'mastercard', 'ubs-carte']);
+  assert.deepEqual((await R.listAccounts(db)).map((x) => x.id), ['ubs', 'carte-ubs-maman', 'carte-ubs-papa', 'mastercard', 'ubs-carte']);
+});
+
+test('cartes : titulaire et compte qui paie la facture', async () => {
+  const db = await freshDb();
+  const maman = await db.get('accounts', 'carte-ubs-maman');
+  assert.equal(maman.personId, 'maman');
+  assert.equal(maman.billPaidFrom, 'ubs');
+  await assert.rejects(R.saveAccount(db, { ...maman, personId: 'inconnu' }), /personne n’existe plus/);
+  await assert.rejects(R.saveAccount(db, { ...maman, billPaidFrom: 'mastercard' }), /compte sur lequel la facture/);
+  // Un compte (pas une carte) n'a ni titulaire ni facture.
+  const c = await R.saveAccount(db, { name: 'Épargne', kind: 'compte', importFormat: 'camt053', personId: 'papa', billPaidFrom: 'ubs' });
+  assert.equal(c.personId, null);
+  assert.equal(c.billPaidFrom, null);
+  // Numéros reconnus : une référence n'appartient qu'à un compte.
+  await R.assignBankRef(db, 'carte-ubs-maman', '**** 1111');
+  await R.assignBankRef(db, 'carte-ubs-papa', '****1111');
+  assert.deepEqual((await db.get('accounts', 'carte-ubs-maman')).bankRefs, []);
+  assert.deepEqual((await db.get('accounts', 'carte-ubs-papa')).bankRefs, ['****1111']);
+  await R.removeBankRef(db, 'carte-ubs-papa', '****1111');
+  assert.deepEqual((await db.get('accounts', 'carte-ubs-papa')).bankRefs, []);
 });
 
 test('catégories : ajout, id unique, archivage, suppression', async () => {
@@ -90,8 +116,8 @@ test('catégories : ajout, id unique, archivage, suppression', async () => {
 
   await R.setCategoryArchived(db, 'coiffeur', true);
   const visibles = await R.listCategories(db, { archived: false });
-  assert.equal(visibles.length, 39);
-  assert.equal((await R.listCategories(db)).length, 40);
+  assert.equal(visibles.length, 40);
+  assert.equal((await R.listCategories(db)).length, 41);
 
   await db.put('transactions', { id: 't1', categoryId: 'coiffeur' });
   await assert.rejects(R.deleteCategory(db, 'coiffeur'), /mettre de côté/);
@@ -114,7 +140,7 @@ test('vue d’ensemble pour l’écran Réglages', async () => {
   const db = await freshDb();
   const o = await R.overview(db);
   assert.deepEqual(o.people.map((p) => p.name), ['Maman', 'Papa', 'Ménage']);
-  assert.equal(o.categoriesCount, 39);
+  assert.equal(o.categoriesCount, 40);
   assert.equal(o.rulesCount, 0);
 });
 

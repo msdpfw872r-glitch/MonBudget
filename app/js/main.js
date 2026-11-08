@@ -1,24 +1,30 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
- * Navigation par adresse (#/accueil, #/trier, #/journal, #/resume, #/importer, #/reglages[/…]).
- * Sur iPad (≥ 900 px de large), Importer et Réglages s'ouvrent dans une fenêtre centrée ;
+ * Navigation par adresse (#/accueil, #/trier, #/journal, #/resume, #/importer, #/factures[/…],
+ * #/reglages[/…]). Sur iPad (≥ 900 px de large), Importer, Factures et Réglages s'ouvrent dans une fenêtre centrée ;
  * sur iPhone, ils prennent tout l'écran avec un bouton « Retour ».
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version : coquille, écrans vides, service worker.
  *   0.3.0  FRE (Fidag)  Sous-pages de Réglages (personnes, comptes, catégories), écrans
  *                       asynchrones (lecture de la base), message si le stockage est indisponible.
+ *   0.4.0  FRE (Fidag)  Importer, À trier, Factures de carte ; pastille du nombre à trier ;
+ *                       accueil avec opérations à trier et factures à vérifier.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
 import { icon } from './ui.js';
 import { getDb } from './store.js';
 import { reglagesView } from './ecran-reglages.js';
+import { trierView } from './ecran-trier.js';
+import { importerView, resetImporterIfDone } from './ecran-importer.js';
+import { facturesView } from './ecran-factures.js';
+import { billsToCheck } from '../src/core/cartes.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -30,7 +36,7 @@ const MAIN_ROUTES = [
   { id: 'resume', label: 'Résumé' },
 ];
 /** Écrans ouverts en fenêtre sur iPad. */
-const SHEET_ROUTES = ['importer', 'reglages'];
+const SHEET_ROUTES = ['importer', 'factures', 'reglages'];
 
 /* ---------- Contenu des écrans ---------- */
 
@@ -44,23 +50,44 @@ function emptyCard(iconName, title, text) {
 
 const staticView = (title, html) => ({ title, parent: null, render(root) { root.innerHTML = html(); } });
 
-const VIEWS = {
-  accueil: () => staticView('Accueil', () => {
-    const today = new Date();
-    return `<div class="page-head">
-        <div>
-          <h1>Bonjour !</h1>
-          <p class="sub">${formatDateLong(today, { capital: true })} · ${formatMonth(today)}</p>
+function accueilView() {
+  return {
+    title: 'Accueil',
+    parent: null,
+    async render(root) {
+      const today = new Date();
+      const db = await getDb();
+      const [pending, total, bills] = await Promise.all([
+        db.countWhere('transactions', 'status', 'a-trier'), db.count('transactions'), billsToCheck(db)]);
+      root.innerHTML = `<div class="page-head">
+          <div>
+            <h1>Bonjour !</h1>
+            <p class="sub">${formatDateLong(today, { capital: true })} · ${formatMonth(today)}</p>
+          </div>
+          <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
-        <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
-      </div>
-      ${emptyCard('importer', 'Pas encore d’opérations',
-        'Pour commencer, importez le fichier de votre banque. Vos opérations apparaîtront ici.')}
-      <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
-  }),
-  trier: () => staticView('À trier', () => `<div class="page-head"><div><h1>À trier</h1></div></div>
-      ${emptyCard('trier', 'Rien à trier',
-        'Quand vous importerez un relevé, les opérations à classer apparaîtront ici, une à la fois.')}`),
+        ${pending ? `<a class="todo" href="#/trier">
+            <span class="todo-count">${pending}</span>
+            <span class="row-text"><span class="row-title">${pending > 1 ? 'Opérations à trier' : 'Opération à trier'}</span>
+            <span class="row-sub">Environ ${Math.max(1, Math.round(pending / 4))} minute${pending > 7 ? 's' : ''}</span></span>
+            <span class="row-title">Trier</span></a>` : ''}
+        ${bills.length ? `<a class="todo" href="#/factures">
+            <span class="todo-count">${bills.length}</span>
+            <span class="row-text"><span class="row-title">${bills.length > 1 ? 'Factures de carte à vérifier' : 'Facture de carte à vérifier'}</span>
+            <span class="row-sub">Rattacher les achats des cartes</span></span>
+            <span class="row-title">Vérifier</span></a>` : ''}
+        ${total ? '' : emptyCard('importer', 'Pas encore d’opérations',
+          'Pour commencer, importez le fichier de votre banque. Vos opérations apparaîtront ici.')}
+        ${total && !pending && !bills.length ? `<p class="flash">${icon('ok')}Tout est trié. Le journal et le résumé du mois arrivent dans la prochaine version.</p>` : ''}
+        <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
+    },
+  };
+}
+
+const VIEWS = {
+  accueil: () => accueilView(),
+  trier: () => trierView(),
+  factures: (path) => facturesView(path),
   journal: () => staticView('Journal', () => `<div class="page-head"><div><h1>Journal</h1>
         <p class="sub">${formatMonth(new Date())}</p></div></div>
       ${emptyCard('journal', 'Le journal est vide',
@@ -69,8 +96,7 @@ const VIEWS = {
         <p class="sub">${formatMonth(new Date())}</p></div></div>
       ${emptyCard('resume', 'Pas encore de résumé',
         'Le résumé montrera ce qui est entré, ce qui est sorti, et pour qui.')}`),
-  importer: () => staticView('Importer un relevé', () => emptyCard('importer', 'Bientôt disponible',
-      'Ici, vous choisirez le fichier téléchargé depuis votre banque (UBS, BCVs ou Mastercard).')),
+  importer: () => importerView(),
   reglages: (path) => reglagesView(path),
 };
 
@@ -111,6 +137,9 @@ function storageError(root) {
 
 /** Affiche un écran ; ignore le résultat si une autre navigation a eu lieu entre-temps. */
 async function paint(v, root, ticket) {
+  // Les gestionnaires d'un écran précédent ne doivent pas rester actifs.
+  root.onclick = null;
+  root.onchange = null;
   try {
     await v.render(root);
   } catch (e) {
@@ -129,6 +158,8 @@ async function renderMain(id, ticket) {
 async function render() {
   const ticket = ++renderCount;
   const { id, path } = currentRoute();
+  if (id !== 'importer') resetImporterIfDone();
+  updateBadge();
 
   if (SHEET_ROUTES.includes(id)) {
     const v = VIEWS[id](path);
@@ -160,6 +191,24 @@ async function render() {
   await renderMain(id, ticket);
   view.focus({ preventScroll: true });
 }
+
+/** Pastille « À trier » de la barre latérale et des onglets. */
+async function updateBadge() {
+  try {
+    const n = await (await getDb()).countWhere('transactions', 'status', 'a-trier');
+    for (const b of document.querySelectorAll('[data-count="trier"]')) {
+      b.textContent = n > 99 ? '99+' : String(n);
+      b.hidden = n === 0;
+      b.setAttribute('aria-label', `${n} à trier`);
+    }
+  } catch { /* la base n'est pas disponible : l'écran l'explique */ }
+}
+
+// Après un import ou un tri : l'écran principal (sous la fenêtre) et la pastille se mettent à jour.
+document.addEventListener('donnees-modifiees', () => {
+  updateBadge();
+  if (dialog.open) renderMain(lastMainRoute, renderCount);
+});
 
 dialog.addEventListener('close', () => {
   if (SHEET_ROUTES.includes(currentRoute().id)) location.hash = `#/${lastMainRoute}`;

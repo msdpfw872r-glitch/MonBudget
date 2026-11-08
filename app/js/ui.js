@@ -1,12 +1,13 @@
 /**
  * ui.js — Petits outils d'interface partagés : icônes, échappement du texte, confirmation.
  *
- * Version : 0.3.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version (icônes sorties de main.js, fenêtre de confirmation).
+ *   0.4.0  FRE (Fidag)  Icônes « ok » et « carte ».
  */
 
 /* Icônes au trait (même dessin que la maquette). */
@@ -21,6 +22,8 @@ const ICONS = {
   suite: '<path d="M9 6l6 6-6 6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   sauvegarde: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 19h16"/>',
+  ok: '<path d="M5 12l5 5 9-10"/>',
+  carte: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',
   attention: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
 };
 

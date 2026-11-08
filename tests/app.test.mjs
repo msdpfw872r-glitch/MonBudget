@@ -3,17 +3,18 @@
  * affichage des montants et des dates.
  * Lancer : npm test
  *
- * Version : 0.2.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version.
+ *   0.4.0  FRE (Fidag)  Noms lisibles des opérations et périodes des relevés.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { formatCHF, formatAmount, formatDateLong, formatMonth } from '../app/src/core/format.js';
+import { formatCHF, formatAmount, formatDateLong, formatMonth, formatPeriod, displayName } from '../app/src/core/format.js';
 import { APP_VERSION } from '../app/js/version.js';
 
 const root = new URL('../', import.meta.url);
@@ -44,6 +45,17 @@ test('dates en français', () => {
   assert.equal(formatDateLong('2026-11-08', { capital: true }), 'Dimanche 8 novembre');
   assert.equal(formatMonth('2026-11-08'), 'Novembre 2026');
   assert.equal(formatMonth(new Date(2026, 7, 1)), 'Août 2026');
+});
+
+test('noms lisibles et périodes', () => {
+  assert.equal(displayName('MIGROS M SION 03.10.2026 CARTE XXXX4567'), 'Migros M Sion');
+  assert.equal(displayName('ÉMETTEUR 04 - LOYER'), 'Émetteur 04 - Loyer');
+  assert.equal(displayName('PHARMACIE DE LA GARE'), 'Pharmacie de la Gare');
+  assert.equal(displayName('Coop City'), 'Coop City');
+  assert.equal(displayName('12345678'), '12345678');
+  assert.equal(formatPeriod({ from: '2026-10-01', to: '2026-10-31' }), 'du 1er au 31 octobre');
+  assert.equal(formatPeriod({ from: '2026-09-28', to: '2026-10-04' }), 'du 28 septembre au 4 octobre');
+  assert.equal(formatPeriod({ from: '2026-10-04', to: '2026-10-04' }), 'le 4 octobre');
 });
 
 test('même version partout (package.json, app, service worker, CHANGELOG)', async () => {

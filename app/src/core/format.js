@@ -1,7 +1,7 @@
 /**
  * format.js — Affichage en français de Suisse : montants et dates.
  *
- * Version : 0.2.0
+ * Version : 0.4.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -9,6 +9,7 @@
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version : formatCHF, formatAmount, formatDateLong, formatMonth.
+ *   0.4.0  FRE (Fidag)  displayName (nom lisible d'une opération), formatDateShort, formatPeriod.
  */
 
 const APOS = '’'; // apostrophe typographique ’
@@ -59,4 +60,44 @@ export function formatMonth(d) {
   const x = toDate(d);
   const m = MOIS[x.getMonth()];
   return m[0].toUpperCase() + m.slice(1) + ' ' + x.getFullYear();
+}
+
+/** "14 oct. 2026" → court, pour les listes : "14 octobre". */
+export function formatDateShort(d) {
+  const x = toDate(d);
+  return `${x.getDate()} ${MOIS[x.getMonth()]}`;
+}
+
+/** Période d'un relevé : "du 3 au 31 octobre", "du 28 septembre au 4 octobre". */
+export function formatPeriod(period) {
+  if (!period) return '';
+  const a = toDate(period.from);
+  const b = toDate(period.to);
+  if (period.from === period.to) return `le ${formatDateShort(a)}`;
+  const first = a.getDate() === 1 ? '1er' : String(a.getDate());
+  const left = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear() ? first : `${first} ${MOIS[a.getMonth()]}`;
+  return `du ${left} au ${formatDateShort(b)}`;
+}
+
+const SMALL_WORDS = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'et', 'à', 'au', 'en', 'sur']);
+
+/**
+ * Nom lisible d'une opération à partir du texte de la banque :
+ * "MIGROS M SION 03.10.2026 CARTE XXXX4567" → "Migros M Sion".
+ */
+export function displayName(description) {
+  const s = String(description ?? '')
+    .replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, ' ')
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
+    .replace(/\bCARTE\b|\bCARD\b/gi, ' ')
+    .replace(/[X*]{2,}\d*/gi, ' ')
+    .replace(/\b\d{4,}\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s) return String(description ?? '').trim() || 'Opération';
+  if (s !== s.toUpperCase()) return s; // déjà en minuscules : on garde tel quel
+  return s.toLowerCase().split(' ').map((w, i) => {
+    if (i > 0 && SMALL_WORDS.has(w)) return w;
+    return w.replace(/(^|[-'’])(\p{L})/gu, (_, p, c) => p + c.toUpperCase());
+  }).join(' ');
 }

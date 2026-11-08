@@ -1,12 +1,13 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.1.0
+- Version du brief : 1.2.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
 Historique du brief :
 - 1.0.0 — FRE (Fidag) — Première version.
 - 1.1.0 — FRE (Fidag) — § 2.1 fait : le dépôt existe déjà sous le nom `msdpfw872r-glitch/MonBudget` (public) ; adresse publiée `https://msdpfw872r-glitch.github.io/MonBudget/` (chemins relatifs obligatoires dans l'app). Structure `app/` en place depuis la v0.2.0.
+- 1.2.0 — FRE (Fidag) — Décisions de l'utilisateur (v0.4.0) : Maman et Papa ont chacun leur carte UBS (deux comptes « carte »), la facture est commune et prélevée par LSV sur le compte UBS ; les achats par carte sont rattachés à ce prélèvement (voir § 4, « Cartes et factures »). L'agent peut mettre `main` à jour pour publier chaque étape.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -79,6 +80,14 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 5. Corriger une opération déjà classée par une règle propose : « Changer aussi la règle ? ».
 6. Les paiements de facture de carte (`isCardBillPayment`) et les virements entre ses propres comptes vont dans une catégorie `excludeFromTotals` : les achats de la carte ne doivent pas être comptés deux fois.
 7. Une règle peut être modifiée ou supprimée dans Réglages.
+
+### Cartes et factures (v0.4.0)
+
+- Chaque carte est un compte `carte` avec `personId` (titulaire, proposé d'avance dans « À trier ») et `billPaidFrom` (compte sur lequel la facture est prélevée). Seed : `carte-ubs-maman`, `carte-ubs-papa`, facture payée par `ubs`.
+- `accounts.bankRefs` : références lues dans les fichiers (IBAN, `****1234`). Inconnues → une question par référence à l'import, puis retenues. Les vrais numéros ne sont jamais dans le dépôt.
+- Le prélèvement (`isCardBillPayment`) va dans la catégorie `paiement-facture-carte` (`isCardBill`, `excludeFromTotals`).
+- Les achats des cartes portent `cardBillId` = id du prélèvement. Rattachement automatique si une suite continue d'achats (par date, non rattachés, avant le prélèvement) a exactement le même total ; sinon l'écran « Factures de carte » permet de cocher, avec l'écart affiché.
+- Totaux : les achats comptent (chacun pour sa personne), jamais le prélèvement.
 
 ### Sauvegarde
 
