@@ -1,7 +1,7 @@
 /**
  * sauvegarde.js — Sauvegarde et restauration de toutes les données, rappel de sauvegarde.
  *
- * Version : 0.6.0
+ * Version : 0.8.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -12,9 +12,10 @@
  *
  * Historique :
  *   0.6.0  FRE (Fidag)  Première version.
+ *   0.8.2  FRE (Fidag)  La table outbox (synchronisation) n'est pas mise dans la sauvegarde.
  */
 
-import { STORES, SCHEMA_VERSION } from '../data/db.js';
+import { BACKUP_STORES as STORE_NAMES, SCHEMA_VERSION } from '../data/db.js';
 import { ReglageError, DATA_VERSION } from './reglages.js';
 
 export const BACKUP_FORMAT = 'mon-budget-sauvegarde';
@@ -44,7 +45,7 @@ export function countsOf(data) {
 
 async function readAll(db) {
   const data = {};
-  for (const store of Object.keys(STORES)) data[store] = await db.getAll(store);
+  for (const store of STORE_NAMES) data[store] = await db.getAll(store);
   return data;
 }
 
@@ -90,7 +91,7 @@ export function readBackup(text) {
   if (b.formatVersion > BACKUP_FORMAT_VERSION || b.schemaVersion > SCHEMA_VERSION) {
     throw new ReglageError('Cette sauvegarde vient d’une version plus récente de l’app. Mettez d’abord l’app à jour, puis réessayez.');
   }
-  for (const store of Object.keys(STORES)) {
+  for (const store of STORE_NAMES) {
     const list = b.data[store] ?? [];
     if (!Array.isArray(list) || list.some((o) => !o || typeof o !== 'object' || o.id === undefined || o.id === null)) {
       throw new ReglageError('Cette sauvegarde est abîmée et ne peut pas être utilisée. Essayez une autre sauvegarde.');
@@ -99,12 +100,12 @@ export function readBackup(text) {
   if (!(b.data.categories ?? []).length || !(b.data.people ?? []).length) {
     throw new ReglageError('Cette sauvegarde est incomplète et ne peut pas être utilisée. Essayez une autre sauvegarde.');
   }
-  const data = Object.fromEntries(Object.keys(STORES).map((s) => [s, b.data[s] ?? []]));
+  const data = Object.fromEntries(STORE_NAMES.map((s) => [s, b.data[s] ?? []]));
   return { createdAt: b.createdAt ?? null, appVersion: b.appVersion ?? '', counts: countsOf(data), data };
 }
 
 async function replaceAll(db, data) {
-  for (const store of Object.keys(STORES)) {
+  for (const store of STORE_NAMES) {
     await db.clear(store);
     if (data[store]?.length) await db.putMany(store, data[store]);
   }

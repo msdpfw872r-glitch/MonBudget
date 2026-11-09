@@ -2,17 +2,18 @@
  * sauvegarde.test.mjs — Tests de la sauvegarde, de la restauration et du rappel.
  * Lancer : npm test
  *
- * Version : 0.6.0
+ * Version : 0.8.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.6.0  FRE (Fidag)  Première version.
+ *   0.8.2  FRE (Fidag)  Comparaison sans `updatedAt` (date de modification, suivi de synchro) ni outbox.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { openMemoryDb, STORES } from '../app/src/data/db.js';
+import { openMemoryDb, BACKUP_STORES } from '../app/src/data/db.js';
 import * as R from '../app/src/core/reglages.js';
 import * as G from '../app/src/core/regles.js';
 import * as B from '../app/src/core/sauvegarde.js';
@@ -36,7 +37,8 @@ async function liveDb() {
 
 async function dump(db) {
   const out = {};
-  for (const s of Object.keys(STORES)) out[s] = await db.getAll(s);
+  // updatedAt = date de la modification (synchro) : une restauration la renouvelle, c'est voulu.
+  for (const s of BACKUP_STORES) out[s] = (await db.getAll(s)).map(({ updatedAt, ...o }) => o);
   return out;
 }
 
@@ -63,11 +65,16 @@ test('sauvegarder puis restaurer sur un autre appareil : identique à l’origin
   await B.restoreBackup(other, read);
   const a = await dump(db);
   const b = await dump(other);
-  for (const s of Object.keys(STORES)) {
+  for (const s of BACKUP_STORES) {
     if (s === 'settings') continue;
     assert.deepEqual(b[s], a[s], `store ${s} identique`);
   }
   assert.ok((await other.get('settings', 'app')).restoredAt);
+  assert.equal(backup.data.outbox, undefined, 'la file de synchro n’est pas sauvegardée');
+  // Les données restaurées deviennent les plus récentes : elles partiront vers le cloud.
+  const t1 = await other.get('transactions', 't1');
+  assert.ok(t1.updatedAt > (await db.get('transactions', 't1')).updatedAt);
+  assert.equal((await other.get('outbox', 'transactions/t1')).deleted, false);
 });
 
 test('restaurer remplace tout : ce qui n’est pas dans la sauvegarde disparaît', async () => {

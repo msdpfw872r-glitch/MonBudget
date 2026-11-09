@@ -1,7 +1,7 @@
 /**
  * db.js — Stockage des données sur l'appareil (IndexedDB), sans dépendance.
  *
- * Version : 0.4.0
+ * Version : 0.8.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,13 +13,18 @@
  *             delete(store, id), clear(store), count(store), countWhere(store, champ, valeur),
  *             getAllWhere(store, champ, valeur), close().
  *
+ * Suivi des changements (synchronisation, voir docs/specs/synchro.md) : sur les tables synchronisées,
+ * chaque écriture reçoit `updatedAt` (ms) et une entrée dans `outbox` ; une suppression laisse une
+ * entrée `outbox` « deleted ». `db.raw` écrit sans suivi (données reçues du cloud).
+ *
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version : stores et index du modèle de données (schéma 1).
  *   0.4.0  FRE (Fidag)  Schéma 2 : index merchantKey et cardBillId (rattachement aux factures de carte).
+ *   0.8.2  FRE (Fidag)  Schéma 3 : table outbox, updatedAt et traces de suppression (synchronisation).
  */
 
 export const DB_NAME = 'mon-budget';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Stores et champs indexés (voir CLAUDE.md § 4, modèle de données). */
 export const STORES = {
@@ -30,7 +35,63 @@ export const STORES = {
   rules: ['merchantKey', 'personId', 'categoryId'],
   imports: ['accountId'],
   settings: [],
+  outbox: [],
 };
+
+/** Tables envoyées au cloud (chiffrées). `settings` et `outbox` restent sur l'appareil. */
+export const SYNCED_STORES = ['people', 'accounts', 'categories', 'transactions', 'rules', 'imports'];
+/** Tables mises dans une sauvegarde fichier. */
+export const BACKUP_STORES = Object.keys(STORES).filter((s) => s !== 'outbox');
+
+const isSynced = (s) => SYNCED_STORES.includes(s);
+const outboxId = (store, id) => `${store}/${id}`;
+
+/**
+ * Ajoute le suivi des changements à une base (mêmes méthodes, plus `raw` et `now`).
+ * @param {object} base  base sans suivi
+ * @param {() => number} [now]  horloge (ms), remplaçable dans les tests
+ */
+export function withTracking(base, now = () => Date.now()) {
+  let last = 0;
+  // Dates strictement croissantes sur l'appareil (deux écritures dans la même milliseconde restent ordonnées).
+  const stamp = () => { const t = Math.max(now(), last + 1); last = t; return t; };
+  const entry = (store, recId, updatedAt, deleted) => ({ id: outboxId(store, recId), store, recId, updatedAt, deleted });
+  return {
+    ...base,
+    kind: base.kind,
+    raw: base,
+    now: stamp,
+    async put(s, obj) {
+      if (!isSynced(s)) return base.put(s, obj);
+      const t = stamp();
+      const rec = { ...obj, updatedAt: t };
+      await base.put(s, rec);
+      await base.put('outbox', entry(s, obj.id, t, false));
+      return rec;
+    },
+    async putMany(s, objs) {
+      if (!isSynced(s)) return base.putMany(s, objs);
+      const recs = objs.map((o) => ({ ...o, updatedAt: stamp() }));
+      await base.putMany(s, recs);
+      await base.putMany('outbox', recs.map((r) => entry(s, r.id, r.updatedAt, false)));
+      return recs.length;
+    },
+    async delete(s, id) {
+      await base.delete(s, id);
+      if (isSynced(s)) await base.put('outbox', entry(s, id, stamp(), true));
+    },
+    async clear(s) {
+      if (isSynced(s)) {
+        const all = await base.getAll(s);
+        if (all.length) await base.putMany('outbox', all.map((o) => entry(s, o.id, stamp(), true)));
+      }
+      await base.clear(s);
+    },
+    // Les méthodes de lecture appellent base (this = la base suivie ne change rien).
+    countWhere: (s, f, v) => base.countWhere(s, f, v),
+    getAllWhere: (s, f, v) => base.getAllWhere(s, f, v),
+  };
+}
 
 const reqToPromise = (req) => new Promise((resolve, reject) => {
   req.onsuccess = () => resolve(req.result);
@@ -61,7 +122,7 @@ export function openDb(factory = globalThis.indexedDB, name = DB_NAME) {
       const idb = open.result;
       // Une nouvelle version de l'app demande la base : on libère la place.
       idb.onversionchange = () => idb.close();
-      resolve(wrapIdb(idb));
+      resolve(withTracking(wrapIdb(idb)));
     };
   });
 }
@@ -99,8 +160,13 @@ function wrapIdb(idb) {
   };
 }
 
-/** Base en mémoire (tests). Copie les objets comme IndexedDB le fait. */
-export function openMemoryDb() {
+/** Base en mémoire (tests), avec suivi des changements. Copie les objets comme IndexedDB le fait. */
+export function openMemoryDb({ now } = {}) {
+  return withTracking(openRawMemoryDb(), now);
+}
+
+/** Base en mémoire sans suivi. */
+export function openRawMemoryDb() {
   const data = Object.fromEntries(Object.keys(STORES).map((s) => [s, new Map()]));
   const copy = (o) => (o === undefined ? undefined : structuredClone(o));
   const map = (s) => { checkStore(s); return data[s]; };

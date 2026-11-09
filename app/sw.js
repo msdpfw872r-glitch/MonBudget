@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.8.1
+ * Version : 0.8.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -27,9 +27,10 @@
  *   0.7.0  FRE (Fidag)  Lecteurs BCVs et Swisscard.
  *   0.8.0  FRE (Fidag)  Lecteur XML et relevés camt.053.
  *   0.8.1  FRE (Fidag)  Configuration Firebase (firebase-config.js).
+ *   0.8.2  FRE (Fidag)  Version 0.8.2 (suivi des changements pour la synchro).
  */
 
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */

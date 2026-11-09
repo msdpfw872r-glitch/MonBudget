@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.8.2 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 2 : **suivi des changements** sur l'appareil (base version 3). Chaque modification reçoit une date (`updatedAt`) et est notée dans une file d'envoi (`outbox`) ; une suppression laisse une trace. Rien n'est encore envoyé. Les données existantes sont gardées telles quelles.
+- La file d'envoi n'est pas mise dans les sauvegardes fichiers ; une restauration rend les données restaurées « les plus récentes ».
+- 93 tests automatiques.
+
 ## 0.8.1 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 1 : conception (`docs/specs/synchro.md`), règles Firestore (`firestore.rules`, un seul compte autorisé), configuration Firebase publique (`app/js/firebase-config.js`), brief 1.6.0. Rien ne change encore dans l'app.
 
