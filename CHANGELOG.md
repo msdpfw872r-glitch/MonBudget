@@ -1,5 +1,8 @@
 # Historique des versions
 
+## 0.14.1 — 2026-11-09 — FRE (Fidag)
+- Écran **Bienvenue** (connexion) : la phrase sur Google est retirée ; il reste « Connectez-vous avec le compte Mon Budget. »
+
 ## 0.14.0 — 2026-11-09 — FRE (Fidag)
 - Supprimer des données : les cases cochées dans une liste sont **gardées tout de suite**, même en revenant avec « Retour » (avant, il fallait toucher « Garder ce choix »).
 - **Tout remettre à zéro** (en bas de « Supprimer des données ») : efface toutes les données — opérations, imports, règles, catégories, personnes, comptes — et repart **comme à la première utilisation**, avec les données d'exemple. Même vérification (taper SUPPRIMER), copie en ligne automatique juste avant ; le compte, Face ID et les copies de sécurité en ligne sont gardés. Transmis aux autres appareils.

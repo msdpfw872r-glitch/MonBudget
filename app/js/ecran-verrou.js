@@ -2,7 +2,7 @@
  * ecran-verrou.js — Écrans plein écran avant l'app : connexion, création de l'espace chiffré,
  * arrivée d'un nouvel appareil, activation de Face ID, écran « Mon Budget est verrouillé ».
  *
- * Version : 0.10.2
+ * Version : 0.14.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,6 +11,7 @@
  *
  * Historique :
  *   0.10.2 FRE (Fidag)  Première version.
+ *   0.14.1 FRE (Fidag)  Écran Bienvenue : phrase sur Google retirée.
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -51,8 +52,7 @@ function frame(inner) {
 
 const loginHtml = () => frame(`<form class="card form" data-login>
     <h1>Bienvenue</h1>
-    <p class="note">Connectez-vous avec le compte Mon Budget. Vos données sont <strong>chiffrées sur l’appareil</strong> :
-    personne d’autre, pas même Google (Firebase), ne peut les lire.</p>
+    <p class="note">Connectez-vous avec le compte Mon Budget.</p>
     <label class="field"><span>Adresse e-mail</span>
       <input type="email" name="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
     <label class="field"><span>Mot de passe</span>
