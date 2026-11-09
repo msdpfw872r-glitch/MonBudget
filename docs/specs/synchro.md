@@ -1,15 +1,15 @@
 # Conception : synchronisation chiffrée de bout en bout (Firebase)
 
-- Version : 1.0
+- Version : 1.1
 - Auteur : FRE (Fidag)
 - Date : 2026-11-09
-- Version de l'app concernée : 0.8.1 → 0.9.0
+- Version de l'app concernée : 0.8.1 → 0.9.0 (mise en service et tests : `docs/synchro-mise-en-service.md`)
 
 ## 1. Objectif et décisions
 
 - Sauvegarde / synchronisation **chiffrée de bout en bout** vers Firebase (offre gratuite Spark). Firebase ne voit jamais de données en clair.
 - **Option A** : un seul compte Firebase (UID `BgSfJCtyQ5TL0YRxWEOJG0YmFp22`), utilisé sur les deux iPad (celui de l'auteur et celui de sa maman). Chaque iPad crée sa propre passkey ; la phrase de passe de secours est commune.
-- **SDK Firebase 13.2.0 copié dans le dépôt** (`app/vendor/firebase/13.2.0/`), pas de CDN : l'app démarre hors ligne, la CSP n'autorise aucun script externe.
+- **SDK Firebase 13.2.0 copié dans le dépôt** (`app/vendor/firebase/13.2.0/` : app, auth, **Firestore lite** = simples requêtes HTTPS), pas de CDN : l'app démarre hors ligne, la CSP n'autorise aucun script externe. Chargé seulement quand la synchronisation est utilisée.
 - **Cache local en clair** (IndexedDB, protégé par le code de l'iPad) : l'app s'ouvre comme avant ; le déverrouillage (Face ID ou phrase de passe) sert à synchroniser.
 - Pas de Cloud Storage, pas de Cloud Functions.
 
@@ -60,7 +60,8 @@ users/{uid}/records/{docId}           un document chiffré par enregistrement
   2. déchiffrer ; pour chaque enregistrement, garder le plus récent (`updatedAt`) — **dernière écriture gagnante** ;
   3. chiffrer et écrire les entrées de `outbox` (lots de 400) ; les retirer de `outbox` si elles n'ont pas changé entre-temps.
 - **Premier lancement / nouvel appareil** : toutes les données locales sont mises dans `outbox`, puis fusionnées (migration des données existantes).
-- **Restaurer une sauvegarde fichier** : les données restaurées deviennent les plus récentes et remplacent celles du cloud (avertissement dans l'écran de restauration).
+- **Restaurer une sauvegarde fichier** : la synchro suivante relit tout le cloud ; les données restaurées remplacent celles du cloud et ce qui n'est pas dans la sauvegarde y est supprimé (avertissement dans l'écran de restauration).
+- Réglages locaux jamais sauvegardés ni synchronisés : `settings/sync` (curseur, état) et `settings/appareil` (identifiant de la passkey de l'iPad et sel PRF, non secrets).
 - Hors ligne : l'app fonctionne normalement ; `outbox` garde les changements jusqu'au retour du réseau.
 
 ## 5. Sécurité
@@ -83,3 +84,4 @@ users/{uid}/records/{docId}           un document chiffré par enregistrement
 ---
 Historique
 - 1.0 (2026-11-09, FRE (Fidag)) : version initiale.
+- 1.1 (2026-11-09, FRE (Fidag)) : Firestore lite, restauration qui remplace le cloud, réglages propres à l'appareil.

@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.9.0 — 2026-11-09 — FRE (Fidag)
+- **Synchronisation chiffrée de bout en bout entre les deux iPad** (Firebase, offre gratuite), étape 7 : finitions et mise en service.
+  - Données chiffrées sur l'iPad (AES-GCM 256) avant tout envoi ; Firebase ne voit ni montants, ni libellés, ni identifiants.
+  - Ouverture par **Face ID** (passkey de chaque iPad, extension PRF) ou par la **phrase de passe de secours** (PBKDF2, 600 000 itérations).
+  - L'app reste utilisable hors ligne ; les changements partent au retour du réseau ; la plus récente modification gagne.
+  - Restauration d'une sauvegarde : l'écran rouge prévient que les données remplaceront aussi celles du cloud et de l'autre iPad.
+- Mise en service Firebase (règles, inscription désactivée, clé limitée au site) et **checklist de tests sur iPad** : `docs/synchro-mise-en-service.md`.
+- Brief 1.7.0.
+
 ## 0.8.6 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 6 : **écrans et Face ID**.
   - Réglages › **Synchronisation entre les iPad** : connexion (e-mail + mot de passe), création du coffre avec avertissement rouge (« sans la phrase de passe ni Face ID, les données du cloud sont irrécupérables », case « J'ai compris » et dernière vérification), ouverture par phrase de passe, activation de **Face ID** sur chaque iPad (passkey + PRF), état (dernière synchro, changements en attente), Synchroniser maintenant, Verrouiller, Se déconnecter.

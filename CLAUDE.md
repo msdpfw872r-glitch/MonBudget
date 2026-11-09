@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.6.0
+- Version du brief : 1.7.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -12,6 +12,7 @@ Historique du brief :
 - 1.4.0 — FRE (Fidag) — Formats réels reçus (v0.7.0) : la BCVs fournit un relevé **CSV** (pas camt.053, abandonné) ; Swisscard un CSV français avec colonne Débit/Crédit et Statut. Opérations « En suspens » non importées. Les titulaires des cartes Swisscard sont choisis dans l'app.
 - 1.5.0 — FRE (Fidag) — camt.053 ajouté (v0.8.0) selon la spécification `docs/specs/camt053.md` (v1.0) : importable dans n'importe quel compte bancaire, contrepartie comme nom d'opération et clé des règles.
 - 1.6.0 — FRE (Fidag) — **Synchronisation chiffrée de bout en bout** vers Firebase (option A : un compte, deux iPad) : voir `docs/specs/synchro.md`. Le réseau est autorisé vers Firebase seulement ; les données n'y sont jamais en clair. SDK Firebase copié dans le dépôt (pas de CDN). La règle « aucune requête réseau » du § 4 est remplacée par celle-ci.
+- 1.7.0 — FRE (Fidag) — Synchronisation livrée (v0.9.0) : Réglages › Synchronisation, Face ID par passkey PRF, phrase de passe de secours ; mise en service et checklist iPad dans `docs/synchro-mise-en-service.md`.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -141,6 +142,7 @@ Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT
 | 0.6.0 | Sauvegarde / restauration + rappel | Restauration sur un autre appareil identique à l'original |
 | 0.7.0 | BCVs camt.053 | Tests sur fichier anonymisé réel |
 | 0.8.0 | Swisscard CSV | Tests sur fichier anonymisé réel |
+| 0.9.0 | Synchronisation chiffrée de bout en bout entre les deux iPad (Firebase), Face ID, phrase de passe de secours | Checklist `docs/synchro-mise-en-service.md` validée sur les deux iPad |
 | 1.0.0 | Relecture accessibilité, page d'aide en français simple (comment exporter depuis chaque banque, comment sauvegarder), guide d'installation | L'utilisateur valide sur l'iPad de sa maman |
 
 ## 8. Règles de travail

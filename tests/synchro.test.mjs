@@ -4,12 +4,13 @@
  * suppressions, hors ligne, lots, documents falsifiés, restauration d'une sauvegarde.
  * Lancer : npm test
  *
- * Version : 0.8.4
+ * Version : 0.9.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.8.4  FRE (Fidag)  Première version.
+ *   0.9.0  FRE (Fidag)  Réglage « appareil » (Face ID) gardé à la restauration et absent des sauvegardes.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -244,4 +245,19 @@ test('données d’avant le suivi (sans updatedAt) : datées puis envoyées', as
   const b = await ipad(1100);
   await sync(b, remote);
   assert.equal((await b.db.get('transactions', 'vieille')).amount, -5);
+});
+
+test('réglage « appareil » (Face ID de cet iPad) : jamais dans une sauvegarde, gardé à la restauration', async () => {
+  const a = await ipad(1000);
+  await a.db.put('settings', { id: 'appareil', configured: true, credentialId: 'AAAA', prfSalt: 'BBBB', label: 'iPad de Maman' });
+  const { text } = await B.createBackup(a.db);
+  assert.equal(JSON.parse(text).data.settings.some((o) => o.id === 'appareil'), false);
+  const b = await ipad(2000);
+  await b.db.put('settings', { id: 'appareil', configured: true, credentialId: 'CCCC', prfSalt: 'DDDD', label: 'iPad' });
+  const forged = JSON.parse(text);
+  forged.data.settings.push({ id: 'appareil', credentialId: 'XXXX' }, { id: 'sync', cursor: 999, joinedAt: 'x' });
+  await B.restoreBackup(b.db, B.readBackup(JSON.stringify(forged)));
+  assert.equal((await b.db.get('settings', 'appareil')).credentialId, 'CCCC');
+  assert.equal((await b.db.get('settings', 'sync')).replaceCloud, true);
+  assert.notEqual((await b.db.get('settings', 'sync')).cursor, 999);
 });
