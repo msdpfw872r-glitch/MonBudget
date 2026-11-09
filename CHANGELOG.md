@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.8.6 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 6 : **écrans et Face ID**.
+  - Réglages › **Synchronisation entre les iPad** : connexion (e-mail + mot de passe), création du coffre avec avertissement rouge (« sans la phrase de passe ni Face ID, les données du cloud sont irrécupérables », case « J'ai compris » et dernière vérification), ouverture par phrase de passe, activation de **Face ID** sur chaque iPad (passkey + PRF), état (dernière synchro, changements en attente), Synchroniser maintenant, Verrouiller, Se déconnecter.
+  - Accueil : bandeau « Synchronisation en pause » avec bouton **Déverrouiller avec Face ID**.
+  - Envoi automatique quelques secondes après chaque modification, au retour du réseau et quand l'app revient au premier plan ; les écrans Accueil, Journal et Résumé se mettent à jour quand des changements arrivent de l'autre iPad.
+  - La clé des données reste en mémoire seulement (jamais écrite) ; les réglages de Face ID de l'iPad ne vont jamais dans une sauvegarde fichier.
+
 ## 0.8.5 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 5 : **SDK Firebase 13.2.0 copié dans l'app** (`app/vendor/firebase/13.2.0/` : app, auth, Firestore « lite »), sans CDN ; empreintes et procédure dans `LISEZMOI.txt`. Mis en cache pour le hors ligne, chargé seulement si la synchronisation est utilisée.
 - Adaptateur `app/js/cloud.js` : connexion e-mail + mot de passe (session gardée sur l'appareil, un seul compte accepté), lecture des changements depuis la dernière fois, écriture par lots. Messages d'erreur en mots simples.

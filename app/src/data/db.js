@@ -1,7 +1,7 @@
 /**
  * db.js — Stockage des données sur l'appareil (IndexedDB), sans dépendance.
  *
- * Version : 0.8.2
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -21,6 +21,7 @@
  *   0.3.0  FRE (Fidag)  Première version : stores et index du modèle de données (schéma 1).
  *   0.4.0  FRE (Fidag)  Schéma 2 : index merchantKey et cardBillId (rattachement aux factures de carte).
  *   0.8.2  FRE (Fidag)  Schéma 3 : table outbox, updatedAt et traces de suppression (synchronisation).
+ *   0.8.6  FRE (Fidag)  db.onChange : appelé après chaque modification suivie (déclenche l'envoi).
  */
 
 export const DB_NAME = 'mon-budget';
@@ -56,7 +57,9 @@ export function withTracking(base, now = () => Date.now()) {
   // Dates strictement croissantes sur l'appareil (deux écritures dans la même milliseconde restent ordonnées).
   const stamp = () => { const t = Math.max(now(), last + 1); last = t; return t; };
   const entry = (store, recId, updatedAt, deleted) => ({ id: outboxId(store, recId), store, recId, updatedAt, deleted });
-  return {
+  // Prévient la synchronisation qu'il y a quelque chose à envoyer (api.onChange, posé par l'app).
+  const notify = () => { try { api.onChange?.(); } catch { /* jamais bloquant */ } };
+  const api = {
     ...base,
     kind: base.kind,
     raw: base,
@@ -67,6 +70,7 @@ export function withTracking(base, now = () => Date.now()) {
       const rec = { ...obj, updatedAt: t };
       await base.put(s, rec);
       await base.put('outbox', entry(s, obj.id, t, false));
+      notify();
       return rec;
     },
     async putMany(s, objs) {
@@ -74,11 +78,12 @@ export function withTracking(base, now = () => Date.now()) {
       const recs = objs.map((o) => ({ ...o, updatedAt: stamp() }));
       await base.putMany(s, recs);
       await base.putMany('outbox', recs.map((r) => entry(s, r.id, r.updatedAt, false)));
+      notify();
       return recs.length;
     },
     async delete(s, id) {
       await base.delete(s, id);
-      if (isSynced(s)) await base.put('outbox', entry(s, id, stamp(), true));
+      if (isSynced(s)) { await base.put('outbox', entry(s, id, stamp(), true)); notify(); }
     },
     async clear(s) {
       if (isSynced(s)) {
@@ -86,11 +91,14 @@ export function withTracking(base, now = () => Date.now()) {
         if (all.length) await base.putMany('outbox', all.map((o) => entry(s, o.id, stamp(), true)));
       }
       await base.clear(s);
+      if (isSynced(s)) notify();
     },
     // Les méthodes de lecture appellent base (this = la base suivie ne change rien).
     countWhere: (s, f, v) => base.countWhere(s, f, v),
     getAllWhere: (s, f, v) => base.getAllWhere(s, f, v),
+    onChange: null,
   };
+  return api;
 }
 
 const reqToPromise = (req) => new Promise((resolve, reject) => {

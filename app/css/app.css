@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.6.0
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -26,6 +26,7 @@
  *   0.5.1  FRE (Fidag)  Choix de période (semaine, mois, année, tout, dates), loupe du journal, mois par mois.
  *   0.5.2  FRE (Fidag)  Montants cliquables (détail des opérations).
  *   0.6.0  FRE (Fidag)  Sauvegarde : écran de restauration bien visible, bandeau de rappel, guide Raccourcis.
+ *   0.8.6  FRE (Fidag)  Champs e-mail / mot de passe, bandeau « synchronisation en pause ».
  */
 
 @font-face {
@@ -335,13 +336,13 @@ p { margin: 0; }
 .form { gap: 22px; }
 .field { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .field > span, .field > legend { font-size: 20px; font-weight: 700; padding: 0; margin-bottom: 8px; }
-input[type="text"], input:not([type]) {
+input[type="text"], input[type="email"], input[type="password"], input:not([type]) {
   font: inherit; font-size: 20px; color: var(--texte);
   min-height: var(--tactile); padding: 0 16px;
   border: 2px solid var(--trait); border-radius: 14px; background: var(--surface);
   width: 100%;
 }
-input:not([type]):focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-doux); }
+input:not([type]):focus, input[type="email"]:focus, input[type="password"]:focus, input[type="text"]:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-doux); }
 
 .choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .choice {
@@ -840,3 +841,8 @@ button.stat.detail-link { padding: 18px 20px; border-radius: var(--rayon); box-s
 /* 0.7.0 : « Une autre carte : l'ajouter » */
 .pick-new { display: flex; align-items: center; gap: 12px; border-style: dashed; }
 .pick-new svg { width: 26px; height: 26px; }
+
+/* ---------- 0.8.6 Synchronisation ---------- */
+
+.sync-banner svg { width: 28px; height: 28px; flex-shrink: 0; }
+.danger-zone + .card { margin-top: 0; }

@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.6.1
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,6 +20,8 @@
  *   0.5.2  FRE (Fidag)  Accueil : toucher un chiffre ou une barre affiche les opérations qui le composent.
  *   0.6.0  FRE (Fidag)  Accueil : bandeau « Pensez à sauvegarder » avec bouton.
  *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? ».
+ *   0.8.6  FRE (Fidag)  Synchronisation : démarrage, bandeau « en pause » (Face ID), écrans mis à jour
+ *                       quand des changements arrivent de l'autre iPad.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -37,6 +39,8 @@ import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
 import { openDetail } from './detail.js';
 import { reminderBanner, saveNow, showSaveResult } from './ecran-sauvegarde.js';
+import { synchroBanner, handleBannerClick } from './ecran-synchro.js';
+import * as syncService from './synchro-service.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -68,7 +72,7 @@ function accueilView() {
     async render(root) {
       const today = new Date();
       const db = await getDb();
-      const [data, bills, banner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db)]);
+      const [data, bills, banner, syncBanner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db), synchroBanner()]);
       const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
@@ -86,6 +90,7 @@ function accueilView() {
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
+        ${syncBanner}
         ${banner}
         <p class="flash" data-message-sauvegarde role="status" hidden></p>
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
@@ -113,6 +118,11 @@ function accueilView() {
         <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
       paintColors(root);
       root.onclick = async (e) => {
+        const unlocked = await handleBannerClick(e, root);
+        if (unlocked !== null) {
+          if (unlocked) await this.render(root);
+          return;
+        }
         const save = e.target.closest('[data-sauvegarder]');
         if (save) {
           save.disabled = true;
@@ -264,6 +274,20 @@ document.addEventListener('donnees-modifiees', () => {
   if (dialog.open) renderMain(lastMainRoute, renderCount);
 });
 
+// Changements reçus de l'autre iPad : les écrans de consultation se redessinent
+// (pas « À trier », pour ne pas perdre l'opération en cours de tri).
+document.addEventListener('donnees-recues', () => {
+  updateBadge();
+  if (['accueil', 'journal', 'resume'].includes(lastMainRoute)) renderMain(lastMainRoute, renderCount);
+});
+// La synchronisation se met en pause ou reprend : le bandeau de l'accueil suit.
+let lastSyncPhase = null;
+document.addEventListener('synchro-etat', (e) => {
+  const key = `${e.detail.phase}/${e.detail.unlocked}`;
+  if (key !== lastSyncPhase && lastMainRoute === 'accueil' && lastSyncPhase !== null) renderMain('accueil', renderCount);
+  lastSyncPhase = key;
+});
+
 dialog.addEventListener('close', () => {
   if (SHEET_ROUTES.includes(currentRoute().id)) location.hash = `#/${lastMainRoute}`;
 });
@@ -274,7 +298,7 @@ window.addEventListener('hashchange', render);
 buildNav();
 render();
 // Ouvre la base dès le démarrage (installe les données de départ au premier lancement).
-getDb().catch(() => {});
+getDb().then(() => syncService.init()).catch(() => {});
 
 /* ---------- Hors ligne et mise à jour ---------- */
 

@@ -2,12 +2,13 @@
  * db.test.mjs — Tests du suivi des changements (synchronisation) : updatedAt, outbox, traces de suppression.
  * Lancer : npm test
  *
- * Version : 0.8.2
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.8.2  FRE (Fidag)  Première version.
+ *   0.8.6  FRE (Fidag)  db.onChange.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -79,4 +80,21 @@ test('base sans suivi : mêmes méthodes', async () => {
   const raw = openRawMemoryDb();
   await raw.put('transactions', { id: 'a' });
   assert.equal((await raw.get('transactions', 'a')).updatedAt, undefined);
+});
+
+test('onChange : appelé après une modification suivie, pas pour settings ni db.raw', async () => {
+  const db = openMemoryDb();
+  let n = 0;
+  db.onChange = () => { n++; };
+  await db.put('rules', { id: 'r' });
+  await db.putMany('transactions', [{ id: 'a' }]);
+  await db.delete('transactions', 'a');
+  await db.clear('rules');
+  assert.equal(n, 4);
+  await db.put('settings', { id: 'app' });
+  await db.raw.put('rules', { id: 'x' });
+  assert.equal(n, 4);
+  db.onChange = () => { throw new Error('boum'); };
+  await db.put('rules', { id: 'y' }); // une erreur du signal ne bloque pas l'écriture
+  assert.ok(await db.get('rules', 'y'));
 });

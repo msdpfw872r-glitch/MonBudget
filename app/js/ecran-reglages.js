@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.6.1
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -16,6 +16,7 @@
  *                       modifiables et supprimables, accès aux factures de carte.
  *   0.6.0  FRE (Fidag)  Carte « Sauvegarde » (sauvegarder, restaurer, guide Raccourcis).
  *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? » après le menu Partager.
+ *   0.8.6  FRE (Fidag)  Synchronisation entre les iPad (#/reglages/synchro).
  */
 
 import { APP_VERSION } from './version.js';
@@ -25,6 +26,7 @@ import * as R from '../src/core/reglages.js';
 import { saveRule, deleteRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
 import { backupCard, saveNow, showSaveResult, restaurerView, raccourciView } from './ecran-sauvegarde.js';
+import { synchroView, synchroRow } from './ecran-synchro.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -97,6 +99,7 @@ function accueilReglages() {
       const o = await R.overview(db);
       root.innerHTML = `
         ${await backupCard(db)}
+        <section class="card list">${await synchroRow()}</section>
         <section class="card list">
           ${row({ href: '#/reglages/regles', title: 'Règles retenues',
             sub: o.rulesCount ? plural(o.rulesCount, 'commerce reconnu', 'commerces reconnus') : 'Aucune pour l’instant' })}
@@ -395,6 +398,7 @@ export function reglagesView(path) {
     case 'regles': return id ? regle(id) : regles();
     case 'restaurer': return restaurerView();
     case 'raccourci': return raccourciView();
+    case 'synchro': return synchroView();
     default: return accueilReglages();
   }
 }

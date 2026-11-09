@@ -1,7 +1,7 @@
 /**
  * version.js — Numéro de version affiché dans Réglages.
  *
- * Version : 0.8.5
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -30,5 +30,6 @@
  *   0.8.3  FRE (Fidag)  Version 0.8.3.
  *   0.8.4  FRE (Fidag)  Version 0.8.4.
  *   0.8.5  FRE (Fidag)  Version 0.8.5.
+ *   0.8.6  FRE (Fidag)  Version 0.8.6.
  */
-export const APP_VERSION = '0.8.5';
+export const APP_VERSION = '0.8.6';

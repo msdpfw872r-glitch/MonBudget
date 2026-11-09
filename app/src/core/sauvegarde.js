@@ -1,7 +1,7 @@
 /**
  * sauvegarde.js — Sauvegarde et restauration de toutes les données, rappel de sauvegarde.
  *
- * Version : 0.8.4
+ * Version : 0.8.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -14,6 +14,7 @@
  *   0.6.0  FRE (Fidag)  Première version.
  *   0.8.2  FRE (Fidag)  La table outbox (synchronisation) n'est pas mise dans la sauvegarde.
  *   0.8.4  FRE (Fidag)  Après une restauration, la prochaine synchro remplace les données du cloud.
+ *   0.8.6  FRE (Fidag)  Le réglage « appareil » (passkey de cet iPad) reste sur l'appareil.
  */
 
 import { BACKUP_STORES as STORE_NAMES, SCHEMA_VERSION } from '../data/db.js';
@@ -23,6 +24,8 @@ export const BACKUP_FORMAT = 'mon-budget-sauvegarde';
 export const BACKUP_FORMAT_VERSION = 1;
 export const REMINDER_DAYS = 30;
 const SYNC_ID = 'sync';
+/** Réglages propres à l'appareil (synchro, passkey) : jamais dans une sauvegarde. */
+const DEVICE_IDS = [SYNC_ID, 'appareil'];
 
 const pad = (n, w = 2) => String(n).padStart(w, '0');
 
@@ -49,7 +52,7 @@ async function readAll(db) {
   const data = {};
   for (const store of STORE_NAMES) data[store] = await db.getAll(store);
   // L'état de synchro est propre à chaque appareil : il ne voyage pas dans la sauvegarde.
-  data.settings = data.settings.filter((o) => o.id !== SYNC_ID);
+  data.settings = data.settings.filter((o) => !DEVICE_IDS.includes(o.id));
   return data;
 }
 
@@ -105,7 +108,7 @@ export function readBackup(text) {
     throw new ReglageError('Cette sauvegarde est incomplète et ne peut pas être utilisée. Essayez une autre sauvegarde.');
   }
   const data = Object.fromEntries(STORE_NAMES.map((s) => [s, b.data[s] ?? []]));
-  data.settings = data.settings.filter((o) => o.id !== SYNC_ID);
+  data.settings = data.settings.filter((o) => !DEVICE_IDS.includes(o.id));
   return { createdAt: b.createdAt ?? null, appVersion: b.appVersion ?? '', counts: countsOf(data), data };
 }
 
@@ -123,6 +126,7 @@ async function replaceAll(db, data) {
 export async function restoreBackup(db, backup, now = new Date()) {
   const before = await readAll(db);
   const sync = await db.get('settings', SYNC_ID);
+  const device = await db.get('settings', 'appareil');
   try {
     await replaceAll(db, backup.data);
     const s = await db.get('settings', 'app');
@@ -135,9 +139,11 @@ export async function restoreBackup(db, backup, now = new Date()) {
     });
     // Synchronisation : à la prochaine fois, ces données remplacent celles du cloud.
     await db.put('settings', { ...(sync ?? { id: SYNC_ID, cursor: null, joinedAt: null }), replaceCloud: true });
+    if (device) await db.put('settings', device);
   } catch (e) {
     await replaceAll(db, before);
     if (sync) await db.put('settings', sync);
+    if (device) await db.put('settings', device);
     throw new ReglageError('La restauration n’a pas marché. Vos données d’avant ont été remises. Réessayez.', { cause: e });
   }
   return countsOf(backup.data);
