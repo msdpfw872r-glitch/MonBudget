@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.4.5
+ * Version : 0.4.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -21,6 +21,7 @@
  *   0.4.4  FRE (Fidag)  Les blocs du formulaire ne rétrécissent plus (plus de chevauchement) ; étiquette
  *                       « C'est quoi ? » et fenêtre de choix de catégorie avec loupe.
  *   0.4.5  FRE (Fidag)  Pastille de couleur dans la fenêtre de choix et l'étiquette « Pour qui ? ».
+ *   0.4.6  FRE (Fidag)  À trier : colonne de gauche (titre, ordre, liste) ; navigation iPhone ; montants dans les choix.
  */
 
 @font-face {
@@ -594,3 +595,36 @@ details.note summary { cursor: pointer; min-height: 44px; }
 }
 .picker-name { display: flex; align-items: center; gap: 14px; }
 .tag-choice .swatch { width: 28px; height: 28px; }
+
+/* ---------- 0.4.6 : À trier — colonne de gauche (iPad), navigation (iPhone) ---------- */
+
+.sort-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.side-order { display: none; }
+.side-order { flex-wrap: nowrap; gap: 8px; }
+.side-order .pick { flex: 1 1 0; min-width: 0; padding: 6px 8px; }
+
+/* Navigation entre les opérations, en haut du formulaire (iPhone et iPad étroit). */
+.narrow-nav { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--trait-doux); }
+.narrow-nav-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.narrow-nav-top .progress-text { margin: 0; font-weight: 700; color: var(--texte); }
+.narrow-nav .btn-small { min-height: var(--tactile); }
+.narrow-nav-arrows { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.narrow-nav-arrows .btn { padding: 0 10px; font-size: 19px; }
+.narrow-nav-arrows svg { width: 24px; height: 24px; }
+
+@media (max-width: 899px) {
+  .sort-layout { flex-direction: column; align-items: stretch; }
+}
+
+@media (min-width: 900px) {
+  .narrow-nav { display: none; }
+  .side-order { display: flex; }
+  .view-fill .sort-side { width: 320px; flex-shrink: 0; height: 100%; min-height: 0; }
+  .view-fill .sort-side .page-head h1 { font-size: 32px; }
+  .view-fill .sort-side .sort-list { flex: 1 1 auto; min-height: 0; height: auto; width: auto; }
+  .view-fill .sort-side .flash { padding: 10px 14px; font-size: 19px; }
+}
+
+/* Montant à droite dans la fenêtre de choix (liste des opérations). */
+.picker-item .row-text { gap: 2px; }
+.picker-aside { font-weight: 700; white-space: nowrap; margin-left: auto; }

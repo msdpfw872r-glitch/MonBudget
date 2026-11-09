@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.4.5
+ * Version : 0.4.6
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,8 @@
  *   0.4.4  FRE (Fidag)  « C'est quoi ? » : une seule étiquette qui ouvre une fenêtre de choix avec loupe
  *                       et ordre « Derniers utilisés » / « De A à Z » ; texte « L'autre opération… » au singulier.
  *   0.4.5  FRE (Fidag)  « Pour qui ? » : au-delà de 6 personnes, une étiquette qui ouvre la même fenêtre de choix.
+ *   0.4.6  FRE (Fidag)  iPad : titre et ordre en haut de la colonne de gauche, formulaire tout en haut à droite.
+ *                       iPhone : « Précédente » / « Suivante » et « Liste » (fenêtre avec loupe et ordre).
  */
 
 import { icon, esc } from './ui.js';
@@ -25,7 +27,7 @@ import { formatAmount, formatDateLong, formatDateShort, displayName } from '../s
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify } from '../src/core/regles.js';
 import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
-import { chooseCategory, choosePerson } from './choix.js';
+import { chooseCategory, choosePerson, choose, savedOrder } from './choix.js';
 
 /** Au-delà de ce nombre de personnes, « Pour qui ? » devient une étiquette avec fenêtre de choix. */
 const PEOPLE_BUTTONS_MAX = 6;
@@ -34,7 +36,11 @@ const PEOPLE_BUTTONS_MAX = 6;
 const LIST_MAX = 50;
 
 // État de l'écran (gardé entre deux affichages).
-const state = { currentId: null, personId: null, categoryId: null, remember: true, message: '', order: 'frequent' };
+/** Ordres de la liste des opérations (retenu d'une fois à l'autre). */
+const OP_ORDERS = [{ id: 'frequent', label: 'Fréquents d’abord' }, { id: 'date', label: 'Par date' }];
+const OP_ORDER_KEY = 'mon-budget.ordre-operations';
+
+const state = { currentId: null, personId: null, categoryId: null, remember: true, message: '', order: savedOrder(OP_ORDER_KEY, OP_ORDERS) };
 
 function resetChoice() {
   state.personId = null;
@@ -81,6 +87,16 @@ function detail(tx, data) {
   const position = data.pending.indexOf(tx) + 1;
   const same = data.counts.get(tx.merchantKey) ?? 1;
   return `<section class="card sort-card" aria-labelledby="op-nom">
+      ${data.pending.length > 1 ? `<div class="narrow-nav">
+        <div class="narrow-nav-top">
+          <p class="progress-text">Opération ${position} sur ${data.pending.length}</p>
+          <button type="button" class="btn btn-secondary btn-small" data-liste aria-haspopup="dialog">${icon('journal')}Liste</button>
+        </div>
+        <div class="narrow-nav-arrows">
+          <button type="button" class="btn btn-secondary" data-precedente>${icon('retour')}Précédente</button>
+          <button type="button" class="btn btn-secondary" data-suivante>Suivante${icon('suite')}</button>
+        </div>
+      </div>` : ''}
       <div class="sort-head">
         <div class="row-text">
           <span class="row-sub">${esc(formatDateLong(tx.date, { capital: true }))} · ${esc(acc?.name ?? 'Compte inconnu')}</span>
@@ -89,7 +105,6 @@ function detail(tx, data) {
         <span class="sort-amount ${tx.amount < 0 ? '' : 'positive'}">${formatAmount(tx.amount)}</span>
       </div>
       <p class="row-sub">Texte de la banque : ${esc(tx.description)}${tx.bankCategory ? `<br>Classement de la banque : ${esc(tx.bankCategory)}` : ''}</p>
-      <p class="progress-text">${position} sur ${data.pending.length}</p>
 
       <h2>Pour qui ?</h2>
       ${data.people.length > PEOPLE_BUTTONS_MAX ? personTag(data.people.find((p) => p.id === state.personId))
@@ -130,9 +145,30 @@ function listPane(data, current) {
 }
 
 function orderSwitch() {
-  const b = (mode, label) => `<button type="button" class="pick" data-ordre="${mode}" aria-pressed="${state.order === mode}">${label}</button>`;
-  return `<div class="order-switch" role="group" aria-label="Ordre des opérations">
-    ${b('frequent', 'Commerces fréquents d’abord')}${b('date', 'Par date')}</div>`;
+  const b = (o) => `<button type="button" class="pick" data-ordre="${o.id}" aria-pressed="${state.order === o.id}">${o.label}</button>`;
+  return `<div class="order-switch side-order" role="group" aria-label="Ordre des opérations">${OP_ORDERS.map(b).join('')}</div>`;
+}
+
+/** Fenêtre « Liste des opérations » (iPhone) : loupe, ordre, toucher une ligne pour l'ouvrir. */
+function openList(data, current) {
+  const items = data.pending.map((t) => ({
+    id: t.id,
+    name: displayName(t.description),
+    sub: `${formatDateShort(t.date)}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}`,
+    aside: formatAmount(t.amount),
+    tx: t,
+  }));
+  const byId = new Map(items.map((i) => [i.id, i]));
+  return choose({
+    title: 'Opérations à trier',
+    searchLabel: 'Chercher un commerce',
+    orderKey: OP_ORDER_KEY,
+    orders: OP_ORDERS,
+    sortItems: (xs, order) => orderPending(xs.map((x) => x.tx), order).map((t) => byId.get(t.id)),
+    items,
+    selected: current.id,
+    emptyText: 'Aucune opération ne correspond. Essayez un autre mot.',
+  });
 }
 
 /** Écran « À trier ». */
@@ -168,9 +204,15 @@ export function trierView() {
         }
         // Achat par carte : la titulaire de la carte est proposée d'avance.
         if (state.personId === null) state.personId = data.accounts.get(tx.accountId)?.personId ?? null;
-        root.innerHTML = `${head(`${data.pending.length} opération${data.pending.length > 1 ? 's' : ''} à classer`)}${message}
-          ${data.pending.length > 1 ? orderSwitch() : ''}
-          <div class="sort-layout">${listPane(data, tx)}${detail(tx, data)}</div>`;
+        // Colonne de gauche (iPad) : titre, ordre, liste. Le formulaire commence tout en haut à droite.
+        root.innerHTML = `<div class="sort-layout">
+            <div class="sort-side">
+              ${head(`${data.pending.length} opération${data.pending.length > 1 ? 's' : ''} à classer`)}${message}
+              ${data.pending.length > 1 ? orderSwitch() : ''}
+              ${listPane(data, tx)}
+            </div>
+            ${detail(tx, data)}
+          </div>`;
         for (const el of root.querySelectorAll('[data-color]')) el.style.setProperty('--c', el.dataset.color);
         message = ''; // le message « C’est noté » ne s’affiche qu’une fois
         bindSearch();
@@ -215,8 +257,26 @@ export function trierView() {
             root.querySelector('[data-valider]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           }
           root.querySelector('[data-ouvrir-categories]')?.focus({ preventScroll: true });
-        } else if (b.dataset.ordre) { state.order = b.dataset.ordre; state.currentId = null; this.render(root); }
-        else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); goTo(); }
+        } else if (b.dataset.ordre) {
+          state.order = b.dataset.ordre;
+          try { localStorage.setItem(OP_ORDER_KEY, state.order); } catch { /* sans gravité */ }
+          state.currentId = null;
+          this.render(root);
+        } else if ('liste' in b.dataset) {
+          const id = await openList(data, tx);
+          const order = savedOrder(OP_ORDER_KEY, OP_ORDERS);
+          if (id && id !== tx.id) { state.currentId = id; resetChoice(); }
+          if (order !== state.order) { state.order = order; await this.render(root); }
+          else if (id && id !== tx.id) goTo();
+          window.scrollTo(0, 0);
+        } else if ('precedente' in b.dataset || 'suivante' in b.dataset) {
+          const i = data.pending.indexOf(tx);
+          const step = 'suivante' in b.dataset ? 1 : -1;
+          state.currentId = data.pending[(i + step + data.pending.length) % data.pending.length].id;
+          resetChoice();
+          goTo();
+          window.scrollTo(0, 0);
+        } else if (b.dataset.select) { state.currentId = b.dataset.select; resetChoice(); goTo(); }
         else if ('passer' in b.dataset) {
           const i = data.pending.indexOf(tx);
           state.currentId = data.pending[(i + 1) % data.pending.length].id;

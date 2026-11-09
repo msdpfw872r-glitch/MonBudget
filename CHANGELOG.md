@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.4.6 — 2026-11-09 — FRE (Fidag)
+- À trier sur iPad : le titre et le choix de l'ordre (« Fréquents d'abord » / « Par date ») sont en haut de la colonne de gauche, au-dessus de la liste ; le formulaire de droite commence tout en haut de l'écran.
+- À trier sur iPhone : en haut du formulaire, « Opération 2 sur 7 », boutons « Précédente » / « Suivante » et « Liste » ; la liste s'ouvre dans une fenêtre avec loupe (« Chercher un commerce ») et le choix de l'ordre. Toucher une opération l'ouvre.
+- L'ordre des opérations choisi est retenu d'une fois à l'autre.
+
 ## 0.4.5 — 2026-11-09 — FRE (Fidag)
 - À trier : « Pour qui ? » garde ses gros boutons de couleur jusqu'à 6 personnes ; au-delà, une seule étiquette ouvre la même fenêtre de choix que les catégories (loupe, « Derniers utilisés » / « De A à Z », une personne par ligne avec sa couleur).
 - 48 tests automatiques.
