@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.9.1
+ * Version : 0.10.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -34,9 +34,10 @@
  *   0.8.6  FRE (Fidag)  Écrans de synchronisation, Face ID (passkey.js, synchro-service.js, ecran-synchro.js).
  *   0.9.0  FRE (Fidag)  Version 0.9.0.
  *   0.9.1  FRE (Fidag)  Version 0.9.1.
+ *   0.10.0 FRE (Fidag)  Base chiffrée sur l'appareil (coffre.js).
  */
 
-const VERSION = '0.9.1';
+const VERSION = '0.10.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -65,6 +66,7 @@ const FILES = [
   './src/core/format.js',
   './src/core/chiffrement.js',
   './src/core/synchro.js',
+  './src/data/coffre.js',
   './js/cloud.js',
   './js/passkey.js',
   './js/synchro-service.js',

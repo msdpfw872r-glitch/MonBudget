@@ -2,13 +2,14 @@
  * db.test.mjs — Tests du suivi des changements (synchronisation) : updatedAt, outbox, traces de suppression.
  * Lancer : npm test
  *
- * Version : 0.8.6
+ * Version : 0.10.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.8.2  FRE (Fidag)  Première version.
  *   0.8.6  FRE (Fidag)  db.onChange.
+ *   0.10.0 FRE (Fidag)  Schéma 4.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,8 +19,8 @@ import * as R from '../app/src/core/reglages.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
 
-test('schéma 3 : table outbox, tables synchronisées et sauvegardées', () => {
-  assert.equal(SCHEMA_VERSION, 3);
+test('schéma 4 : table outbox, tables synchronisées et sauvegardées', () => {
+  assert.equal(SCHEMA_VERSION, 4);
   assert.ok('outbox' in STORES);
   assert.deepEqual(SYNCED_STORES, ['people', 'accounts', 'categories', 'transactions', 'rules', 'imports']);
   assert.ok(!SYNCED_STORES.includes('settings') && !SYNCED_STORES.includes('outbox'));

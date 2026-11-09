@@ -1,5 +1,9 @@
 # Historique des versions
 
+## 0.10.0 — 2026-11-09 — FRE (Fidag)
+- « Vraie app », étape 1 : **base chiffrée sur l'appareil** (`app/src/data/coffre.js`). Une fois l'app déverrouillée, les données sont en mémoire ; chaque modification est aussitôt chiffrée dans IndexedDB (noms illisibles, contenu AES-GCM). Reprise des anciennes données en clair, effacement complet de l'appareil. Pas encore branché sur les écrans.
+- Base IndexedDB version 4 (tables « coffre » et « appareil »).
+
 ## 0.9.1 — 2026-11-09 — FRE (Fidag)
 - Réglages : **Synchronisation entre appareils** placée tout en haut (sur iPhone, elle était sous la sauvegarde et il fallait faire défiler).
 - Textes de la synchronisation valables pour l'iPad **et l'iPhone** (« cet appareil », « Nom de cet appareil »).

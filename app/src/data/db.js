@@ -1,13 +1,14 @@
 /**
  * db.js — Stockage des données sur l'appareil (IndexedDB), sans dépendance.
  *
- * Version : 0.8.6
+ * Version : 0.10.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Deux moteurs avec la même interface (toutes les méthodes renvoient une promesse) :
- *   - openDb()        : IndexedDB, dans Safari / le navigateur ;
+ *   - openVaultDb()   (coffre.js) : données en mémoire, enregistrées CHIFFRÉES dans IndexedDB ;
  *   - openMemoryDb()  : en mémoire, pour les tests dans Node.
+ * openPhysicalDb() donne l'accès brut aux tables IndexedDB (coffre, appareil).
  *
  * Interface : get(store, id), getAll(store), put(store, obj), putMany(store, objs),
  *             delete(store, id), clear(store), count(store), countWhere(store, champ, valeur),
@@ -22,10 +23,12 @@
  *   0.4.0  FRE (Fidag)  Schéma 2 : index merchantKey et cardBillId (rattachement aux factures de carte).
  *   0.8.2  FRE (Fidag)  Schéma 3 : table outbox, updatedAt et traces de suppression (synchronisation).
  *   0.8.6  FRE (Fidag)  db.onChange : appelé après chaque modification suivie (déclenche l'envoi).
+ *   0.10.0 FRE (Fidag)  Schéma 4 : tables physiques « coffre » (données chiffrées) et « appareil » (clés enveloppées) ;
+ *                       openPhysicalDb() ; deleteMany ; les anciennes tables en clair ne servent plus qu'à la reprise.
  */
 
 export const DB_NAME = 'mon-budget';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Stores et champs indexés (voir CLAUDE.md § 4, modèle de données). */
 export const STORES = {
@@ -43,6 +46,13 @@ export const STORES = {
 export const SYNCED_STORES = ['people', 'accounts', 'categories', 'transactions', 'rules', 'imports'];
 /** Tables mises dans une sauvegarde fichier. */
 export const BACKUP_STORES = Object.keys(STORES).filter((s) => s !== 'outbox');
+
+/**
+ * Tables réellement écrites dans IndexedDB (schéma 4) : `coffre` (chaque enregistrement chiffré,
+ * voir coffre.js) et `appareil` (clés enveloppées, lisibles avant déverrouillage). Les tables
+ * de STORES y existent encore, vides, pour reprendre les données d'avant le chiffrement local.
+ */
+export const PHYSICAL_STORES = { ...STORES, coffre: [], appareil: [] };
 
 const isSynced = (s) => SYNCED_STORES.includes(s);
 const outboxId = (store, id) => `${store}/${id}`;
@@ -106,18 +116,21 @@ const reqToPromise = (req) => new Promise((resolve, reject) => {
   req.onerror = () => reject(req.error);
 });
 
-function checkStore(name) {
-  if (!(name in STORES)) throw new Error(`Store inconnu : ${name}`);
+function checkStore(name, stores = STORES) {
+  if (!(name in stores)) throw new Error(`Store inconnu : ${name}`);
 }
 
-/** Ouvre (et crée au besoin) la base IndexedDB. */
-export function openDb(factory = globalThis.indexedDB, name = DB_NAME) {
+/**
+ * Ouvre (et crée au besoin) la base IndexedDB, SANS suivi ni chiffrement : accès aux tables physiques
+ * (coffre, appareil, anciennes tables). Les données de l'app passent par openVaultDb() (coffre.js).
+ */
+export function openPhysicalDb(factory = globalThis.indexedDB, name = DB_NAME) {
   if (!factory) return Promise.reject(new Error('Le stockage de cet appareil n’est pas disponible.'));
   return new Promise((resolve, reject) => {
     const open = factory.open(name, SCHEMA_VERSION);
     open.onupgradeneeded = () => {
       const idb = open.result;
-      for (const [store, indexes] of Object.entries(STORES)) {
+      for (const [store, indexes] of Object.entries(PHYSICAL_STORES)) {
         const os = idb.objectStoreNames.contains(store)
           ? open.transaction.objectStore(store)
           : idb.createObjectStore(store, { keyPath: 'id' });
@@ -130,14 +143,14 @@ export function openDb(factory = globalThis.indexedDB, name = DB_NAME) {
       const idb = open.result;
       // Une nouvelle version de l'app demande la base : on libère la place.
       idb.onversionchange = () => idb.close();
-      resolve(withTracking(wrapIdb(idb)));
+      resolve(wrapIdb(idb, PHYSICAL_STORES));
     };
   });
 }
 
-function wrapIdb(idb) {
+function wrapIdb(idb, stores = STORES) {
   const run = (store, mode, fn) => {
-    checkStore(store);
+    checkStore(store, stores);
     const tx = idb.transaction(store, mode);
     const result = fn(tx.objectStore(store));
     return new Promise((resolve, reject) => {
@@ -146,7 +159,7 @@ function wrapIdb(idb) {
       tx.onabort = () => reject(tx.error ?? new Error('Enregistrement annulé'));
     });
   };
-  const hasIndex = (store, field) => STORES[store].includes(field);
+  const hasIndex = (store, field) => stores[store].includes(field);
   return {
     kind: 'indexeddb',
     get: (s, id) => run(s, 'readonly', (os) => os.get(id)),
@@ -154,6 +167,7 @@ function wrapIdb(idb) {
     put: (s, obj) => run(s, 'readwrite', (os) => { os.put(obj); return obj; }),
     putMany: (s, objs) => run(s, 'readwrite', (os) => { for (const o of objs) os.put(o); return objs.length; }),
     delete: (s, id) => run(s, 'readwrite', (os) => { os.delete(id); }),
+    deleteMany: (s, ids) => run(s, 'readwrite', (os) => { for (const id of ids) os.delete(id); }),
     clear: (s) => run(s, 'readwrite', (os) => { os.clear(); }),
     count: (s) => run(s, 'readonly', (os) => os.count()),
     async countWhere(s, field, value) {
@@ -173,11 +187,11 @@ export function openMemoryDb({ now } = {}) {
   return withTracking(openRawMemoryDb(), now);
 }
 
-/** Base en mémoire sans suivi. */
-export function openRawMemoryDb() {
-  const data = Object.fromEntries(Object.keys(STORES).map((s) => [s, new Map()]));
+/** Base en mémoire sans suivi (`stores` : PHYSICAL_STORES pour simuler IndexedDB dans les tests). */
+export function openRawMemoryDb(stores = STORES) {
+  const data = Object.fromEntries(Object.keys(stores).map((s) => [s, new Map()]));
   const copy = (o) => (o === undefined ? undefined : structuredClone(o));
-  const map = (s) => { checkStore(s); return data[s]; };
+  const map = (s) => { checkStore(s, stores); return data[s]; };
   const sorted = (s) => [...map(s).entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, v]) => copy(v));
   return {
     kind: 'memory',
@@ -190,6 +204,7 @@ export function openRawMemoryDb() {
     },
     async putMany(s, objs) { for (const o of objs) await this.put(s, o); return objs.length; },
     async delete(s, id) { map(s).delete(id); },
+    async deleteMany(s, ids) { for (const id of ids) map(s).delete(id); },
     async clear(s) { map(s).clear(); },
     async count(s) { return map(s).size; },
     async countWhere(s, field, value) { return [...map(s).values()].filter((o) => o[field] === value).length; },
