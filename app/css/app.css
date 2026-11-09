@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.4.6
+ * Version : 0.5.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -22,6 +22,7 @@
  *                       « C'est quoi ? » et fenêtre de choix de catégorie avec loupe.
  *   0.4.5  FRE (Fidag)  Pastille de couleur dans la fenêtre de choix et l'étiquette « Pour qui ? ».
  *   0.4.6  FRE (Fidag)  À trier : colonne de gauche (titre, ordre, liste) ; navigation iPhone ; montants dans les choix.
+ *   0.5.0  FRE (Fidag)  Journal (tableau / liste), Résumé (chiffres, barres), Accueil, choix du mois, filtres.
  */
 
 @font-face {
@@ -628,3 +629,99 @@ details.note summary { cursor: pointer; min-height: 44px; }
 /* Montant à droite dans la fenêtre de choix (liste des opérations). */
 .picker-item .row-text { gap: 2px; }
 .picker-aside { font-weight: 700; white-space: nowrap; margin-left: auto; }
+
+/* ---------- 0.5.0 : Journal, Résumé, Accueil ---------- */
+
+.month-switch { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.month-switch .btn { padding: 0 14px; font-size: 19px; }
+.month-switch .btn:last-child { justify-self: end; }
+.month-switch .btn:first-child { justify-self: start; }
+.month-switch svg { width: 24px; height: 24px; }
+.month-current { font-size: 24px; font-weight: 700; text-align: center; }
+@media (max-width: 599px) {
+  .month-switch { grid-template-columns: 1fr 1fr; }
+  .month-current { grid-column: 1 / -1; grid-row: 1; }
+  .month-switch .btn { justify-self: stretch !important; }
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { padding: 6px 18px; }
+.chip-person { color: var(--c); border-color: var(--c); font-weight: 700; }
+.chip-person[aria-pressed="true"] { background: var(--c); color: #FFFFFF; border-color: var(--c); }
+
+.journal-total { color: var(--texte-2); }
+.journal-total strong { color: var(--texte); }
+
+/* Opérations : carte par ligne (iPhone), tableau (iPad). */
+.op-head { display: none; }
+.op-row {
+  font: inherit; color: var(--texte); background: none; border: 0; cursor: pointer; text-align: left; width: 100%;
+  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name amount" "who amount" "cat cat" "date date";
+  gap: 4px 12px; padding: 14px 20px; min-height: 64px;
+}
+.op-row + .op-row, .op-head + .op-row { border-top: 1px solid var(--trait-doux); }
+.op-row:hover { background: var(--fond); }
+.op-date { grid-area: date; color: var(--texte-2); font-size: 19px; }
+.op-name { grid-area: name; font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
+.op-who { grid-area: who; }
+.op-cat { grid-area: cat; color: var(--texte-2); font-size: 19px; display: flex; flex-direction: column; }
+.op-note { font-size: 19px; font-style: italic; }
+.op-amount { grid-area: amount; font-size: 20px; font-weight: 700; white-space: nowrap; align-self: center; }
+.op-amount.positive { color: var(--accent); }
+.op-to-sort { background: #FFFBF5; }
+.tag-alert { background: var(--alerte-texte); color: #FFFFFF; }
+.op-who .tag { font-size: 19px; padding: 2px 12px; }
+
+@media (min-width: 1000px) {
+  .op-head, .op-row { display: grid; grid-template-columns: 170px minmax(0, 2fr) 130px minmax(0, 1.4fr) 140px; grid-template-areas: none; align-items: center; gap: 12px; }
+  .op-head { padding: 12px 20px; color: var(--texte-2); font-size: 19px; font-weight: 700; background: var(--fond); }
+  .op-head span:last-child { text-align: right; }
+  .op-row > * { grid-area: auto; }
+  .op-amount { text-align: right; }
+}
+.home-latest .op-row { grid-template-columns: 1fr auto; grid-template-areas: "name amount" "who amount" "cat cat"; }
+.home-latest .op-date { display: none; }
+@media (min-width: 1000px) {
+  .home-latest .op-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name amount" "who amount" "cat cat"; }
+  .home-latest .op-row > .op-name { grid-area: name; }
+  .home-latest .op-row > .op-who { grid-area: who; }
+  .home-latest .op-row > .op-cat { grid-area: cat; }
+  .home-latest .op-row > .op-amount { grid-area: amount; }
+}
+.pad-title { padding: 20px 20px 6px; }
+
+/* Chiffres du mois */
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.stat { background: var(--surface); border-radius: var(--rayon); padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--ombre); }
+.stat span { font-size: 19px; color: var(--texte-2); }
+.stat strong { font-size: 28px; }
+.stat-main { background: var(--accent); }
+.stat-main span { color: var(--accent-doux); }
+.stat-main strong { color: #FFFFFF; }
+.stat-in { background: var(--accent-doux); }
+.stat-in span, .stat-in strong { color: #1D4F47; }
+@media (max-width: 699px) {
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .stat-main { grid-column: 1 / -1; }
+  .stat strong { font-size: 24px; }
+  .stat-main strong { font-size: 32px; }
+}
+
+/* Barres */
+.bars { display: flex; flex-direction: column; gap: 14px; }
+.bar-line { display: flex; flex-direction: column; gap: 6px; }
+.bar-label { display: flex; justify-content: space-between; gap: 12px; font-size: 20px; }
+.bar-name { display: flex; align-items: center; gap: 10px; }
+.bar-track { height: 14px; border-radius: 7px; background: var(--fond); overflow: hidden; }
+.bar-fill { height: 100%; width: var(--w, 0%); border-radius: 7px; background: var(--c, var(--accent)); }
+.swatch-small { width: 18px; height: 18px; border-radius: 9px; }
+
+.resume-grid, .home-grid { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 900px) {
+  .resume-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.warn-action { align-items: center; flex-wrap: wrap; }
+.warn-action > span { flex: 1 1 200px; }
+.stat-minus { background: var(--alerte-texte); }
+.stat-minus span { color: #FFF1E0; }

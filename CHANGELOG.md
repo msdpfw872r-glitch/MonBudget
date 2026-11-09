@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.5.0 — 2026-11-09 — FRE (Fidag)
+- **Journal** : les opérations du mois, du plus récent au plus ancien ; boutons « ‹ Septembre » / « Novembre › » pour changer de mois ; filtre « Tout le monde / Maman / Papa / Ménage » ; tableau sur iPad, liste sur iPhone. Les opérations pas encore triées sont marquées « À trier », les virements et factures de carte « pas compté dans les totaux ».
+- **Modifier une opération** depuis le Journal (ou l'Accueil) : pour qui, c'est quoi ; si elle avait été classée par une règle, l'app demande « Changer aussi la règle ? ».
+- **Résumé du mois** : « Il reste ce mois-ci » (ou « Il manque ce mois-ci » si les dépenses dépassent les rentrées), rentrées, dépenses ; « Où va l'argent » (6 plus grosses catégories + autres) ; « Dépenses pour qui ? » ; « D'où vient l'argent » ; même filtre par personne.
+- Totaux justes : virements, épargne et factures de carte exclus (les achats faits avec les cartes comptent une fois, pour leur personne) ; les opérations pas encore triées ne sont pas comptées et sont signalées.
+- **Exporter le mois** : fichier pour Numbers ou Excel (« Enregistrer dans Fichiers »), une ligne par opération et les totaux.
+- **Accueil** : chiffres du mois, opérations à trier, factures à vérifier, dernières opérations, dépenses pour qui.
+- 56 tests automatiques.
+
 ## 0.4.6 — 2026-11-09 — FRE (Fidag)
 - À trier sur iPad : le titre et le choix de l'ordre (« Fréquents d'abord » / « Par date ») sont en haut de la colonne de gauche, au-dessus de la liste ; le formulaire de droite commence tout en haut de l'écran.
 - À trier sur iPhone : en haut du formulaire, « Opération 2 sur 7 », boutons « Précédente » / « Suivante » et « Liste » ; la liste s'ouvre dans une fenêtre avec loupe (« Chercher un commerce ») et le choix de l'ordre. Toucher une opération l'ouvre.

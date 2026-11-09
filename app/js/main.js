@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.4.3
+ * Version : 0.5.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -16,6 +16,7 @@
  *   0.4.0  FRE (Fidag)  Importer, À trier, Factures de carte ; pastille du nombre à trier ;
  *                       accueil avec opérations à trier et factures à vérifier.
  *   0.4.3  FRE (Fidag)  « À trier » remplit l'écran (colonnes qui défilent séparément).
+ *   0.5.0  FRE (Fidag)  Journal, Résumé du mois ; Accueil avec les chiffres du mois et les dernières opérations.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -26,6 +27,11 @@ import { trierView } from './ecran-trier.js';
 import { importerView, resetImporterIfDone } from './ecran-importer.js';
 import { facturesView } from './ecran-factures.js';
 import { billsToCheck } from '../src/core/cartes.js';
+import { journalView, loadAll, opRow } from './ecran-journal.js';
+import { resumeView, monthCards, bars } from './ecran-resume.js';
+import { currentMonth, paint as paintColors } from './mois.js';
+import { monthSummary, journal } from '../src/core/journal.js';
+import { editOperation } from './operation.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -49,7 +55,6 @@ function emptyCard(iconName, title, text) {
   </section>`;
 }
 
-const staticView = (title, html) => ({ title, parent: null, render(root) { root.innerHTML = html(); } });
 
 function accueilView() {
   return {
@@ -58,19 +63,28 @@ function accueilView() {
     async render(root) {
       const today = new Date();
       const db = await getDb();
-      const [pending, total, bills] = await Promise.all([
-        db.countWhere('transactions', 'status', 'a-trier'), db.count('transactions'), billsToCheck(db)]);
+      const [data, bills] = await Promise.all([loadAll(db), billsToCheck(db)]);
+      const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
+      const total = data.transactions.length;
+      const month = currentMonth(data.transactions);
+      const s = monthSummary(data.transactions, data.categories, { month });
+      const latest = journal(data.transactions, { month }).filter((t) => t.status === 'classee').slice(0, 5);
+      const who = s.byPerson.filter((p) => p.expenses > 0).map((p) => {
+        const person = data.peopleById.get(p.personId);
+        return { label: person?.name ?? 'Personne supprimée', value: p.expenses, color: person?.color };
+      });
       root.innerHTML = `<div class="page-head">
           <div>
             <h1>Bonjour !</h1>
-            <p class="sub">${formatDateLong(today, { capital: true })} · ${formatMonth(today)}</p>
+            <p class="sub">${formatDateLong(today, { capital: true })} · ${formatMonth(`${month}-01`)}</p>
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
+        ${total ? monthCards(s) : ''}
         ${pending ? `<a class="todo" href="#/trier">
-            <span class="todo-count">${pending}</span>
+            <span class="todo-count">${pending > 999 ? '999+' : pending}</span>
             <span class="row-text"><span class="row-title">${pending > 1 ? 'Opérations à trier' : 'Opération à trier'}</span>
-            <span class="row-sub">Environ ${Math.max(1, Math.round(pending / 4))} minute${pending > 7 ? 's' : ''}</span></span>
+            <span class="row-sub">Elles ne sont pas encore comptées dans les chiffres</span></span>
             <span class="row-title">Trier</span></a>` : ''}
         ${bills.length ? `<a class="todo" href="#/factures">
             <span class="todo-count">${bills.length}</span>
@@ -79,8 +93,26 @@ function accueilView() {
             <span class="row-title">Vérifier</span></a>` : ''}
         ${total ? '' : emptyCard('importer', 'Pas encore d’opérations',
           'Pour commencer, importez le fichier de votre banque. Vos opérations apparaîtront ici.')}
-        ${total && !pending && !bills.length ? `<p class="flash">${icon('ok')}Tout est trié. Le journal et le résumé du mois arrivent dans la prochaine version.</p>` : ''}
+        ${total ? `<div class="home-grid">
+            <section class="card list home-latest">
+              <h2 class="pad-title">Dernières opérations</h2>
+              ${latest.length ? latest.map((t) => opRow(t, data)).join('') : '<p class="note pad">Aucune opération triée ce mois-ci.</p>'}
+              <a class="row" href="#/journal"><span class="row-title">Tout le journal</span>${icon('suite')}</a>
+            </section>
+            ${who.length ? `<section class="card"><h2>Dépenses pour qui ?</h2>${bars(who)}
+              <a class="btn btn-secondary btn-wide" href="#/resume">${icon('resume')}Voir le résumé du mois</a></section>` : ''}
+          </div>` : ''}
         <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
+      paintColors(root);
+      root.onclick = async (e) => {
+        const b = e.target.closest('[data-operation]');
+        if (!b) return;
+        const tx = data.transactions.find((t) => t.id === b.dataset.operation);
+        if (tx && await editOperation(db, tx, { ...data, categories: data.activeCategories })) {
+          document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+          await this.render(root);
+        }
+      };
     },
   };
 }
@@ -89,14 +121,8 @@ const VIEWS = {
   accueil: () => accueilView(),
   trier: () => trierView(),
   factures: (path) => facturesView(path),
-  journal: () => staticView('Journal', () => `<div class="page-head"><div><h1>Journal</h1>
-        <p class="sub">${formatMonth(new Date())}</p></div></div>
-      ${emptyCard('journal', 'Le journal est vide',
-        'Toutes vos dépenses et rentrées seront listées ici, mois par mois.')}`),
-  resume: () => staticView('Résumé', () => `<div class="page-head"><div><h1>Résumé du mois</h1>
-        <p class="sub">${formatMonth(new Date())}</p></div></div>
-      ${emptyCard('resume', 'Pas encore de résumé',
-        'Le résumé montrera ce qui est entré, ce qui est sorti, et pour qui.')}`),
+  journal: () => journalView(),
+  resume: () => resumeView(),
   importer: () => importerView(),
   reglages: (path) => reglagesView(path),
 };
