@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.7.0
+ * Version : 0.13.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,7 @@
  *                       suppression de règle, classement des autres opérations en attente.
  *   0.4.4  FRE (Fidag)  Date de classement (classifiedAt) pour proposer les catégories récentes.
  *   0.7.0  FRE (Fidag)  isGenericKey : textes qui ne disent pas qui a été payé (« Crédit », « Ordre e-Bill »…).
+ *   0.13.0 FRE (Fidag)  Règle modifiée : reclasser (au choix) les opérations déjà classées par elle.
  */
 
 import { merchantKey } from './text.js';
@@ -139,6 +140,24 @@ export async function deleteRule(db, id) {
     await db.put('transactions', { ...tx, ruleId: null });
   }
   await db.delete('rules', id);
+}
+
+/** Opérations déjà classées par cette règle qui ne correspondent plus à son choix (pour qui / quoi). */
+export async function outdatedByRule(db, rule) {
+  return (await db.getAllWhere('transactions', 'ruleId', rule.id))
+    .filter((t) => t.personId !== rule.personId || t.categoryId !== rule.categoryId);
+}
+
+/**
+ * Reclasse les opérations déjà classées par la règle selon son nouveau choix.
+ * @returns {Promise<number>} nombre d'opérations changées
+ */
+export async function reclassifyByRule(db, ruleId) {
+  const rule = await db.get('rules', ruleId);
+  if (!rule) throw new ReglageError('Cette règle n’existe plus.');
+  const list = await outdatedByRule(db, rule);
+  for (const t of list) await db.put('transactions', { ...t, personId: rule.personId, categoryId: rule.categoryId });
+  return list.length;
 }
 
 /**

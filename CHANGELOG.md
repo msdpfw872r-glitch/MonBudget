@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.13.0 — 2026-11-09 — FRE (Fidag)
+- Modifier une règle (Réglages › Règles retenues) : si des opérations avaient déjà été classées par elle, l'app demande « **Reclasser aussi les anciennes opérations ?** » — **Reclasser** ou **Laisser comme ça**. Les opérations triées à la main ne changent jamais.
+- Réglages › Mes catégories : **de A à Z**, et chaque groupe (Dépenses, Rentrées, Mises de côté) **se ferme et s'ouvre** en touchant son titre (« Fermer » / « Ouvrir », avec le nombre de catégories).
+- 140 tests automatiques.
+
 ## 0.12.0 — 2026-11-09 — FRE (Fidag)
 - **Copies de sécurité en ligne** (Réglages › Copies de sécurité) : une photo de toutes les données, **chiffrée** (commentaire compris), horodatée, gardée dans l'espace en ligne. **10 au plus** : la plus ancienne part quand une nouvelle arrive. **Commentaire** facultatif. Liste avec date, commentaire et contenu ; « **Remettre cette copie** » (même écran rouge de confirmation que pour un fichier) ou « Supprimer ».
 - Copie en ligne **automatique** juste avant « Supprimer des données » et avant de remettre une copie (si Internet manque, l'app demande si on continue quand même).

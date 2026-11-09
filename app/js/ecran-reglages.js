@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.12.0
+ * Version : 0.13.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -22,13 +22,15 @@
  *   0.11.0 FRE (Fidag)  Plus de carte « Sauvegarde » (synchronisation) : lignes Imports, Copie de sécurité,
  *                       Supprimer des données (#/reglages/imports, /copie, /supprimer).
  *   0.12.0 FRE (Fidag)  Mes catégories : « Remettre les catégories d'exemple » s'il en manque.
+ *   0.13.0 FRE (Fidag)  Mes catégories de A à Z, groupes qu'on peut fermer ; règle modifiée : « Reclasser les
+ *                       anciennes opérations ? » (Reclasser / Laisser comme ça).
  */
 
 import { APP_VERSION } from './version.js';
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
-import { saveRule, deleteRule } from '../src/core/regles.js';
+import { saveRule, deleteRule, outdatedByRule, reclassifyByRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
 import { restaurerView, raccourciView } from './ecran-sauvegarde.js';
 import { compteView, compteRow } from './ecran-compte.js';
@@ -180,7 +182,22 @@ function regle(id) {
       paintTags(root);
       bindForm(root, {
         back: '#/reglages/regles',
-        onSave: (f) => saveRule(db, id, { merchantKey: f.get('merchantKey'), personId: f.get('personId'), categoryId: f.get('categoryId') }),
+        onSave: async (f) => {
+          const updated = await saveRule(db, id, { merchantKey: f.get('merchantKey'), personId: f.get('personId'), categoryId: f.get('categoryId') });
+          const old = await outdatedByRule(db, updated);
+          if (!old.length) return;
+          const cat = await db.get('categories', updated.categoryId);
+          const who = await db.get('people', updated.personId);
+          const yes = await confirmer({
+            titre: 'Reclasser aussi les anciennes opérations ?',
+            message: `${old.length} opération${old.length > 1 ? 's' : ''} déjà classée${old.length > 1 ? 's' : ''} par cette règle ${old.length > 1 ? 'passeraient' : 'passerait'} en « ${cat?.name ?? ''} » pour ${who?.name ?? ''}. Les opérations triées à la main ne changent pas.`,
+            ok: 'Reclasser', non: 'Laisser comme ça',
+          });
+          if (yes) {
+            await reclassifyByRule(db, updated.id);
+            document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+          }
+        },
       });
       root.querySelector('[data-supprimer]').addEventListener('click', async () => {
         const ok = await confirmer({ titre: 'Supprimer cette règle ?', message: 'Les opérations déjà classées ne changent pas. Les prochaines seront à trier.', ok: 'Supprimer', danger: true });
@@ -327,6 +344,8 @@ function compte(id) {
 
 /* ---------- Mes catégories ---------- */
 
+const closedGroups = new Set(); // groupes de « Mes catégories » fermés
+
 function categories() {
   return {
     title: 'Mes catégories',
@@ -336,17 +355,28 @@ function categories() {
       const all = await R.listCategories(db);
       const seed = await (await fetch('./src/data/seed.json')).json();
       const missing = seed.categories.filter((c) => !all.some((x) => x.id === c.id)).length;
+      all.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
       const line = (c) => row({ href: `#/reglages/categories/${encodeURIComponent(c.id)}`, title: esc(c.name),
         sub: c.excludeFromTotals ? 'Pas comptée dans les totaux' : '' });
-      const group = (title, list) => (list.length ? `<h2 class="group-title">${title}</h2>
-        <section class="card list">${list.map(line).join('')}</section>` : '');
+      // Groupes qu'on peut fermer (toucher le titre) ; l'état est retenu pendant la session.
+      const group = (key, title, list) => (list.length ? `<details class="cat-group" data-group="${key}"${closedGroups.has(key) ? '' : ' open'}>
+          <summary><span class="cat-group-title">${title} <span class="cat-group-count">(${list.length})</span></span>
+            <span class="cat-group-state">${icon('suite')}<span data-open-word>${closedGroups.has(key) ? 'Ouvrir' : 'Fermer'}</span></span></summary>
+          <section class="card list">${list.map(line).join('')}</section>
+        </details>` : '');
       root.innerHTML = `
         <a class="btn btn-secondary btn-wide" href="#/reglages/categories/nouveau">${icon('plus')}Ajouter une catégorie</a>
-        ${group('Dépenses', all.filter((c) => !c.archived && c.type === 'depense'))}
-        ${group('Rentrées', all.filter((c) => !c.archived && c.type === 'recette'))}
-        ${group('Mises de côté (plus proposées pour trier)', all.filter((c) => c.archived))}
+        ${group('depense', 'Dépenses', all.filter((c) => !c.archived && c.type === 'depense'))}
+        ${group('recette', 'Rentrées', all.filter((c) => !c.archived && c.type === 'recette'))}
+        ${group('archive', 'Mises de côté (plus proposées pour trier)', all.filter((c) => c.archived))}
         ${all.length ? '' : '<section class="card"><p class="note">Aucune catégorie. Ajoutez les vôtres, ou remettez celles d’exemple.</p></section>'}
         ${missing ? `<button type="button" class="btn btn-secondary btn-wide" data-exemple>Remettre les catégories d’exemple (${missing})</button>` : ''}`;
+      for (const d of root.querySelectorAll('.cat-group')) {
+        d.addEventListener('toggle', () => {
+          if (d.open) closedGroups.delete(d.dataset.group); else closedGroups.add(d.dataset.group);
+          d.querySelector('[data-open-word]').textContent = d.open ? 'Fermer' : 'Ouvrir';
+        });
+      }
       root.onclick = async (e) => {
         if (!e.target.closest('[data-exemple]')) return;
         const ok = await confirmer({ titre: 'Remettre les catégories d’exemple ?', message: `${missing} catégories d’exemple vont être ajoutées. Vos catégories actuelles ne changent pas.`, ok: 'Remettre', non: 'Annuler' });
