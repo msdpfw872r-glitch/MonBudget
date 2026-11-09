@@ -1,5 +1,11 @@
 # Historique des versions
 
+## 0.5.2 — 2026-11-09 — FRE (Fidag)
+- **Toucher un montant affiche les opérations qui le composent** : « Il reste / Il manque », « Rentrées », « Dépenses », chaque barre (« Où va l'argent », « Dépenses pour qui ? », « D'où vient l'argent »), chaque case du tableau « Mois par mois », et « Voir lesquelles » pour les opérations pas comptées. Sur l'Accueil aussi.
+- La fenêtre « Détail » montre la période, le nombre d'opérations et le total (toujours égal au montant touché) ; toucher une opération permet de la modifier, et les chiffres se mettent à jour.
+- Petit signe « › » après chaque montant cliquable et phrase d'aide « Touchez un montant pour voir les opérations qui le composent ».
+- 65 tests automatiques.
+
 ## 0.5.1 — 2026-11-09 — FRE (Fidag)
 - **Périodes** dans le Journal et le Résumé : « Semaine » (lundi → dimanche), « Mois », « Année », « Tout » et « Dates » (du… au…, avec le calendrier). Boutons « ‹ … » / « … › » pour la période précédente ou suivante (même durée pour des dates choisies).
 - Résumé : « Il reste cette semaine / ce mois-ci / cette année / sur la période » ; tableau **« Mois par mois »** (rentrées, dépenses, reste) dès que la période couvre plusieurs mois.

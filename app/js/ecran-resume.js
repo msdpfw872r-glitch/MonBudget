@@ -2,13 +2,14 @@
  * ecran-resume.js — Écran « Résumé du mois » : rentrées, dépenses, reste ; où va l'argent ;
  * dépenses pour qui ; export du mois pour Numbers ou Excel.
  *
- * Version : 0.5.1
+ * Version : 0.5.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version.
  *   0.5.1  FRE (Fidag)  Période semaine / mois / année / tout / dates ; tableau « Mois par mois ».
+ *   0.5.2  FRE (Fidag)  Toucher un montant (chiffres, barres, mois par mois) affiche les opérations qui le composent.
  */
 
 import { icon, esc } from './ui.js';
@@ -19,33 +20,38 @@ import { formatMonth } from '../src/core/format.js';
 import { currentPeriod, currentPerson, setPerson, periodControls, handlePeriodClick, handleDateChange, personFilter, paint, periodWords } from './mois.js';
 import { shareOrDownload } from './partage.js';
 import { loadAll } from './ecran-journal.js';
+import { detailButton, openDetail } from './detail.js';
 
 const TOP = 6;
 
 /** Barres horizontales : un libellé, un montant, une barre proportionnelle (jamais la couleur seule). */
 export function bars(items, { color } = {}) {
   const max = Math.max(...items.map((i) => i.value), 0.01);
-  return `<div class="bars">${items.map((i) => `<div class="bar-line">
-      <div class="bar-label"><span class="bar-name">${i.color ? `<span class="swatch swatch-small" data-color="${esc(i.color)}"></span>` : ''}${esc(i.label)}</span>
-        <strong>${formatCHF(i.value)}</strong></div>
-      <div class="bar-track"><div class="bar-fill" data-w="${Math.max(2, Math.round((i.value / max) * 100))}"
-        ${i.color ?? color ? `data-color="${esc(i.color ?? color)}"` : ''}></div></div>
-    </div>`).join('')}</div>`;
+  return `<div class="bars">${items.map((i) => {
+    const inner = `<span class="bar-label"><span class="bar-name">${i.color ? `<span class="swatch swatch-small" data-color="${esc(i.color)}"></span>` : ''}${esc(i.label)}</span>
+        <strong>${formatCHF(i.value)}</strong></span>
+      <span class="bar-track"><span class="bar-fill" data-w="${Math.max(2, Math.round((i.value / max) * 100))}"
+        ${i.color ?? color ? `data-color="${esc(i.color ?? color)}"` : ''}></span></span>`;
+    // Avec `what`, la ligne est un bouton qui affiche les opérations de ce montant.
+    return i.what ? detailButton(inner, i.what, 'bar-line') : `<div class="bar-line">${inner}</div>`;
+  }).join('')}</div>`;
 }
 
 /** Les trois chiffres du mois (Accueil et Résumé). */
-export function monthCards(s, when = 'ce mois-ci') {
+export function monthCards(s, when = 'ce mois-ci', f = null) {
+  // Avec la période `f`, chaque chiffre est un bouton qui affiche ses opérations.
+  const card = (cls, label, amount, kind) => (f
+    ? detailButton(`<span>${label}</span><strong>${formatCHF(amount)}</strong>`, { kind, from: f.from, to: f.to }, `stat ${cls}`)
+    : `<div class="stat ${cls}"><span>${label}</span><strong>${formatCHF(amount)}</strong></div>`);
   return `<div class="stat-row">
-      ${s.balance < 0
-        ? `<div class="stat stat-main stat-minus"><span>Il manque ${when}</span><strong>${formatCHF(-s.balance)}</strong></div>`
-        : `<div class="stat stat-main"><span>Il reste ${when}</span><strong>${formatCHF(s.balance)}</strong></div>`}
-      <div class="stat stat-in"><span>Rentrées</span><strong>${formatCHF(s.income)}</strong></div>
-      <div class="stat"><span>Dépenses</span><strong>${formatCHF(s.expenses)}</strong></div>
-    </div>`;
+      ${s.balance < 0 ? card('stat-main stat-minus', `Il manque ${when}`, -s.balance, 'balance') : card('stat-main', `Il reste ${when}`, s.balance, 'balance')}
+      ${card('stat-in', 'Rentrées', s.income, 'income')}
+      ${card('', 'Dépenses', s.expenses, 'expenses')}
+    </div>${f ? '<p class="hint">Touchez un montant pour voir les opérations qui le composent.</p>' : ''}`;
 }
 
 /** Remarques sur ce qui n'est pas compté. */
-export function notCountedNote(s) {
+export function notCountedNote(s, f = null) {
   const parts = [];
   if (s.toSort.count) {
     const n = s.toSort.count;
@@ -54,7 +60,8 @@ export function notCountedNote(s) {
   }
   if (s.excluded.count) {
     const n = s.excluded.count;
-    parts.push(`<p class="note">${n > 1 ? `${n} opérations (virements, épargne ou factures de carte) ne sont pas comptées` : 'Une opération (virement, épargne ou facture de carte) n’est pas comptée'} : les achats faits avec les cartes le sont déjà.</p>`);
+    parts.push(`<div class="note note-action"><span>${n > 1 ? `${n} opérations (virements, épargne ou factures de carte) ne sont pas comptées` : 'Une opération (virement, épargne ou facture de carte) n’est pas comptée'} : les achats faits avec les cartes le sont déjà.</span>
+      ${f ? detailButton('Voir lesquelles', { kind: 'excluded', from: f.from, to: f.to }, 'btn btn-secondary') : ''}</div>`);
   }
   return parts.join('');
 }
@@ -71,14 +78,15 @@ export function resumeView() {
         const personId = currentPerson();
         const s = monthSummary(data.transactions, data.categories, { from: p.from, to: p.to, personId });
         const spend = s.byCategory.filter((c) => c.type === 'depense');
-        const top = spend.slice(0, TOP).map((c) => ({ label: data.categoriesById.get(c.categoryId)?.name ?? 'Catégorie supprimée', value: c.total }));
+        const at = { from: p.from, to: p.to };
+        const top = spend.slice(0, TOP).map((c) => ({ label: data.categoriesById.get(c.categoryId)?.name ?? 'Catégorie supprimée', value: c.total, what: { kind: 'category', id: c.categoryId, ...at } }));
         const rest = spend.slice(TOP).reduce((t, c) => t + Math.round(c.total * 100), 0) / 100;
         if (rest > 0) top.push({ label: 'Autres', value: rest });
         const income = s.byCategory.filter((c) => c.type === 'recette')
-          .map((c) => ({ label: data.categoriesById.get(c.categoryId)?.name ?? 'Catégorie supprimée', value: c.total }));
+          .map((c) => ({ label: data.categoriesById.get(c.categoryId)?.name ?? 'Catégorie supprimée', value: c.total, what: { kind: 'category', id: c.categoryId, ...at } }));
         const who = s.byPerson.filter((x) => x.expenses > 0).map((x) => {
           const person = data.peopleById.get(x.personId);
-          return { label: person?.name ?? 'Personne supprimée', value: x.expenses, color: person?.color };
+          return { label: person?.name ?? 'Personne supprimée', value: x.expenses, color: person?.color, what: { kind: 'person', id: x.personId, ...at } };
         });
         // Mois par mois : dès que la période couvre plusieurs mois (année, tout, dates).
         const months = p.from.slice(0, 7) !== p.to.slice(0, 7)
@@ -89,8 +97,8 @@ export function resumeView() {
             <button type="button" class="btn btn-secondary" data-exporter>${icon('exporter')}Exporter</button></div>
           ${periodControls(p)}
           ${personFilter(data.people, personId)}
-          ${monthCards(s, periodWords(p))}
-          ${notCountedNote(s)}
+          ${monthCards(s, periodWords(p), p)}
+          ${notCountedNote(s, p)}
           ${empty ? `<section class="card empty"><span class="empty-icon">${icon('resume')}</span><h2>Rien à résumer sur cette période</h2>
               <p>Importez un relevé et triez les opérations, ou changez de période.</p></section>`
             : `<div class="resume-grid">
@@ -102,12 +110,16 @@ export function resumeView() {
                 <h2 class="pad-title">Mois par mois</h2>
                 <div class="month-table" role="table" aria-label="Mois par mois">
                   <div class="month-row month-row-head" role="row"><span role="columnheader">Mois</span><span role="columnheader">Rentrées</span><span role="columnheader">Dépenses</span><span role="columnheader">Reste</span></div>
-                  ${months.map((m) => `<div class="month-row" role="row">
+                  ${months.map((m) => {
+                    // Le mois, limité à la période choisie (dates libres).
+                    const mf = { from: p.from > `${m.month}-01` ? p.from : `${m.month}-01`, to: p.to < `${m.month}-31` ? p.to : `${m.month}-31` };
+                    return `<div class="month-row" role="row">
                       <span role="cell">${esc(formatMonth(`${m.month}-01`))}</span>
-                      <span role="cell">${formatCHF(m.income)}</span>
-                      <span role="cell">${formatCHF(m.expenses)}</span>
-                      <span role="cell" class="${m.balance < 0 ? 'minus' : 'plus'}">${m.balance < 0 ? 'il manque ' : ''}${formatCHF(Math.abs(m.balance))}</span>
-                    </div>`).join('')}
+                      <span role="cell">${detailButton(formatCHF(m.income), { kind: 'income', ...mf })}</span>
+                      <span role="cell">${detailButton(formatCHF(m.expenses), { kind: 'expenses', ...mf })}</span>
+                      <span role="cell" class="${m.balance < 0 ? 'minus' : 'plus'}">${detailButton(`${m.balance < 0 ? 'il manque ' : ''}${formatCHF(Math.abs(m.balance))}`, { kind: 'balance', ...mf })}</span>
+                    </div>`;
+                  }).join('')}
                 </div>
               </section>` : ''}`}
           <p class="note">« Exporter » crée un fichier à ouvrir dans Numbers ou Excel : choisissez « Enregistrer dans Fichiers ».</p>`;
@@ -120,7 +132,12 @@ export function resumeView() {
       root.onclick = async (e) => {
         const b = e.target.closest('button');
         if (!b) return;
-        if (handlePeriodClick(b, data.transactions)) draw();
+        if (b.dataset.detail) {
+          if (await openDetail(b, db, data, currentPerson())) {
+            document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+            await this.render(root);
+          }
+        } else if (handlePeriodClick(b, data.transactions)) draw();
         else if ('filtrePersonne' in b.dataset) { setPerson(b.dataset.filtrePersonne); draw(); }
         else if ('exporter' in b.dataset) {
           const p = currentPeriod(data.transactions);

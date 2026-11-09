@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.5.0
+ * Version : 0.5.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,7 @@
  *                       accueil avec opérations à trier et factures à vérifier.
  *   0.4.3  FRE (Fidag)  « À trier » remplit l'écran (colonnes qui défilent séparément).
  *   0.5.0  FRE (Fidag)  Journal, Résumé du mois ; Accueil avec les chiffres du mois et les dernières opérations.
+ *   0.5.2  FRE (Fidag)  Accueil : toucher un chiffre ou une barre affiche les opérations qui le composent.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -32,6 +33,7 @@ import { resumeView, monthCards, bars } from './ecran-resume.js';
 import { currentMonth, paint as paintColors } from './mois.js';
 import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
+import { openDetail } from './detail.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -68,10 +70,11 @@ function accueilView() {
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
       const s = monthSummary(data.transactions, data.categories, { month });
+      const mf = { from: `${month}-01`, to: `${month}-31` };
       const latest = journal(data.transactions, { month }).filter((t) => t.status === 'classee').slice(0, 5);
       const who = s.byPerson.filter((p) => p.expenses > 0).map((p) => {
         const person = data.peopleById.get(p.personId);
-        return { label: person?.name ?? 'Personne supprimée', value: p.expenses, color: person?.color };
+        return { label: person?.name ?? 'Personne supprimée', value: p.expenses, color: person?.color, what: { kind: 'person', id: p.personId, ...mf } };
       });
       root.innerHTML = `<div class="page-head">
           <div>
@@ -80,7 +83,7 @@ function accueilView() {
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
-        ${total ? monthCards(s) : ''}
+        ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
         ${pending ? `<a class="todo" href="#/trier">
             <span class="todo-count">${pending > 999 ? '999+' : pending}</span>
             <span class="row-text"><span class="row-title">${pending > 1 ? 'Opérations à trier' : 'Opération à trier'}</span>
@@ -105,6 +108,14 @@ function accueilView() {
         <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
       paintColors(root);
       root.onclick = async (e) => {
+        const d = e.target.closest('[data-detail]');
+        if (d) {
+          if (await openDetail(d, db, data, null)) {
+            document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+            await this.render(root);
+          }
+          return;
+        }
         const b = e.target.closest('[data-operation]');
         if (!b) return;
         const tx = data.transactions.find((t) => t.id === b.dataset.operation);

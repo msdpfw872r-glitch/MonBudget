@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.5.1
+ * Version : 0.5.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -21,9 +21,10 @@
  *   0.4.6  FRE (Fidag)  Version 0.4.6.
  *   0.5.0  FRE (Fidag)  Journal, Résumé, modifier une opération.
  *   0.5.1  FRE (Fidag)  Périodes (periode.js), partage de fichier (partage.js).
+ *   0.5.2  FRE (Fidag)  Détail d'un montant (detail.js).
  */
 
-const VERSION = '0.5.1';
+const VERSION = '0.5.2';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -43,6 +44,7 @@ const FILES = [
   './js/choix.js',
   './js/mois.js',
   './js/partage.js',
+  './js/detail.js',
   './js/operation.js',
   './js/ecran-journal.js',
   './js/ecran-resume.js',

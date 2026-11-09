@@ -1,7 +1,7 @@
 /**
  * journal.js — Journal et résumé du mois : filtres, totaux, export pour Numbers / Excel.
  *
- * Version : 0.5.1
+ * Version : 0.5.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -14,6 +14,7 @@
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version.
  *   0.5.1  FRE (Fidag)  Périodes quelconques (from / to), recherche d'opérations, mois par mois, export d'une période.
+ *   0.5.2  FRE (Fidag)  detailOperations : les opérations qui composent un montant affiché.
  */
 
 import { toCents, fold } from './text.js';
@@ -176,4 +177,32 @@ export function exportMonth(transactions, { month = null, from = null, to = null
 /** Totaux d'une liste d'opérations déjà choisie (résultat de recherche). */
 export function summaryOf(list, categories) {
   return monthSummary(list, categories, {});
+}
+
+/**
+ * Opérations qui composent un montant affiché (pour « toucher un montant → voir le détail »).
+ * Le total de la liste renvoyée est exactement le montant affiché.
+ * @param {object} f  période et personne : { from, to, personId }
+ * @param {{kind: 'income'|'expenses'|'balance'|'category'|'person'|'excluded'|'toSort', id?: string}} what
+ * @returns {object[]} du plus récent au plus ancien
+ */
+export function detailOperations(transactions, categories, f, what) {
+  const cats = new Map(categories.map((c) => [c.id, c]));
+  const list = journal(transactions, f);
+  const counted = (t) => counts(t, cats);
+  const keep = {
+    income: (t) => counted(t) && t.amount > 0,
+    expenses: (t) => counted(t) && t.amount < 0,
+    balance: counted,
+    category: (t) => counted(t) && t.categoryId === what.id,
+    person: (t) => counted(t) && t.personId === what.id && t.amount < 0,
+    excluded: (t) => t.status === 'classee' && !counted(t),
+    toSort: (t) => t.status !== 'classee',
+  }[what.kind];
+  return keep ? list.filter(keep) : [];
+}
+
+/** Total d'une liste d'opérations, en francs (centimes exacts). */
+export function totalOf(list) {
+  return list.reduce((s, t) => s + toCents(t.amount), 0) / 100;
 }
