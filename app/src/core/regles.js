@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.4.0
+ * Version : 0.4.4
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,6 +13,7 @@
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version : recherche, tri d'une opération, création / mise à jour /
  *                       suppression de règle, classement des autres opérations en attente.
+ *   0.4.4  FRE (Fidag)  Date de classement (classifiedAt) pour proposer les catégories récentes.
  */
 
 import { merchantKey } from './text.js';
@@ -34,7 +35,7 @@ export function findRule(rules, key) {
 
 /** Applique une règle à une opération (sans enregistrer). */
 export function applyRule(tx, rule) {
-  return { ...tx, personId: rule.personId, categoryId: rule.categoryId, ruleId: rule.id, status: 'classee' };
+  return { ...tx, personId: rule.personId, categoryId: rule.categoryId, ruleId: rule.id, status: 'classee', classifiedAt: new Date().toISOString() };
 }
 
 async function checkChoice(db, personId, categoryId) {
@@ -104,6 +105,7 @@ export async function classify(db, txId, { personId, categoryId, remember = fals
     personId,
     categoryId,
     status: 'classee',
+    classifiedAt: new Date().toISOString(),
     // Sans règle, le choix est manuel : l'opération n'est plus liée à une règle.
     ruleId: rule ? rule.id : null,
     // La catégorie « Paiement de la facture de carte » fait de l'opération une facture à rattacher.

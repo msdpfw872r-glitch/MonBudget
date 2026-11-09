@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.4.3
+ * Version : 0.4.4
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -18,6 +18,8 @@
  *   0.4.2  FRE (Fidag)  À trier : lignes de la liste qui ne se chevauchent plus, loupe, choix de l'ordre.
  *   0.4.3  FRE (Fidag)  À trier sur iPad : liste et formulaire défilent chacun de leur côté ;
  *                       barre latérale étroite (icône + mot) jusqu'à 1280 px ; lignes de liste compactes.
+ *   0.4.4  FRE (Fidag)  Les blocs du formulaire ne rétrécissent plus (plus de chevauchement) ; étiquette
+ *                       « C'est quoi ? » et fenêtre de choix de catégorie avec loupe.
  */
 
 @font-face {
@@ -550,4 +552,42 @@ details.note summary { cursor: pointer; min-height: 44px; }
   .sidebar .nav-link .badge { position: absolute; top: 4px; right: 6px; min-width: 28px; height: 28px; font-size: 15px; }
   .update { left: calc(50% + 54px); }
   .view { padding-left: 28px; padding-right: 28px; }
+}
+
+/* ---------- 0.4.4 ---------- */
+/* Dans une colonne de hauteur fixe, les blocs ne doivent pas se tasser : la colonne défile. */
+.sort-card > *, .sort-list > * { flex-shrink: 0; }
+
+/* Étiquette « C'est quoi ? » : une seule, qui ouvre la fenêtre de choix. */
+.tag-choice {
+  font: inherit; font-size: 20px; color: var(--texte); cursor: pointer; text-align: left;
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  min-height: 64px; padding: 8px 18px;
+  border: 2px dashed var(--texte-2); border-radius: 18px; background: var(--surface);
+}
+.tag-choice:hover { border-color: var(--accent); }
+.tag-choice .tag-name { flex-grow: 1; }
+.tag-choice.chosen { border: 3px solid var(--accent); background: var(--accent-doux); color: var(--accent-fonce); font-weight: 700; }
+.tag-change { font-size: 19px; font-weight: 400; color: var(--accent-fonce); text-decoration: underline; }
+
+/* Fenêtre de choix de catégorie : en-tête et loupe fixes, liste qui défile. */
+.picker { width: min(640px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 32px)); overflow: hidden; padding: 0; }
+.picker[open] { display: flex; flex-direction: column; }
+.picker .sheet-head { flex-shrink: 0; }
+.picker-tools { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 24px 8px; background: var(--fond); }
+.picker-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-top: 8px; gap: 8px; }
+.picker-list > * { flex-shrink: 0; }
+.picker-group { display: flex; flex-direction: column; background: var(--surface); border-radius: var(--rayon); overflow: hidden; box-shadow: var(--ombre); }
+.picker-item {
+  font: inherit; font-size: 20px; color: var(--texte); background: none; border: 0; cursor: pointer; text-align: left;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 60px; padding: 8px 20px;
+}
+.picker-item + .picker-item { border-top: 1px solid var(--trait-doux); }
+.picker-item:hover { background: var(--fond); }
+.picker-item[aria-pressed="true"] { background: var(--accent-doux); color: var(--accent-fonce); font-weight: 700; }
+@media (max-width: 899px) {
+  .picker { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; margin: 0; }
+  .picker .sheet-head { padding-top: calc(16px + env(safe-area-inset-top)); }
+  .picker-list { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }

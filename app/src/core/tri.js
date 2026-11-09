@@ -1,7 +1,7 @@
 /**
  * tri.js — Aides pour l'écran « À trier » : ordre des opérations, recherche de catégorie.
  *
- * Version : 0.4.2
+ * Version : 0.4.4
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -9,6 +9,7 @@
  *
  * Historique :
  *   0.4.2  FRE (Fidag)  Première version : « commerces fréquents d'abord », recherche sans accents.
+ *   0.4.4  FRE (Fidag)  Catégories par « derniers utilisés » ou « de A à Z ».
  */
 
 import { fold } from './text.js';
@@ -50,4 +51,35 @@ export function searchCategories(categories, query) {
     .filter(({ name }) => words.every((w) => name.includes(w)))
     .sort((a, b) => Number(b.name.startsWith(q)) - Number(a.name.startsWith(q)) || a.name.localeCompare(b.name))
     .map(({ c }) => c);
+}
+
+/**
+ * Date de dernière utilisation de chaque catégorie (opérations classées et règles).
+ * @returns {Map<string, string>} id de catégorie → date ISO
+ */
+export function lastUsedByCategory(transactions, rules = []) {
+  const last = new Map();
+  const note = (id, when) => {
+    if (!id || !when) return;
+    if (!last.has(id) || when > last.get(id)) last.set(id, when);
+  };
+  for (const t of transactions) if (t.status === 'classee') note(t.categoryId, t.classifiedAt);
+  for (const r of rules) note(r.categoryId, r.lastUsedAt);
+  return last;
+}
+
+/**
+ * Ordonne des catégories :
+ * - 'recent' : la dernière utilisée d'abord, puis les jamais utilisées de A à Z ;
+ * - 'alpha'  : de A à Z (ordre du dictionnaire français, sans tenir compte des accents).
+ */
+export function orderCategories(categories, mode = 'recent', lastUsed = new Map()) {
+  const alpha = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+  const list = [...categories];
+  if (mode === 'alpha') return list.sort(alpha);
+  return list.sort((a, b) => {
+    const la = lastUsed.get(a.id) ?? '';
+    const lb = lastUsed.get(b.id) ?? '';
+    return lb.localeCompare(la) || alpha(a, b);
+  });
 }

@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.4.4 — 2026-11-09 — FRE (Fidag)
+- À trier : « C'est quoi ? » n'est plus qu'**une étiquette** (« Choisir une catégorie… » ou la catégorie choisie). En la touchant, une fenêtre s'ouvre avec la **loupe**, le choix **« Derniers utilisés » / « De A à Z »** (retenu d'une fois à l'autre) et toutes les catégories, une par ligne : celles du bon genre (dépenses ou rentrées) d'abord.
+- À trier sur iPad : les blocs du formulaire ne se tassent plus quand il est long (boutons coupés, texte qui dépassait de la case « Toujours classer ») : le formulaire défile.
+- Texte au singulier : « L'autre opération de ce commerce en attente sera classée aussi. »
+- Chaque opération classée garde la date de son classement (pour proposer les catégories récentes).
+- 47 tests automatiques.
+
 ## 0.4.3 — 2026-11-08 — FRE (Fidag)
 - À trier sur iPad : l'écran tient dans la hauteur de l'écran ; la liste des opérations et le formulaire défilent **chacun de leur côté**. La liste garde sa position et l'opération choisie reste visible.
 - Barre latérale étroite sur les iPad jusqu'à 1280 px de large (icône avec le mot en dessous, comme les onglets) : plus de place pour la liste et le formulaire. La liste est de nouveau affichée dès 900 px.

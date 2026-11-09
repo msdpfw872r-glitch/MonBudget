@@ -2,17 +2,18 @@
  * tri.test.mjs — Tests de l'ordre des opérations à trier et de la recherche de catégorie.
  * Lancer : npm test
  *
- * Version : 0.4.2
+ * Version : 0.4.4
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.4.2  FRE (Fidag)  Première version.
+ *   0.4.4  FRE (Fidag)  Ordre des catégories.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { orderPending, countByMerchant, searchCategories } from '../app/src/core/tri.js';
+import { orderPending, countByMerchant, searchCategories, lastUsedByCategory, orderCategories } from '../app/src/core/tri.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
 const tx = (id, date, merchantKey) => ({ id, date, merchantKey });
@@ -42,4 +43,25 @@ test('recherche de catégorie : sans accents, plusieurs mots, début du nom d’
   assert.deepEqual(names('xyz'), []);
   const archived = seed.categories.map((c) => (c.id === 'dons' ? { ...c, archived: true } : c));
   assert.deepEqual(searchCategories(archived, 'dons'), [], 'les catégories mises de côté ne sont pas proposées');
+});
+
+test('catégories : derniers utilisés ou de A à Z', () => {
+  const cats = [
+    { id: 'pharmacie', name: 'Pharmacie' },
+    { id: 'energie', name: 'Énergie et charges' },
+    { id: 'alim', name: 'Alimentation et courses' },
+    { id: 'dons', name: 'Dons' },
+  ];
+  const txs = [
+    { status: 'classee', categoryId: 'pharmacie', classifiedAt: '2026-11-08T10:00:00Z' },
+    { status: 'classee', categoryId: 'alim', classifiedAt: '2026-11-09T08:00:00Z' },
+    { status: 'a-trier', categoryId: 'dons', classifiedAt: '2026-11-09T09:00:00Z' },
+    { status: 'classee', categoryId: 'pharmacie' }, // ancienne opération sans date
+  ];
+  const rules = [{ categoryId: 'pharmacie', lastUsedAt: '2026-11-09T07:00:00Z' }];
+  const last = lastUsedByCategory(txs, rules);
+  assert.equal(last.get('pharmacie'), '2026-11-09T07:00:00Z');
+  assert.equal(last.has('dons'), false, 'une opération pas encore triée ne compte pas');
+  assert.deepEqual(orderCategories(cats, 'recent', last).map((c) => c.id), ['alim', 'pharmacie', 'dons', 'energie']);
+  assert.deepEqual(orderCategories(cats, 'alpha').map((c) => c.name), ['Alimentation et courses', 'Dons', 'Énergie et charges', 'Pharmacie']);
 });
