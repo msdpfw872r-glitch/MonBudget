@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.2.0
+- Version du brief : 1.3.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -8,6 +8,7 @@ Historique du brief :
 - 1.0.0 — FRE (Fidag) — Première version.
 - 1.1.0 — FRE (Fidag) — § 2.1 fait : le dépôt existe déjà sous le nom `msdpfw872r-glitch/MonBudget` (public) ; adresse publiée `https://msdpfw872r-glitch.github.io/MonBudget/` (chemins relatifs obligatoires dans l'app). Structure `app/` en place depuis la v0.2.0.
 - 1.2.0 — FRE (Fidag) — Décisions de l'utilisateur (v0.4.0) : Maman et Papa ont chacun leur carte UBS (deux comptes « carte »), la facture est commune et prélevée par LSV sur le compte UBS ; les achats par carte sont rattachés à ce prélèvement (voir § 4, « Cartes et factures »). L'agent peut mettre `main` à jour pour publier chaque étape.
+- 1.3.0 — FRE (Fidag) — Décision de l'utilisateur (v0.6.0) : nom de la sauvegarde jusqu'à la milliseconde (jamais deux fois le même) ; restauration avec écran de confirmation bien visible ; sauvegarde utilisable avec un raccourci Apple (menu Partager).
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -91,8 +92,9 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 
 ### Sauvegarde
 
-- Bouton « Sauvegarder maintenant » : fichier `MonBudget_AAAA-MM-JJ.json` (tout : données + règles + version du schéma) partagé avec `navigator.share({ files })`, pour qu'elle choisisse « Enregistrer dans Fichiers » puis iCloud Drive. Repli : téléchargement.
-- « Restaurer une sauvegarde » : `<input type="file">`, aperçu (« 1’204 opérations, 87 règles, sauvegarde du 5 novembre »), confirmation, remplacement.
+- Bouton « Sauvegarder maintenant » : fichier `MonBudget_AAAA-MM-JJ_HH-MM-SS-mmm.json` (heure locale jusqu'à la milliseconde : jamais deux fois le même nom) (tout : données + règles + version du schéma) partagé avec `navigator.share({ files })`, pour qu'elle choisisse « Enregistrer dans Fichiers » puis iCloud Drive. Repli : téléchargement.
+- « Restaurer une sauvegarde » : `<input type="file">`, aperçu (« 1’204 opérations, 87 règles, sauvegarde du 5 novembre »), écran rouge « toutes vos données vont être supprimées et remplacées » avec case « J'ai compris » obligatoire puis dernière vérification, remplacement ; retour à l'état d'avant si la restauration échoue.
+- Raccourcis Apple : une web app ne peut pas être pilotée en arrière-plan ; la sauvegarde passe par le menu Partager, où un raccourci de l'utilisateur enregistre le fichier dans le dossier de son choix (guide dans Réglages).
 - Bandeau de rappel sur l'accueil si la dernière sauvegarde a plus de 30 jours ou après un import.
 
 ## 5. Interface — suivre la maquette

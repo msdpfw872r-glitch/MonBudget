@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.5.2
+ * Version : 0.6.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -25,6 +25,7 @@
  *   0.5.0  FRE (Fidag)  Journal (tableau / liste), Résumé (chiffres, barres), Accueil, choix du mois, filtres.
  *   0.5.1  FRE (Fidag)  Choix de période (semaine, mois, année, tout, dates), loupe du journal, mois par mois.
  *   0.5.2  FRE (Fidag)  Montants cliquables (détail des opérations).
+ *   0.6.0  FRE (Fidag)  Sauvegarde : écran de restauration bien visible, bandeau de rappel, guide Raccourcis.
  */
 
 @font-face {
@@ -802,3 +803,31 @@ button.bar-line:hover { background: var(--fond); }
 button.stat.detail-link { padding: 18px 20px; border-radius: var(--rayon); box-shadow: var(--ombre); }
 .stat strong { white-space: nowrap; }
 @media (max-width: 699px) { .stat strong { white-space: normal; } .stat strong::after { white-space: nowrap; } }
+
+/* ---------- 0.6.0 : sauvegarde / restauration ---------- */
+
+.danger-zone {
+  background: #FDECEA; border: 3px solid #A3271B; border-radius: var(--rayon);
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; color: #5C1610;
+}
+.danger-zone p { font-size: 20px; }
+.danger-head { display: flex; align-items: flex-start; gap: 12px; color: #A3271B; }
+.danger-head svg { width: 40px; height: 40px; flex-shrink: 0; }
+.danger-head h2 { font-size: 26px; color: #7E1E15; }
+.compare { display: grid; gap: 12px; }
+@media (min-width: 700px) { .compare { grid-template-columns: 1fr 1fr; } }
+.compare-box { background: var(--surface); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 19px; color: var(--texte); }
+.compare-title { font-weight: 700; }
+.compare-now { border: 2px dashed #A3271B; }
+.compare-now .compare-title { color: #A3271B; }
+.compare-new { border: 2px solid var(--accent); }
+.compare-new .compare-title { color: var(--accent-fonce); }
+.danger-check { background: var(--surface); border: 2px solid #A3271B; }
+.danger-check:has(input:checked) { background: #FFF8F7; border-color: #7E1E15; }
+.danger-check input { accent-color: #A3271B; }
+.btn-big { min-height: 68px; font-size: 22px; }
+.btn-danger[disabled] { opacity: 0.45; }
+
+.backup-banner > svg { color: var(--alerte-texte); }
+.guide ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 10px; font-size: 20px; }
+.guide p { font-size: 20px; }

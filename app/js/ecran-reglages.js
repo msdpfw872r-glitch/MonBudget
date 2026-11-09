@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.4.0
+ * Version : 0.6.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -14,6 +14,7 @@
  *   0.3.0  FRE (Fidag)  Première version.
  *   0.4.0  FRE (Fidag)  Cartes (à qui, facture prélevée sur, numéros reconnus), règles retenues
  *                       modifiables et supprimables, accès aux factures de carte.
+ *   0.6.0  FRE (Fidag)  Carte « Sauvegarde » (sauvegarder, restaurer, guide Raccourcis).
  */
 
 import { APP_VERSION } from './version.js';
@@ -22,6 +23,7 @@ import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
 import { saveRule, deleteRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
+import { backupCard, saveNow, saveMessage, restaurerView, raccourciView } from './ecran-sauvegarde.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -93,14 +95,7 @@ function accueilReglages() {
       const db = await getDb();
       const o = await R.overview(db);
       root.innerHTML = `
-        <section class="card card-accent">
-          <div class="card-line">
-            <span class="round-icon">${icon('sauvegarde')}</span>
-            <span class="row-text"><span class="row-title">Sauvegarde</span>
-              <span class="row-sub">Arrive dans une prochaine version.</span></span>
-          </div>
-          <button type="button" class="btn btn-primary btn-wide" disabled>Sauvegarder maintenant</button>
-        </section>
+        ${await backupCard(db)}
         <section class="card list">
           ${row({ href: '#/reglages/regles', title: 'Règles retenues',
             sub: o.rulesCount ? plural(o.rulesCount, 'commerce reconnu', 'commerces reconnus') : 'Aucune pour l’instant' })}
@@ -110,6 +105,15 @@ function accueilReglages() {
           ${row({ href: '#/factures', title: 'Factures de carte', sub: 'Rattacher les achats des cartes à la facture' })}
         </section>
         <p class="footnote">Mon Budget · version ${APP_VERSION}</p>`;
+      root.onclick = async (e) => {
+        const b = e.target.closest('[data-sauvegarder]');
+        if (!b) return;
+        b.disabled = true;
+        const r = await saveNow();
+        await this.render(root);
+        const msg = root.querySelector('[data-message-sauvegarde]');
+        if (msg) { msg.textContent = saveMessage(r); msg.hidden = false; }
+      };
     },
   };
 }
@@ -387,6 +391,8 @@ export function reglagesView(path) {
     case 'comptes': return id ? compte(id) : comptes();
     case 'categories': return id ? categorie(id) : categories();
     case 'regles': return id ? regle(id) : regles();
+    case 'restaurer': return restaurerView();
+    case 'raccourci': return raccourciView();
     default: return accueilReglages();
   }
 }

@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.5.2
+ * Version : 0.6.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -18,6 +18,7 @@
  *   0.4.3  FRE (Fidag)  « À trier » remplit l'écran (colonnes qui défilent séparément).
  *   0.5.0  FRE (Fidag)  Journal, Résumé du mois ; Accueil avec les chiffres du mois et les dernières opérations.
  *   0.5.2  FRE (Fidag)  Accueil : toucher un chiffre ou une barre affiche les opérations qui le composent.
+ *   0.6.0  FRE (Fidag)  Accueil : bandeau « Pensez à sauvegarder » avec bouton.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -34,6 +35,7 @@ import { currentMonth, paint as paintColors } from './mois.js';
 import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
 import { openDetail } from './detail.js';
+import { reminderBanner, saveNow, saveMessage } from './ecran-sauvegarde.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -65,7 +67,7 @@ function accueilView() {
     async render(root) {
       const today = new Date();
       const db = await getDb();
-      const [data, bills] = await Promise.all([loadAll(db), billsToCheck(db)]);
+      const [data, bills, banner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db)]);
       const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
@@ -83,6 +85,8 @@ function accueilView() {
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
+        ${banner}
+        <p class="flash" data-message-sauvegarde role="status" hidden></p>
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
         ${pending ? `<a class="todo" href="#/trier">
             <span class="todo-count">${pending > 999 ? '999+' : pending}</span>
@@ -108,6 +112,16 @@ function accueilView() {
         <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
       paintColors(root);
       root.onclick = async (e) => {
+        const save = e.target.closest('[data-sauvegarder]');
+        if (save) {
+          save.disabled = true;
+          const r = await saveNow();
+          await this.render(root);
+          const msg = root.querySelector('[data-message-sauvegarde]');
+          msg.textContent = saveMessage(r);
+          msg.hidden = false;
+          return;
+        }
         const d = e.target.closest('[data-detail]');
         if (d) {
           if (await openDetail(d, db, data, null)) {

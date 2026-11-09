@@ -1,5 +1,13 @@
 # Historique des versions
 
+## 0.6.0 — 2026-11-09 — FRE (Fidag)
+- **Sauvegarder maintenant** (Réglages, et bandeau de l'accueil) : fichier `MonBudget_AAAA-MM-JJ_HH-MM-SS-mmm.json` — date et heure jusqu'à la milliseconde, deux sauvegardes n'ont jamais le même nom — avec toutes les données, les règles et les versions. Ouvre le menu Partager de l'iPad (« Enregistrer dans Fichiers » ou un raccourci) ; sinon téléchargement. Annuler le partage ne compte pas comme une sauvegarde.
+- **Restaurer une sauvegarde** : choix du fichier, puis écran rouge bien visible « Attention : toutes vos données vont être supprimées et remplacées », avec ce qui sera supprimé (aujourd'hui dans l'app) et ce qui sera remis (dans la sauvegarde), bouton « Sauvegarder d'abord les données d'aujourd'hui », case « J'ai compris » obligatoire, bouton « Remplacer toutes mes données », puis une dernière vérification. Si la restauration échoue en cours de route, les données d'avant sont remises.
+- Fichiers refusés en mots simples (pas une sauvegarde, abîmée, incomplète, version plus récente).
+- **Rappel** sur l'accueil : jamais sauvegardé, dernière sauvegarde il y a plus de 30 jours, ou import depuis la dernière sauvegarde.
+- Guide pas à pas **« Sauvegarder avec l'app Raccourcis »** : dossier iCloud Drive, raccourci dans le menu Partager, rappel automatique chaque semaine.
+- 72 tests automatiques.
+
 ## 0.5.2 — 2026-11-09 — FRE (Fidag)
 - **Toucher un montant affiche les opérations qui le composent** : « Il reste / Il manque », « Rentrées », « Dépenses », chaque barre (« Où va l'argent », « Dépenses pour qui ? », « D'où vient l'argent »), chaque case du tableau « Mois par mois », et « Voir lesquelles » pour les opérations pas comptées. Sur l'Accueil aussi.
 - La fenêtre « Détail » montre la période, le nombre d'opérations et le total (toujours égal au montant touché) ; toucher une opération permet de la modifier, et les chiffres se mettent à jour.
