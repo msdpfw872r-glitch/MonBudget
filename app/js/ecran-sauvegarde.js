@@ -2,7 +2,7 @@
  * ecran-sauvegarde.js — Sauvegarder, restaurer (avec confirmation bien visible), rappel sur l'accueil,
  * guide pas à pas pour l'app Raccourcis.
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -16,6 +16,7 @@
  *   0.9.1  FRE (Fidag)  Textes « appareil » au lieu de « iPad » (iPhone aussi).
  *   0.10.2 FRE (Fidag)  Restauration : la synchronisation est toujours active (session.js).
  *   0.11.0 FRE (Fidag)  Restaurer et Raccourcis rangés sous Réglages › Copie de sécurité.
+ *   0.12.0 FRE (Fidag)  Remettre une copie en ligne (même écran rouge) ; copie automatique avant de remplacer.
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -131,6 +132,12 @@ export async function backupCard(db) {
 /* ---------- Restaurer ---------- */
 
 let pending = null; // { fileName, backup }
+
+/** Prépare la remise d'une copie (en ligne) : l'écran rouge de restauration s'affiche ensuite. */
+export function setPendingRestore(backup, label) {
+  pending = { fileName: label, backup };
+  done = null;
+}
 let done = null;    // résultat de la dernière restauration
 
 export function restaurerView() {
@@ -227,8 +234,18 @@ export function restaurerView() {
           });
           if (!ok) return;
           const err = root.querySelector('.form-error');
+          // Copie en ligne automatique des données d'aujourd'hui, pour pouvoir revenir en arrière.
           try {
             btn.disabled = true;
+            btn.textContent = 'Copie de sécurité…';
+            await session.makeCloudCopy('Automatique : avant de remettre une copie');
+          } catch {
+            const go = await confirmer({ titre: 'Pas de copie de sécurité', message: 'La copie automatique des données d’aujourd’hui n’a pas pu être faite (pas d’Internet ?). Remplacer quand même ?', ok: 'Remplacer quand même', non: 'Annuler', danger: true });
+            if (!go) { btn.disabled = false; btn.textContent = 'Remplacer toutes mes données'; return; }
+          }
+          try {
+            btn.disabled = true;
+            btn.textContent = 'Remplacement…';
             const counts = await restoreBackup(db, b);
             // Une sauvegarde d'une ancienne version reçoit les nouveaux éléments de départ.
             const seed = await (await fetch('./src/data/seed.json')).json();
@@ -243,6 +260,7 @@ export function restaurerView() {
             err.hidden = false;
             err.focus();
             btn.disabled = false;
+            btn.textContent = 'Remplacer toutes mes données';
           }
         }
       };

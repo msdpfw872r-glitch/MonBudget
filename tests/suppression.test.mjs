@@ -2,12 +2,13 @@
  * suppression.test.mjs — Tests de « Supprimer des données » : groupes, rien / tout / certains, résumé, effets.
  * Lancer : npm test
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.11.0 FRE (Fidag)  Première version.
+ *   0.12.0 FRE (Fidag)  Toutes les catégories supprimables ; catégories d'exemple remises.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,9 +42,9 @@ async function base() {
   return { db, tante };
 }
 
-test('groupes et listes : imports, tri (sans le prélèvement de carte), ajouts sans les éléments de départ', async () => {
+test('groupes et listes : imports, tri (sans le prélèvement de carte), catégories toutes, personnes ajoutées seulement', async () => {
   const { db } = await base();
-  assert.deepEqual(D.GROUPS.map((g) => g.id), ['imports', 'operations', 'tri', 'regles', 'rattachements', 'numeros', 'ajouts']);
+  assert.deepEqual(D.GROUPS.map((g) => g.id), ['imports', 'operations', 'tri', 'regles', 'rattachements', 'numeros', 'categories', 'personnes']);
   const imps = await D.listGroup(db, 'imports', opts);
   assert.deepEqual(imps.map((i) => i.id), ['i2', 'i1'], 'le plus récent d’abord');
   assert.match(imps[1].label, /UBS.*octobre 2026/);
@@ -52,7 +53,10 @@ test('groupes et listes : imports, tri (sans le prélèvement de carte), ajouts 
   assert.equal((await D.listGroup(db, 'operations', opts))[0].month, '2026-10');
   assert.deepEqual((await D.listGroup(db, 'rattachements', opts)).map((i) => i.sub), ['2 achats rattachés']);
   assert.deepEqual((await D.listGroup(db, 'numeros', opts)).map((i) => i.label), ['Carte ****1111']);
-  assert.deepEqual((await D.listGroup(db, 'ajouts', opts)).map((i) => i.label).sort(), ['Jardinage', 'Tante Rose']);
+  assert.deepEqual((await D.listGroup(db, 'personnes', opts)).map((i) => i.label), ['Tante Rose']);
+  const cats = await D.listGroup(db, 'categories', opts);
+  assert.equal(cats.length, seed.categories.length + 1, 'toutes les catégories, y compris celles d’exemple');
+  assert.match(cats.find((c) => c.id === 'logement-loyer-hypotheque').sub, /Dépense · 1 opération/);
 });
 
 test('rien choisi : rien ne change', async () => {
@@ -96,11 +100,11 @@ test('certaines règles : supprimées, les opérations gardent leur classement',
   assert.deepEqual([b.status, b.categoryId, b.ruleId], ['classee', 'alimentation-et-courses', null]);
 });
 
-test('rattachements, numéros, ajouts', async () => {
+test('rattachements, numéros, personne et catégorie ajoutées', async () => {
   const { db, tante } = await base();
   await G.classify(db, 'c', { personId: tante.id, categoryId: 'jardinage', remember: true });
-  const done = await D.applyDeletion(db, { rattachements: 'all', numeros: 'all', ajouts: 'all' }, opts);
-  assert.deepEqual([done.rattachements, done.numeros, done.ajouts], [1, 1, 2]);
+  const done = await D.applyDeletion(db, { rattachements: 'all', numeros: 'all', personnes: 'all', categories: ['jardinage'] }, opts);
+  assert.deepEqual([done.rattachements, done.numeros, done.personnes, done.categories], [1, 1, 1, 1]);
   assert.equal((await db.get('transactions', 'b')).cardBillId, null);
   assert.deepEqual((await db.get('accounts', 'carte-ubs-maman')).bankRefs, []);
   assert.equal(await db.get('people', tante.id), undefined);
@@ -117,4 +121,19 @@ test('import + opérations du même import : comptées une seule fois', async ()
   const done = await D.applyDeletion(db, { imports: ['i2'], operations: ['b', 'a'] }, opts);
   assert.equal(done.operations, 3);
   assert.equal(await db.count('transactions'), 1);
+});
+
+test('toutes les catégories supprimées, puis les catégories d’exemple remises', async () => {
+  const { db } = await base();
+  const plan = await D.planDeletion(db, { categories: 'all' }, opts);
+  assert.match(plan.lines[0].text, new RegExp(`^${seed.categories.length + 1} catégories : `));
+  const done = await D.applyDeletion(db, { categories: 'all' }, opts);
+  assert.equal(done.categories, seed.categories.length + 1);
+  assert.equal(await db.count('categories'), 0);
+  assert.equal(await db.countWhere('transactions', 'status', 'classee'), 0, 'tout revient à trier (prélèvement compris)');
+  assert.equal(await db.count('rules'), 0, 'les règles menaient à ces catégories');
+  assert.equal(await R.restoreSampleCategories(db, seed), seed.categories.length);
+  assert.equal(await db.count('categories'), seed.categories.length);
+  assert.equal(await R.restoreSampleCategories(db, seed), 0, 'rien en double');
+  assert.equal((await db.get('outbox', 'categories/alimentation-et-courses')).deleted, false, 'remises aussi sur les autres appareils');
 });

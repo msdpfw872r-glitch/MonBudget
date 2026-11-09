@@ -1,7 +1,7 @@
 /**
  * cloud.js — Adaptateur Firebase : connexion (Auth) et documents chiffrés (Firestore lite).
  *
- * Version : 0.8.5
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,6 +11,7 @@
  *
  * Historique :
  *   0.8.5  FRE (Fidag)  Première version.
+ *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (users/{uid}/copies).
  */
 
 import { FIREBASE_CONFIG, ALLOWED_UID } from './firebase-config.js';
@@ -109,6 +110,19 @@ export async function firestoreRemote(uid) {
         return { docId: d.id, v, iv, ct, updatedAt, deleted: Boolean(deleted) };
       });
       return { docs, cursor: last };
+    }),
+    // Copies de sécurité (copies.js) : les morceaux d'abord, la fiche ensuite (une copie sans fiche est invisible).
+    listCopies: wrap(async () => (await fs.getDocs(fs.collection(db, 'users', uid, 'copies'))).docs.map((d) => ({ id: d.id, ...d.data() }))),
+    putCopy: wrap(async (id, meta, parts) => {
+      for (const p of parts) await fs.setDoc(fs.doc(db, 'users', uid, 'copies', id, 'parts', String(p.n)), p);
+      await fs.setDoc(fs.doc(db, 'users', uid, 'copies', id), meta);
+    }),
+    getCopyParts: wrap(async (id) => (await fs.getDocs(fs.collection(db, 'users', uid, 'copies', id, 'parts'))).docs.map((d) => d.data())),
+    deleteCopy: wrap(async (id, parts = 0) => {
+      const batch = fs.writeBatch(db);
+      batch.delete(fs.doc(db, 'users', uid, 'copies', id));
+      for (let n = 0; n < parts; n++) batch.delete(fs.doc(db, 'users', uid, 'copies', id, 'parts', String(n)));
+      await batch.commit();
     }),
     push: wrap(async (list) => {
       if (list.length > BATCH) throw new Error('lot trop grand');

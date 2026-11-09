@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -21,6 +21,7 @@
  *   0.10.2 FRE (Fidag)  « Compte et synchronisation » (#/reglages/compte) remplace l'ancien écran Synchronisation.
  *   0.11.0 FRE (Fidag)  Plus de carte « Sauvegarde » (synchronisation) : lignes Imports, Copie de sécurité,
  *                       Supprimer des données (#/reglages/imports, /copie, /supprimer).
+ *   0.12.0 FRE (Fidag)  Mes catégories : « Remettre les catégories d'exemple » s'il en manque.
  */
 
 import { APP_VERSION } from './version.js';
@@ -114,7 +115,7 @@ function accueilReglages() {
           ${row({ href: '#/reglages/imports', title: 'Imports', sub: plural(await db.count('imports'), 'fichier importé', 'fichiers importés') })}
         </section>
         <section class="card list">
-          ${await copieRow(db)}
+          ${await copieRow()}
           <a class="row row-danger" href="#/reglages/supprimer"><span class="row-text"><span class="row-title">Supprimer des données</span>
             <span class="row-sub">Imports, opérations, tri, règles…</span></span>${icon('suite')}</a>
         </section>
@@ -331,7 +332,10 @@ function categories() {
     title: 'Mes catégories',
     parent: '#/reglages',
     async render(root) {
-      const all = await R.listCategories(await getDb());
+      const db = await getDb();
+      const all = await R.listCategories(db);
+      const seed = await (await fetch('./src/data/seed.json')).json();
+      const missing = seed.categories.filter((c) => !all.some((x) => x.id === c.id)).length;
       const line = (c) => row({ href: `#/reglages/categories/${encodeURIComponent(c.id)}`, title: esc(c.name),
         sub: c.excludeFromTotals ? 'Pas comptée dans les totaux' : '' });
       const group = (title, list) => (list.length ? `<h2 class="group-title">${title}</h2>
@@ -340,7 +344,16 @@ function categories() {
         <a class="btn btn-secondary btn-wide" href="#/reglages/categories/nouveau">${icon('plus')}Ajouter une catégorie</a>
         ${group('Dépenses', all.filter((c) => !c.archived && c.type === 'depense'))}
         ${group('Rentrées', all.filter((c) => !c.archived && c.type === 'recette'))}
-        ${group('Mises de côté (plus proposées pour trier)', all.filter((c) => c.archived))}`;
+        ${group('Mises de côté (plus proposées pour trier)', all.filter((c) => c.archived))}
+        ${all.length ? '' : '<section class="card"><p class="note">Aucune catégorie. Ajoutez les vôtres, ou remettez celles d’exemple.</p></section>'}
+        ${missing ? `<button type="button" class="btn btn-secondary btn-wide" data-exemple>Remettre les catégories d’exemple (${missing})</button>` : ''}`;
+      root.onclick = async (e) => {
+        if (!e.target.closest('[data-exemple]')) return;
+        const ok = await confirmer({ titre: 'Remettre les catégories d’exemple ?', message: `${missing} catégories d’exemple vont être ajoutées. Vos catégories actuelles ne changent pas.`, ok: 'Remettre', non: 'Annuler' });
+        if (!ok) return;
+        await R.restoreSampleCategories(db, seed);
+        this.render(root);
+      };
     },
   };
 }

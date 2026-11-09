@@ -1,8 +1,8 @@
 /**
  * ecran-supprimer.js — Réglages › Supprimer des données (choisir, vérifier, taper SUPPRIMER, valider),
- * Réglages › Imports (supprimer un import), Réglages › Copie de sécurité (fichier).
+ * Réglages › Imports (supprimer un import), Réglages › Copies de sécurité (en ligne et fichier).
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,6 +11,8 @@
  *
  * Historique :
  *   0.11.0 FRE (Fidag)  Première version.
+ *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (10, commentaire, remettre, supprimer), copie automatique avant
+ *                       une suppression ; toutes les catégories supprimables ; « Remettre les catégories d'exemple ».
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -18,10 +20,13 @@ import { getDb } from './store.js';
 import * as session from './session.js';
 import * as D from '../src/core/suppression.js';
 import { formatMonth } from '../src/core/format.js';
-import { saveNow, showSaveResult, whenText } from './ecran-sauvegarde.js';
+import { saveNow, showSaveResult, whenText, setPendingRestore } from './ecran-sauvegarde.js';
+import { MAX_COPIES as D_MAX } from '../src/core/copies.js';
+import { restoreSampleCategories } from '../src/core/reglages.js';
 
 let selection = {};   // { groupe: 'all' | [ids] }
 let done = null;      // résultat de la dernière suppression
+let autoCopied = false; // une copie en ligne a été faite juste avant
 let seedCache = null;
 const seed = async () => (seedCache ??= await (await fetch('./src/data/seed.json')).json());
 const opts = async () => ({ seed: await seed() });
@@ -179,6 +184,17 @@ function verifyView() {
         if (!e.target.closest('[data-valider]') || btn.disabled) return;
         const ok = await confirmer({ titre: 'Supprimer maintenant ?', message: plan.lines.map((l) => l.text).join(' · '), ok: 'Oui, supprimer', non: 'Non', danger: true });
         if (!ok) return;
+        // Copie en ligne automatique avant de supprimer (pour pouvoir revenir en arrière).
+        btn.disabled = true;
+        btn.textContent = 'Copie de sécurité…';
+        autoCopied = false;
+        try {
+          await session.makeCloudCopy('Automatique : avant une suppression');
+          autoCopied = true;
+        } catch {
+          const goOn = await confirmer({ titre: 'Pas de copie de sécurité', message: 'La copie automatique n’a pas pu être faite (pas d’Internet ?). Supprimer quand même, sans pouvoir revenir en arrière ?', ok: 'Supprimer quand même', non: 'Annuler', danger: true });
+          if (!goOn) { btn.disabled = false; btn.innerHTML = `${icon('corbeille')}Valider la suppression`; return; }
+        }
         try {
           btn.disabled = true;
           btn.textContent = 'Suppression…';
@@ -201,15 +217,29 @@ function verifyView() {
 function doneView(root) {
   const labels = [['imports', 'Imports supprimés'], ['operations', 'Opérations supprimées'], ['tri', 'Opérations remises à trier'],
     ['regles', 'Règles supprimées'], ['rattachements', 'Factures détachées de leurs achats'], ['numeros', 'Numéros oubliés'],
-    ['ajouts', 'Catégories et personnes supprimées']];
+    ['categories', 'Catégories supprimées'], ['personnes', 'Personnes supprimées']];
   root.innerHTML = `<section class="card del-done">
       <span class="round-icon ok">${icon('ok')}</span>
       <h2>C’est supprimé</h2>
       <div class="counts">${labels.filter(([k]) => done[k]).map(([k, t]) => `<div class="count-line"><span>${t}</span><strong>${fmtN(done[k])}</strong></div>`).join('')}</div>
-      <p class="note">Vos autres appareils seront mis à jour à la prochaine synchronisation.</p>
+      <p class="note">Vos autres appareils seront mis à jour à la prochaine synchronisation.
+      ${autoCopied ? 'Une copie en ligne des données d’avant a été faite (Réglages › Copies de sécurité).' : ''}</p>
     </section>
+    ${done.categories ? `<button type="button" class="btn btn-secondary btn-wide" data-exemple>Remettre les catégories d’exemple</button>
+      <p class="flash" data-exemple-ok role="status" hidden></p>` : ''}
     <a class="btn btn-primary btn-wide" href="#/reglages" data-fini>Retour aux Réglages</a>`;
-  root.onclick = (e) => { if (e.target.closest('[data-fini]')) done = null; };
+  root.onclick = async (e) => {
+    if (e.target.closest('[data-fini]')) done = null;
+    const ex = e.target.closest('[data-exemple]');
+    if (ex) {
+      ex.disabled = true;
+      const n = await restoreSampleCategories(await getDb(), await seed());
+      const ok = root.querySelector('[data-exemple-ok]');
+      ok.textContent = n ? `${n} catégories d’exemple remises.` : 'Les catégories d’exemple sont déjà là.';
+      ok.hidden = false;
+      document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+    }
+  };
 }
 
 export function supprimerView(sub) {
@@ -246,33 +276,90 @@ export function importsView() {
 
 /* ---------- Réglages › Copie de sécurité ---------- */
 
-export async function copieRow(db) {
-  const s = await db.get('settings', 'app');
-  return `<a class="row" href="#/reglages/copie"><span class="row-text"><span class="row-title">Copie de sécurité (fichier)</span>
-    <span class="row-sub">${s?.lastBackupAt ? `Dernière : ${esc(whenText(s.lastBackupAt))}` : 'Facultatif : en cas de suppression par erreur'}</span></span>${icon('suite')}</a>`;
+export async function copieRow() {
+  return `<a class="row" href="#/reglages/copie"><span class="row-text"><span class="row-title">Copies de sécurité</span>
+    <span class="row-sub">En ligne (10 dernières) ou dans un fichier : revenir en arrière</span></span>${icon('suite')}</a>`;
 }
+
+const fmtCounts = (c) => (c ? `${fmtN(c.transactions)} opérations, ${fmtN(c.rules)} règles, ${fmtN(c.categories)} catégories` : '');
 
 export function copieView() {
   return {
-    title: 'Copie de sécurité',
+    title: 'Copies de sécurité',
     parent: '#/reglages',
     async render(root) {
-      root.innerHTML = `<section class="card">
-          <p>Vos données sont déjà synchronisées entre vos appareils. Une copie dans un fichier sert seulement à
-          <strong>revenir en arrière</strong> après une suppression par erreur (une suppression est recopiée partout).</p>
+      const rerender = () => { if (root.isConnected) this.render(root); };
+      root.innerHTML = '<p class="note">Un instant…</p>';
+      let copies = null;
+      let loadError = '';
+      try { copies = await session.cloudCopies(); } catch (e) { loadError = session.messageOf(e); }
+      root.innerHTML = `<section class="card card-accent form">
+          <h2>Copies en ligne</h2>
+          <p class="note">Une photo de toutes vos données, chiffrée, gardée dans votre espace en ligne. Les ${D_MAX} dernières sont gardées :
+          la plus ancienne part quand une nouvelle arrive. Elle sert à <strong>revenir en arrière</strong>, par exemple après une suppression par erreur.</p>
+          <label class="field"><span>Commentaire (facultatif)</span>
+            <input type="text" maxlength="200" placeholder="Par exemple : avant le tri de novembre" data-comment></label>
+          <p class="flash" data-copie-ok role="status" hidden></p>
+          <p class="form-error" role="alert" tabindex="-1" hidden></p>
+          <button type="button" class="btn btn-primary btn-wide" data-copie>${icon('sauvegarde')}Faire une copie maintenant</button>
+        </section>
+        ${loadError ? `<p class="warn-box">${icon('attention')}<span>${esc(loadError)}</span></p>`
+          : copies.length ? `<section class="card list">${copies.map((c, i) => `<div class="row row-static copie-row">
+              <span class="row-text"><span class="row-title">${esc(whenText(new Date(c.createdAt).toISOString()))}</span>
+                <span class="row-sub">${c.readable ? (c.comment ? `« ${esc(c.comment)} »` : 'Sans commentaire') : 'Illisible avec la clé actuelle'}</span>
+                ${c.readable ? `<span class="row-sub">${esc(fmtCounts(c.counts))}${c.device ? ` · ${esc(c.device)}` : ''}</span>` : ''}</span>
+              <span class="copie-actions">
+                ${c.readable ? `<button type="button" class="btn btn-secondary btn-small" data-remettre="${i}">Remettre cette copie</button>` : ''}
+                <button type="button" class="btn btn-secondary btn-small" data-supprimer-copie="${i}">${icon('corbeille')}Supprimer</button>
+              </span></div>`).join('')}</section>`
+          : '<section class="card"><p class="note">Aucune copie en ligne pour l’instant.</p></section>'}
+        <section class="card">
+          <h2>Copie dans un fichier</h2>
+          <p class="note">Pour garder une copie ailleurs (iCloud Drive…).</p>
           <p class="flash" data-message-sauvegarde role="status" hidden></p>
-          <button type="button" class="btn btn-secondary btn-wide" data-sauvegarder>${icon('sauvegarde')}Enregistrer une copie maintenant</button>
-          <a class="btn btn-secondary btn-wide" href="#/reglages/restaurer">Remettre une copie</a>
+          <button type="button" class="btn btn-secondary btn-wide" data-sauvegarder>${icon('sauvegarde')}Enregistrer une copie dans un fichier</button>
+          <a class="btn btn-secondary btn-wide" href="#/reglages/restaurer">Remettre une copie depuis un fichier</a>
           <a class="row" href="#/reglages/raccourci"><span class="row-text"><span class="row-title">Avec l’app Raccourcis</span>
-            <span class="row-sub">Enregistrer la copie dans votre dossier</span></span>${icon('suite')}</a>
+            <span class="row-sub">Enregistrer le fichier dans votre dossier</span></span>${icon('suite')}</a>
         </section>`;
+      const err = (e) => {
+        const box = root.querySelector('.form-error');
+        box.textContent = session.messageOf(e);
+        box.hidden = false;
+        box.focus();
+      };
       root.onclick = async (e) => {
-        const b = e.target.closest('[data-sauvegarder]');
+        const b = e.target.closest('button');
         if (!b) return;
-        b.disabled = true;
-        const r = await saveNow();
-        b.disabled = false;
-        showSaveResult(root.querySelector('[data-message-sauvegarde]'), r);
+        if ('copie' in b.dataset) {
+          b.disabled = true;
+          b.textContent = 'Copie en cours…';
+          try {
+            const c = await session.makeCloudCopy(root.querySelector('[data-comment]').value);
+            await this.render(root);
+            const ok = root.querySelector('[data-copie-ok]');
+            ok.textContent = `Copie faite : ${fmtCounts(c.counts)}.${c.removed.length ? ' La plus ancienne a été supprimée.' : ''}`;
+            ok.hidden = false;
+          } catch (ex) { b.disabled = false; b.innerHTML = `${icon('sauvegarde')}Faire une copie maintenant`; err(ex); }
+        } else if ('remettre' in b.dataset) {
+          const c = copies[Number(b.dataset.remettre)];
+          b.disabled = true;
+          b.textContent = 'Lecture…';
+          try {
+            setPendingRestore(await session.readCloudCopy(c), `Copie du ${whenText(new Date(c.createdAt).toISOString())}`);
+            go('#/reglages/restaurer');
+          } catch (ex) { b.disabled = false; b.textContent = 'Remettre cette copie'; err(ex); }
+        } else if ('supprimerCopie' in b.dataset) {
+          const c = copies[Number(b.dataset.supprimerCopie)];
+          const ok = await confirmer({ titre: 'Supprimer cette copie ?', message: `Copie du ${whenText(new Date(c.createdAt).toISOString())}${c.comment ? ` (« ${c.comment} »)` : ''}. Vos données actuelles ne changent pas.`, ok: 'Supprimer la copie', non: 'Annuler', danger: true });
+          if (!ok) return;
+          try { await session.deleteCloudCopy(c); rerender(); } catch (ex) { err(ex); }
+        } else if ('sauvegarder' in b.dataset) {
+          b.disabled = true;
+          const r = await saveNow();
+          b.disabled = false;
+          showSaveResult(root.querySelector('[data-message-sauvegarde]'), r);
+        }
       };
     },
   };

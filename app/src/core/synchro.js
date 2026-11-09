@@ -1,7 +1,7 @@
 /**
  * synchro.js — Synchronisation chiffrée : coffre (clés) et moteur (fusion « dernière écriture gagnante »).
  *
- * Version : 0.8.4
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,6 +15,7 @@
  *
  * Historique :
  *   0.8.4  FRE (Fidag)  Première version.
+ *   0.12.0 FRE (Fidag)  Faux cloud : copies de sécurité (listCopies, putCopy, getCopyParts, deleteCopy).
  */
 
 import { SYNCED_STORES } from '../data/db.js';
@@ -299,6 +300,11 @@ export function memoryRemote() {
       const out = [...docs.values()].filter((d) => d.syncedAt > since).sort((a, b) => a.syncedAt - b.syncedAt);
       return { docs: out.map(({ syncedAt, ...d }) => structuredClone(d)), cursor: out.length ? out[out.length - 1].syncedAt : cursor };
     },
+    copies: new Map(), // id → { meta, parts }
+    async listCopies() { return [...this.copies.entries()].map(([id, c]) => ({ id, ...structuredClone(c.meta) })); },
+    async putCopy(id, meta, parts) { this.copies.set(id, { meta: structuredClone(meta), parts: structuredClone(parts) }); },
+    async getCopyParts(id) { return structuredClone(this.copies.get(id)?.parts ?? []); },
+    async deleteCopy(id) { this.copies.delete(id); },
     async push(list) {
       if (list.length > BATCH) throw new Error('lot trop grand');
       this.pushes++;

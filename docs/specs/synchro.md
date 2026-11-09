@@ -1,6 +1,6 @@
 # Conception : synchronisation chiffrée de bout en bout (Firebase)
 
-- Version : 1.2
+- Version : 1.3
 - Auteur : FRE (Fidag)
 - Date : 2026-11-09
 - Version de l'app concernée : 0.8.1 → 0.10.3 (mise en service et tests : `docs/synchro-mise-en-service.md`)
@@ -93,8 +93,16 @@ users/{uid}/records/{docId}           un document chiffré par enregistrement
 - **Déconnexion** = effacement de l'appareil (`coffre`, `appareil`), après tentative d'envoi des changements en attente et avertissement s'il en reste.
 - Phrase de secours changée sur un autre appareil : la copie locale est remplacée au prochain déverrouillage en ligne.
 
+## 9. Copies de sécurité en ligne (0.12)
+
+- `users/{uid}/copies/{id}` : `{ v, createdAt (ms), parts, iv, ct }` ; `ct` = AES-GCM de `{ comment, counts, appVersion, device }`, données authentifiées `users/{uid}/copies/{id}/v1`.
+- `users/{uid}/copies/{id}/parts/{n}` : `{ n, iv, ct }` = la sauvegarde complète (format fichier, `sauvegarde.js`) compressée gzip puis chiffrée, en morceaux de 600 Ko au plus (un document Firestore ≤ 1 Mo).
+- 10 copies au plus (les plus anciennes supprimées après chaque nouvelle). Copie automatique avant une suppression de données et avant de remettre une copie.
+- Remettre une copie = même chemin qu'une restauration de fichier (écran rouge, puis la synchro suivante remplace les données du cloud).
+
 ---
 Historique
 - 1.0 (2026-11-09, FRE (Fidag)) : version initiale.
 - 1.1 (2026-11-09, FRE (Fidag)) : Firestore lite, restauration qui remplace le cloud, réglages propres à l'appareil.
 - 1.2 (2026-11-09, FRE (Fidag)) : § 8, app verrouillée, données de l'appareil chiffrées, verrouillage après une minute.
+- 1.3 (2026-11-09, FRE (Fidag)) : § 9, copies de sécurité en ligne.

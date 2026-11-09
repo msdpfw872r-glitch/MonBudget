@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -29,6 +29,7 @@
  *   0.8.6  FRE (Fidag)  Champs e-mail / mot de passe, bandeau « synchronisation en pause ».
  *   0.10.2 FRE (Fidag)  Écrans de connexion et de verrouillage ; contenu caché quand l'app passe en arrière-plan.
  *   0.11.0 FRE (Fidag)  « Supprimer des données » : cases à trois états, listes à cocher, confirmation.
+ *   0.12.0 FRE (Fidag)  Liste des copies de sécurité en ligne.
  */
 
 @font-face {
@@ -905,3 +906,9 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
   .del-group .row-text { flex-basis: calc(100% - 80px); }
   .del-pill { margin-left: 70px; }
 }
+
+/* ---------- 0.12.0 Copies de sécurité en ligne ---------- */
+
+.copie-row { align-items: flex-start; padding: 14px 16px; gap: 12px; }
+.copie-row .row-text { flex: 1 1 260px; }
+.copie-actions { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -1,7 +1,7 @@
 /**
  * session.js — Session de l'app : connexion, espace chiffré, verrouillage / déverrouillage, synchronisation.
  *
- * Version : 0.10.2
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,7 @@
  *
  * Historique :
  *   0.10.2 FRE (Fidag)  Première version (remplace synchro-service.js).
+ *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (faire, lister, relire, supprimer).
  */
 
 import { physicalDb, openWithKeys, lockDb, getDb } from './store.js';
@@ -20,6 +21,8 @@ import * as cloud from './cloud.js';
 import * as pk from './passkey.js';
 import * as S from '../src/core/synchro.js';
 import * as V from '../src/core/verrou.js';
+import * as C from '../src/core/copies.js';
+import { APP_VERSION } from './version.js';
 import { wipeDevice } from '../src/data/coffre.js';
 import { ChiffrementError } from '../src/core/chiffrement.js';
 
@@ -185,6 +188,38 @@ export async function signOut() {
   await wipeDevice(await physicalDb());
   keys = null; user = null; remote = null;
   setPhase('connexion');
+}
+
+/* ---------- Copies de sécurité en ligne ---------- */
+
+function needKeys() {
+  if (!keys) throw new ChiffrementError('L’app est verrouillée.');
+  return keys;
+}
+
+/** Fait une copie en ligne (horodatée, 10 au plus) avec un commentaire facultatif. */
+export async function makeCloudCopy(comment = '') {
+  const k = needKeys();
+  const r = await getRemote();
+  const dev = await device();
+  return C.createCloudCopy(await getDb(), r, k, { uid: user.uid, comment, device: dev?.passkey?.label ?? '', appVersion: APP_VERSION });
+}
+
+export async function cloudCopies() {
+  const k = needKeys();
+  const r = await getRemote();
+  return C.listCloudCopies(r, k, { uid: user.uid });
+}
+
+/** Relit une copie en ligne : renvoie la sauvegarde, à remettre par l'écran rouge de restauration. */
+export async function readCloudCopy(copy) {
+  const k = needKeys();
+  const r = await getRemote();
+  return C.readCloudCopy(r, k, { uid: user.uid, id: copy.id, parts: copy.parts });
+}
+
+export async function deleteCloudCopy(copy) {
+  await C.deleteCloudCopy(await getRemote(), copy);
 }
 
 /* ---------- Synchronisation ---------- */

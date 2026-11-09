@@ -1,7 +1,7 @@
 /**
  * chiffrement.js — Chiffrement de bout en bout pour la synchronisation (Web Crypto uniquement).
  *
- * Version : 0.10.2
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -16,6 +16,7 @@
  * Historique :
  *   0.8.3  FRE (Fidag)  Première version.
  *   0.10.2 FRE (Fidag)  Messages : « phrase de secours ».
+ *   0.12.0 FRE (Fidag)  encryptBytes / decryptBytes (copies de sécurité en ligne).
  */
 
 const subtle = () => globalThis.crypto.subtle;
@@ -103,6 +104,21 @@ export async function decryptJson(keys, { iv, ct }, aad) {
     return JSON.parse(dec.decode(pt));
   } catch {
     throw new ChiffrementError('Des données du cloud n’ont pas pu être lues (clé différente ou données abîmées).');
+  }
+}
+
+/** Chiffre des octets (copies de sécurité). */
+export async function encryptBytes(keys, bytes, aad) {
+  const iv = randomBytes(12);
+  const ct = await subtle().encrypt({ name: 'AES-GCM', iv, additionalData: enc.encode(aad) }, keys.aes, bytes);
+  return { iv: toB64(iv), ct: toB64(ct) };
+}
+
+export async function decryptBytes(keys, { iv, ct }, aad) {
+  try {
+    return new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: fromB64(iv), additionalData: enc.encode(aad) }, keys.aes, fromB64(ct)));
+  } catch {
+    throw new ChiffrementError('Cette copie n’a pas pu être lue (clé différente ou copie abîmée).');
   }
 }
 

@@ -1,7 +1,7 @@
 /**
  * reglages.js — Données de départ et réglages : comptes, personnes (« pour qui »), catégories.
  *
- * Version : 0.7.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,7 @@
  *                       numéros reconnus dans les fichiers ; mise à jour des données de départ.
  *   0.7.0  FRE (Fidag)  Formats BCVs (CSV) et Swisscard disponibles ; mise à jour des données (compte BCVs,
  *                       facture Mastercard payée par la BCVs) ; nouvelle carte créée depuis l'import.
+ *   0.12.0 FRE (Fidag)  restoreSampleCategories : remettre les catégories d'exemple manquantes.
  */
 
 import { fold } from './text.js';
@@ -297,6 +298,19 @@ export async function deleteCategory(db, id) {
     throw new ReglageError(`Impossible de supprimer : cette catégorie est utilisée par ${usageText(u)}. Vous pouvez la « mettre de côté » à la place.`);
   }
   await db.delete('categories', id);
+}
+
+/**
+ * Remet les catégories d'exemple (seed.json) qui manquent ; celles qui existent ne sont pas touchées.
+ * @returns {Promise<number>} nombre de catégories remises.
+ */
+export async function restoreSampleCategories(db, seed) {
+  const all = await db.getAll('categories');
+  const have = new Set(all.map((c) => c.id));
+  let order = nextOrder(all);
+  const missing = seed.categories.filter((c) => !have.has(c.id)).map((c) => ({ archived: false, ...c, order: order++ }));
+  if (missing.length) await db.putMany('categories', missing);
+  return missing.length;
 }
 
 /* ---------- Divers ---------- */

@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.12.0 — 2026-11-09 — FRE (Fidag)
+- **Copies de sécurité en ligne** (Réglages › Copies de sécurité) : une photo de toutes les données, **chiffrée** (commentaire compris), horodatée, gardée dans l'espace en ligne. **10 au plus** : la plus ancienne part quand une nouvelle arrive. **Commentaire** facultatif. Liste avec date, commentaire et contenu ; « **Remettre cette copie** » (même écran rouge de confirmation que pour un fichier) ou « Supprimer ».
+- Copie en ligne **automatique** juste avant « Supprimer des données » et avant de remettre une copie (si Internet manque, l'app demande si on continue quand même).
+- La copie dans un fichier reste possible (iCloud Drive, Raccourcis).
+- **Toutes les catégories peuvent être supprimées** (celles de départ ne sont qu'un exemple) ; les personnes : seulement celles ajoutées. « **Remettre les catégories d'exemple** » dans Mes catégories (s'il en manque) et après une suppression de catégories.
+- 138 tests automatiques.
+
 ## 0.11.0 — 2026-11-09 — FRE (Fidag)
 - **Supprimer des données** (Réglages, en bas) selon la maquette `docs/maquette/supprimer-donnees.html` : pour chaque genre — Imports, Opérations (par mois ou une par une), Tri des opérations, Règles retenues, Rattachements aux factures de carte, Numéros reconnus, Catégories et personnes ajoutées — on choisit **Rien**, **Tout** ou **certains éléments** (liste à cocher avec loupe, « Tout cocher / Tout décocher »). Écran « Vérifier » : ce qui va partir, **taper SUPPRIMER**, Valider, dernière question ; puis le récapitulatif. Les suppressions partent aussi vers les autres appareils.
 - Réglages › **Imports** : la liste des fichiers importés, « Supprimer » pour un import (même confirmation).

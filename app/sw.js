@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.11.0
+ * Version : 0.12.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -39,9 +39,10 @@
  *   0.10.2 FRE (Fidag)  Écrans de connexion / verrouillage (session.js, ecran-verrou.js, ecran-compte.js).
  *   0.10.3 FRE (Fidag)  Version 0.10.3.
  *   0.11.0 FRE (Fidag)  Supprimer des données (suppression.js, ecran-supprimer.js).
+ *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (copies.js).
  */
 
-const VERSION = '0.11.0';
+const VERSION = '0.12.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -73,6 +74,7 @@ const FILES = [
   './src/data/coffre.js',
   './src/core/verrou.js',
   './src/core/suppression.js',
+  './src/core/copies.js',
   './js/cloud.js',
   './js/passkey.js',
   './js/session.js',
