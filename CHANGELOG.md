@@ -1,5 +1,8 @@
 # Historique des versions
 
+## 0.8.1 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 1 : conception (`docs/specs/synchro.md`), règles Firestore (`firestore.rules`, un seul compte autorisé), configuration Firebase publique (`app/js/firebase-config.js`), brief 1.6.0. Rien ne change encore dans l'app.
+
 ## 0.8.0 — 2026-11-09 — FRE (Fidag)
 - **Relevés camt.053** (format standard des banques suisses, versions .04 et .08), selon la spécification `docs/specs/camt053.md` : une opération par détail de transaction (sinon par écriture), montant signé, extourne inversée, **nom de la contrepartie** (créancier pour un paiement, débiteur pour une rentrée, bénéficiaire final d'abord), référence QR / SCOR ou communication, type d'opération en mots simples (virement, prélèvement LSV, carte, bancomat, frais).
 - Un relevé camt.053 peut aller dans **n'importe quel compte bancaire** de l'app (UBS, BCVs…) : l'app reconnaît l'IBAN, ou demande une fois.

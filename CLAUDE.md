@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.5.0
+- Version du brief : 1.6.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -11,6 +11,7 @@ Historique du brief :
 - 1.3.0 — FRE (Fidag) — Décision de l'utilisateur (v0.6.0) : nom de la sauvegarde jusqu'à la milliseconde (jamais deux fois le même) ; restauration avec écran de confirmation bien visible ; sauvegarde utilisable avec un raccourci Apple (menu Partager).
 - 1.4.0 — FRE (Fidag) — Formats réels reçus (v0.7.0) : la BCVs fournit un relevé **CSV** (pas camt.053, abandonné) ; Swisscard un CSV français avec colonne Débit/Crédit et Statut. Opérations « En suspens » non importées. Les titulaires des cartes Swisscard sont choisis dans l'app.
 - 1.5.0 — FRE (Fidag) — camt.053 ajouté (v0.8.0) selon la spécification `docs/specs/camt053.md` (v1.0) : importable dans n'importe quel compte bancaire, contrepartie comme nom d'opération et clé des règles.
+- 1.6.0 — FRE (Fidag) — **Synchronisation chiffrée de bout en bout** vers Firebase (option A : un compte, deux iPad) : voir `docs/specs/synchro.md`. Le réseau est autorisé vers Firebase seulement ; les données n'y sont jamais en clair. SDK Firebase copié dans le dépôt (pas de CDN). La règle « aucune requête réseau » du § 4 est remplacée par celle-ci.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -56,9 +57,9 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 ## 4. Architecture imposée
 
 - **Web app statique**, HTML + CSS + JavaScript (modules ES), **sans framework ni étape de build**. Pas de npm à l'exécution.
-- **Aucune requête réseau** une fois l'app chargée : pas de CDN, pas d'analytics, pas de police Google en ligne. La police **Atkinson Hyperlegible** (licence OFL) est copiée en `.woff2` dans `app/fonts/`. Ajoute une Content-Security-Policy stricte (`default-src 'self'`).
+- **Aucune requête réseau** une fois l'app chargée, **sauf la synchronisation chiffrée vers Firebase** (`firestore.googleapis.com`, `identitytoolkit.googleapis.com`, `securetoken.googleapis.com` ; voir `docs/specs/synchro.md`) : pas de CDN (SDK Firebase copié dans `app/vendor/`), pas d'analytics, pas de police Google en ligne. La police **Atkinson Hyperlegible** (licence OFL) est copiée en `.woff2` dans `app/fonts/`. Ajoute une Content-Security-Policy stricte (`default-src 'self'`).
 - **PWA** : `manifest.webmanifest` (nom « Mon Budget », `display: standalone`, icônes 180/192/512), service worker qui met l'app en cache pour fonctionner hors ligne. Mise à jour : afficher « Nouvelle version disponible — Mettre à jour ».
-- **Données** : IndexedDB sur l'appareil (petit wrapper maison, pas de dépendance). Appelle `navigator.storage.persist()`. Rien ne quitte l'appareil sauf la sauvegarde que la personne fait elle-même.
+- **Données** : IndexedDB sur l'appareil (petit wrapper maison, pas de dépendance). Appelle `navigator.storage.persist()`. Rien ne quitte l'appareil en clair : seulement la sauvegarde que la personne fait elle-même et la synchronisation **chiffrée de bout en bout** (clé jamais connue de Firebase).
 - **Cible** : Safari iPadOS / iOS 16.4 et plus. iPad paysage d'abord, iPad portrait et iPhone ensuite.
 - **Langue** : toute l'interface en français. Montants au format suisse `CHF 1’234.50` (apostrophe typographique). Dates « mardi 14 octobre ».
 

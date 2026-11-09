@@ -1,0 +1,21 @@
+// firestore.rules — Règles de sécurité Firestore de Mon Budget.
+// Version : 0.8.1 — Auteur : FRE (Fidag) — Date : 2026-11-09
+// Historique :
+//   0.8.1  FRE (Fidag)  Première version : un seul compte autorisé (option A), tout le reste refusé.
+//
+// Seul le compte BgSfJCtyQ5TL0YRxWEOJG0YmFp22 peut lire et écrire, et seulement sous users/{son uid}/…
+// Les données y sont chiffrées de bout en bout (Firebase ne voit jamais de données en clair).
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == "BgSfJCtyQ5TL0YRxWEOJG0YmFp22"
+                         && uid == request.auth.uid;
+    }
+    // Tout le reste est refusé.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
