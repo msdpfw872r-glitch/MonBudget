@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.10.2
+ * Version : 0.10.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -37,9 +37,10 @@
  *   0.10.0 FRE (Fidag)  Base chiffrée sur l'appareil (coffre.js).
  *   0.10.1 FRE (Fidag)  Verrou (verrou.js).
  *   0.10.2 FRE (Fidag)  Écrans de connexion / verrouillage (session.js, ecran-verrou.js, ecran-compte.js).
+ *   0.10.3 FRE (Fidag)  Version 0.10.3.
  */
 
-const VERSION = '0.10.2';
+const VERSION = '0.10.3';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */

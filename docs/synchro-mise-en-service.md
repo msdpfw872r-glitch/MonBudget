@@ -1,9 +1,9 @@
-# Synchronisation chiffrée : mise en service et tests sur iPad
+# App verrouillée et synchronisation chiffrée : mise en service et tests sur iPad / iPhone
 
-- Version : 1.0
+- Version : 2.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-09
-- Version de l'app : 0.9.0
+- Version de l'app : 0.10.3
 
 ## 1. Console Firebase (une seule fois)
 
@@ -31,63 +31,67 @@ Projet `monbudgetapp-98452`.
    mais cela évite qu'elle serve ailleurs.
 6. Pas de Cloud Storage, pas de Cloud Functions : l'offre gratuite Spark suffit.
 
-## 2. Premier iPad (celui qui crée le coffre)
+## 2. Premier appareil (crée l'espace chiffré)
+
+Toujours ouvrir l'app depuis **l'icône de l'écran d'accueil** (Safari et l'icône ont des données séparées).
 
 | # | Action | Résultat attendu | OK |
 |---|---|---|---|
-| 1 | Ouvrir l'app depuis l'écran d'accueil, Réglages › **Synchronisation entre les iPad** | Écran « Se connecter » | ☐ |
+| 1 | Ouvrir l'app | Écran **Bienvenue** (e-mail, mot de passe) ; rien de l'app n'est visible | ☐ |
 | 2 | Mauvais mot de passe | « Adresse e-mail ou mot de passe incorrect. » | ☐ |
-| 3 | Bon e-mail et mot de passe | Écran rouge « la phrase de passe ne peut pas être retrouvée » et formulaire « Créer le coffre » | ☐ |
-| 4 | Phrase trop courte, puis deux phrases différentes | Message clair à chaque fois, rien n'est créé | ☐ |
-| 5 | Phrase correcte ×2, nom « iPad de … », cocher « J'ai compris », Créer, « Oui, elle est écrite » | « Synchronisation active », puis 0 changement en attente | ☐ |
-| 6 | Console Firestore › `users/{uid}/records` | Documents avec seulement `v`, `iv`, `ct`, `updatedAt`, `deleted`, `syncedAt` ; noms illisibles ; **aucun texte lisible** (ni commerçant, ni montant) | ☐ |
-| 7 | **Activer Face ID** (nom de l'iPad) | Fenêtre Face ID « Mon Budget » (une ou deux fois) ; puis « Face ID est activé sur cet iPad » ; un document `keys/pk_…` apparaît | ☐ |
-| 8 | **Verrouiller**, revenir à l'Accueil | Bandeau orange « Synchronisation en pause » | ☐ |
-| 9 | **Déverrouiller avec Face ID** | Le bandeau disparaît | ☐ |
-| 10 | Fermer l'app complètement (balayer vers le haut), la rouvrir | L'app s'ouvre avec les données (sans Face ID) ; bandeau « en pause » ; Face ID → synchro | ☐ |
+| 3 | Bon e-mail et mot de passe | Écran rouge « Choisissez votre phrase de secours » (si un espace existe déjà : « Ouvrir vos données sur cet appareil », voir § 4) | ☐ |
+| 4 | Phrase trop courte, puis deux phrases différentes | Message clair, rien n'est créé | ☐ |
+| 5 | Phrase ×2, nom de l'appareil, « J'ai compris », Créer, « Oui, elle est écrite » | « Ouvrir l'app avec Face ID ? » | ☐ |
+| 6 | **Activer Face ID** | Fenêtre Face ID « Mon Budget » (une ou deux fois), puis l'Accueil | ☐ |
+| 7 | Console Firestore › `users/{uid}/records` | Documents illisibles (`v`, `iv`, `ct`, `updatedAt`, `deleted`, `syncedAt`) | ☐ |
+| 8 | Réglages › **Compte et synchronisation** | L'e-mail, « Dernière synchronisation », 0 en attente, Face ID activé | ☐ |
 
-## 3. Hors ligne
+## 3. Verrouillage
 
 | # | Action | Résultat attendu | OK |
 |---|---|---|---|
-| 11 | Mode Avion, trier 2 opérations | L'app fonctionne normalement ; Réglages › Synchronisation : « 2 changements en attente » (ou plus) et « Pas de connexion à Internet… » | ☐ |
-| 12 | Couper le mode Avion, revenir dans l'app | Quelques secondes plus tard : 0 en attente | ☐ |
-| 13 | Mode Avion, fermer et rouvrir l'app | L'app s'ouvre (SDK en cache) ; Face ID → « Pas de connexion à Internet… », rien de perdu | ☐ |
+| 9 | Quitter l'app, regarder le sélecteur d'apps | L'aperçu de Mon Budget ne montre aucun chiffre | ☐ |
+| 10 | Revenir avant 1 minute | L'app est toujours ouverte | ☐ |
+| 11 | Revenir après plus d'1 minute | « Mon Budget est verrouillé » ; Face ID se propose tout seul (sinon toucher « Ouvrir avec Face ID ») | ☐ |
+| 12 | Fermer l'app complètement (balayer vers le haut), la rouvrir | Écran verrouillé, Face ID | ☐ |
+| 13 | Sur l'écran verrouillé : « Utiliser la phrase de secours » | Ouvre l'app avec la phrase | ☐ |
+| 14 | Réglages › Compte › **Verrouiller maintenant** | Écran verrouillé tout de suite | ☐ |
 
-## 4. Deuxième iPad (celui de Maman)
-
-| # | Action | Résultat attendu | OK |
-|---|---|---|---|
-| 14 | Installer l'app (Safari › Partager › Sur l'écran d'accueil), Réglages › Synchronisation, se connecter (même compte) | Écran « Ouvrir les données du cloud » (pas de création de coffre) | ☐ |
-| 15 | Mauvaise phrase de passe | « Phrase de passe incorrecte… » | ☐ |
-| 16 | Bonne phrase de passe (nom « iPad de Maman ») | Les opérations, règles, catégories du premier iPad apparaissent | ☐ |
-| 17 | Activer Face ID sur cet iPad | Un deuxième document `keys/pk_…` | ☐ |
-| 18 | Trier une opération sur l'iPad 2 ; sur l'iPad 1, revenir dans l'app | L'opération est triée aussi sur l'iPad 1 (Accueil / Journal mis à jour) | ☐ |
-| 19 | Modifier la même opération sur les deux iPad (hors ligne l'un des deux), puis reconnecter | La modification la plus récente gagne partout | ☐ |
-| 20 | Annuler un import sur l'iPad 1 | Les opérations disparaissent aussi sur l'iPad 2 | ☐ |
-
-## 5. Phrase de passe de secours
+## 4. Hors ligne
 
 | # | Action | Résultat attendu | OK |
 |---|---|---|---|
-| 21 | Sur un iPad : Se déconnecter de cet iPad (confirmer) | Plus de bandeau ; les données restent sur l'iPad | ☐ |
-| 22 | Se reconnecter, ouvrir **avec la phrase de passe** (sans Face ID) | Synchronisation active, données intactes | ☐ |
-| 23 | Réactiver Face ID | Fonctionne | ☐ |
+| 15 | Mode Avion, fermer et rouvrir l'app | Écran verrouillé ; **Face ID ouvre l'app sans Internet** | ☐ |
+| 16 | Trier 2 opérations en mode Avion | Réglages › Compte : changements en attente + « Pas de connexion à Internet… » | ☐ |
+| 17 | Couper le mode Avion, revenir dans l'app | Quelques secondes plus tard : 0 en attente | ☐ |
 
-## 6. Sauvegarde fichier et restauration
+## 5. Deuxième appareil (iPad de Maman, iPhone)
 
 | # | Action | Résultat attendu | OK |
 |---|---|---|---|
-| 24 | Restaurer une sauvegarde sur l'iPad 1 | L'écran rouge mentionne « ces données remplaceront aussi celles du cloud et de l'autre iPad » | ☐ |
-| 25 | Après restauration, synchro, puis ouvrir l'iPad 2 | L'iPad 2 a exactement les données de la sauvegarde | ☐ |
+| 18 | Installer l'app (Safari › Partager › Sur l'écran d'accueil), l'ouvrir depuis l'icône, se connecter (même compte) | « Ouvrir vos données sur cet appareil » | ☐ |
+| 19 | Mauvaise phrase de secours | « Phrase de secours incorrecte… » | ☐ |
+| 20 | Bonne phrase, puis Activer Face ID | Les données du premier appareil apparaissent | ☐ |
+| 21 | Trier une opération ici ; rouvrir l'app sur le premier appareil | L'opération est triée là aussi | ☐ |
+| 22 | Modifier la même opération sur les deux (l'un hors ligne), puis reconnecter | La modification la plus récente gagne partout | ☐ |
+
+## 6. Déconnexion et sauvegarde fichier
+
+| # | Action | Résultat attendu | OK |
+|---|---|---|---|
+| 23 | Réglages › Compte › **Se déconnecter et effacer cet appareil** | Confirmation (avertit si des changements n'ont pas pu partir) ; puis écran Bienvenue | ☐ |
+| 24 | Se reconnecter sur ce même appareil, phrase de secours | Les données reviennent depuis le cloud | ☐ |
+| 25 | Restaurer une sauvegarde fichier | L'écran rouge dit que les données remplaceront aussi celles des autres appareils ; après synchro, l'autre appareil a les mêmes données | ☐ |
 
 ## 7. Si quelque chose ne va pas
 
-- **Face ID ne se propose pas** : iPadOS trop ancien pour l'extension PRF ; la phrase de passe fonctionne toujours.
+- **Face ID ne se propose pas** : iPadOS / iOS trop ancien pour l'extension PRF ; la phrase de secours fonctionne toujours.
+- **Un espace existe déjà** (essai avec la version 0.9) : se connecter puis taper la phrase choisie à ce moment-là.
 - **« Ce compte n'a pas accès aux données »** : règles Firestore non publiées ou autre UID (§ 1.2).
 - **« La limite gratuite du jour est atteinte »** : quota Spark (20 000 écritures / 50 000 lectures par jour) ; reprise le lendemain, rien n'est perdu.
-- Les données sont toujours sur chaque iPad : en cas de doute, **Sauvegarder maintenant** avant d'essayer autre chose.
+- En cas de doute, **Sauvegarder maintenant** (fichier) avant d'essayer autre chose : ne pas se déconnecter s'il reste des changements en attente.
 
 ---
 Historique
 - 1.0 (2026-11-09, FRE (Fidag)) : version initiale.
+- 2.0 (2026-11-09, FRE (Fidag)) : app verrouillée (0.10) : connexion au premier lancement, verrouillage après une minute, déconnexion qui efface.

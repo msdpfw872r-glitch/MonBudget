@@ -1,5 +1,9 @@
 # Historique des versions
 
+## 0.10.3 — 2026-11-09 — FRE (Fidag)
+- « Vraie app », étape 4 : documentation. Conception mise à jour (`docs/specs/synchro.md` 1.2, § 8 : app verrouillée, données de l'appareil chiffrées), **checklist iPad / iPhone** refaite (`docs/synchro-mise-en-service.md` 2.0), brief 1.8.0.
+- 126 tests automatiques.
+
 ## 0.10.2 — 2026-11-09 — FRE (Fidag)
 - « Vraie app », étape 3 : **l'app s'ouvre comme une vraie app sécurisée**.
   - Premier lancement : écran **Bienvenue** (e-mail + mot de passe). Premier appareil : choix de la **phrase de secours** (avertissement rouge, « J'ai compris ») → l'espace chiffré est créé en ligne et l'app s'ouvre. Appareil suivant : phrase de secours → les données arrivent.

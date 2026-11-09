@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.7.0
+- Version du brief : 1.8.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -13,6 +13,7 @@ Historique du brief :
 - 1.5.0 — FRE (Fidag) — camt.053 ajouté (v0.8.0) selon la spécification `docs/specs/camt053.md` (v1.0) : importable dans n'importe quel compte bancaire, contrepartie comme nom d'opération et clé des règles.
 - 1.6.0 — FRE (Fidag) — **Synchronisation chiffrée de bout en bout** vers Firebase (option A : un compte, deux iPad) : voir `docs/specs/synchro.md`. Le réseau est autorisé vers Firebase seulement ; les données n'y sont jamais en clair. SDK Firebase copié dans le dépôt (pas de CDN). La règle « aucune requête réseau » du § 4 est remplacée par celle-ci.
 - 1.7.0 — FRE (Fidag) — Synchronisation livrée (v0.9.0) : Réglages › Synchronisation, Face ID par passkey PRF, phrase de passe de secours ; mise en service et checklist iPad dans `docs/synchro-mise-en-service.md`.
+- 1.8.0 — FRE (Fidag) — Décision de l'utilisateur (v0.10) : « vraie app ». Connexion au premier lancement, l'espace chiffré est créé en même temps (phrase de secours choisie) ; **données de l'appareil chiffrées** elles aussi (lisibles seulement app ouverte) ; **verrouillage une minute après avoir quitté l'app**, réouverture par Face ID ou phrase de secours ; se déconnecter efface l'appareil. Voir `docs/specs/synchro.md` § 8.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -60,7 +61,7 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 - **Web app statique**, HTML + CSS + JavaScript (modules ES), **sans framework ni étape de build**. Pas de npm à l'exécution.
 - **Aucune requête réseau** une fois l'app chargée, **sauf la synchronisation chiffrée vers Firebase** (`firestore.googleapis.com`, `identitytoolkit.googleapis.com`, `securetoken.googleapis.com` ; voir `docs/specs/synchro.md`) : pas de CDN (SDK Firebase copié dans `app/vendor/`), pas d'analytics, pas de police Google en ligne. La police **Atkinson Hyperlegible** (licence OFL) est copiée en `.woff2` dans `app/fonts/`. Ajoute une Content-Security-Policy stricte (`default-src 'self'`).
 - **PWA** : `manifest.webmanifest` (nom « Mon Budget », `display: standalone`, icônes 180/192/512), service worker qui met l'app en cache pour fonctionner hors ligne. Mise à jour : afficher « Nouvelle version disponible — Mettre à jour ».
-- **Données** : IndexedDB sur l'appareil (petit wrapper maison, pas de dépendance). Appelle `navigator.storage.persist()`. Rien ne quitte l'appareil en clair : seulement la sauvegarde que la personne fait elle-même et la synchronisation **chiffrée de bout en bout** (clé jamais connue de Firebase).
+- **Données** : IndexedDB sur l'appareil (petit wrapper maison, pas de dépendance), **chiffrées** (table `coffre`, lisibles seulement app déverrouillée). Appelle `navigator.storage.persist()`. Rien ne quitte l'appareil en clair : seulement la sauvegarde que la personne fait elle-même et la synchronisation **chiffrée de bout en bout** (clé jamais connue de Firebase).
 - **Cible** : Safari iPadOS / iOS 16.4 et plus. iPad paysage d'abord, iPad portrait et iPhone ensuite.
 - **Langue** : toute l'interface en français. Montants au format suisse `CHF 1’234.50` (apostrophe typographique). Dates « mardi 14 octobre ».
 
@@ -143,6 +144,7 @@ Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT
 | 0.7.0 | BCVs camt.053 | Tests sur fichier anonymisé réel |
 | 0.8.0 | Swisscard CSV | Tests sur fichier anonymisé réel |
 | 0.9.0 | Synchronisation chiffrée de bout en bout entre les deux iPad (Firebase), Face ID, phrase de passe de secours | Checklist `docs/synchro-mise-en-service.md` validée sur les deux iPad |
+| 0.10.x | « Vraie app » : connexion au premier lancement, données de l'appareil chiffrées, verrouillage après 1 minute (Face ID / phrase de secours) | Checklist `docs/synchro-mise-en-service.md` validée |
 | 1.0.0 | Relecture accessibilité, page d'aide en français simple (comment exporter depuis chaque banque, comment sauvegarder), guide d'installation | L'utilisateur valide sur l'iPad de sa maman |
 
 ## 8. Règles de travail

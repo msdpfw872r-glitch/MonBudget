@@ -1,16 +1,16 @@
 # Conception : synchronisation chiffrée de bout en bout (Firebase)
 
-- Version : 1.1
+- Version : 1.2
 - Auteur : FRE (Fidag)
 - Date : 2026-11-09
-- Version de l'app concernée : 0.8.1 → 0.9.0 (mise en service et tests : `docs/synchro-mise-en-service.md`)
+- Version de l'app concernée : 0.8.1 → 0.10.3 (mise en service et tests : `docs/synchro-mise-en-service.md`)
 
 ## 1. Objectif et décisions
 
 - Sauvegarde / synchronisation **chiffrée de bout en bout** vers Firebase (offre gratuite Spark). Firebase ne voit jamais de données en clair.
 - **Option A** : un seul compte Firebase (UID `BgSfJCtyQ5TL0YRxWEOJG0YmFp22`), utilisé sur les deux iPad (celui de l'auteur et celui de sa maman). Chaque iPad crée sa propre passkey ; la phrase de passe de secours est commune.
 - **SDK Firebase 13.2.0 copié dans le dépôt** (`app/vendor/firebase/13.2.0/` : app, auth, **Firestore lite** = simples requêtes HTTPS), pas de CDN : l'app démarre hors ligne, la CSP n'autorise aucun script externe. Chargé seulement quand la synchronisation est utilisée.
-- **Cache local en clair** (IndexedDB, protégé par le code de l'iPad) : l'app s'ouvre comme avant ; le déverrouillage (Face ID ou phrase de passe) sert à synchroniser.
+- ~~Cache local en clair~~ (jusqu'à 0.9.x). **Depuis 0.10.0 : données de l'appareil chiffrées** (voir § 8) ; l'app ne s'ouvre qu'après connexion puis Face ID ou phrase de secours, et se verrouille une minute après l'avoir quittée.
 - Pas de Cloud Storage, pas de Cloud Functions.
 
 ## 2. Données dans Firestore
@@ -81,7 +81,20 @@ users/{uid}/records/{docId}           un document chiffré par enregistrement
 - Automatiques (Node) : suivi des changements, chiffrement (enveloppes, mauvaise phrase, IV uniques, noms HMAC), fusion « dernière écriture gagnante », migration, suppressions, file hors ligne, avec un faux Firestore en mémoire.
 - Sur iPad (checklist) : connexion, création de la passkey (PRF), déverrouillage, hors ligne, phrase de passe de secours, second iPad.
 
+## 8. App verrouillée et données de l'appareil chiffrées (0.10)
+
+- **Premier lancement** : connexion Firebase (e-mail + mot de passe). Premier appareil : choix de la phrase de secours → création de l'espace (enveloppe `keys/passphrase`) → l'app s'ouvre. Appareil suivant : phrase de secours → les données arrivent du cloud. Puis proposition d'activer Face ID.
+- Le mot de passe Firebase **ne sert jamais de clé** : il est envoyé à Google à chaque connexion.
+- **IndexedDB (schéma 4)** :
+  - `coffre` : un enregistrement chiffré par élément `{ id: HMAC("local:" + table, id), iv, ct }`, contenu AES-GCM `{ store, data }`, données authentifiées `coffre/{id}/v1`. Toutes les tables de l'app y passent (y compris `settings` et `outbox`).
+  - `appareil` (lisible avant déverrouillage, rien de secret en clair) : `{ id: "cles", uid, email, passphraseEnv, passkey: { credentialId, prfSalt, label, env } }`. `passphraseEnv` est la copie de l'enveloppe du cloud ; `passkey.env` est la clé des données enveloppée par le secret PRF de la passkey de **cet** appareil (gardée seulement là : Face ID marche hors ligne).
+  - Les anciennes tables en clair restent vides ; leurs données d'avant 0.10 sont reprises dans `coffre` au premier déverrouillage puis effacées.
+- Au déverrouillage, tout est déchiffré **en mémoire** ; chaque écriture est aussitôt rechiffrée dans `coffre`. Au verrouillage (bouton, ou retour dans l'app après ≥ 60 s), la clé et la mémoire sont abandonnées et l'écran est vidé. Quand l'app passe en arrière-plan, son contenu est masqué (aperçu du sélecteur d'apps).
+- **Déconnexion** = effacement de l'appareil (`coffre`, `appareil`), après tentative d'envoi des changements en attente et avertissement s'il en reste.
+- Phrase de secours changée sur un autre appareil : la copie locale est remplacée au prochain déverrouillage en ligne.
+
 ---
 Historique
 - 1.0 (2026-11-09, FRE (Fidag)) : version initiale.
 - 1.1 (2026-11-09, FRE (Fidag)) : Firestore lite, restauration qui remplace le cloud, réglages propres à l'appareil.
+- 1.2 (2026-11-09, FRE (Fidag)) : § 8, app verrouillée, données de l'appareil chiffrées, verrouillage après une minute.
