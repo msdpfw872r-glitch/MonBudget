@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.4.4
+ * Version : 0.4.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,6 +20,7 @@
  *                       barre latérale étroite (icône + mot) jusqu'à 1280 px ; lignes de liste compactes.
  *   0.4.4  FRE (Fidag)  Les blocs du formulaire ne rétrécissent plus (plus de chevauchement) ; étiquette
  *                       « C'est quoi ? » et fenêtre de choix de catégorie avec loupe.
+ *   0.4.5  FRE (Fidag)  Pastille de couleur dans la fenêtre de choix et l'étiquette « Pour qui ? ».
  */
 
 @font-face {
@@ -591,3 +592,5 @@ details.note summary { cursor: pointer; min-height: 44px; }
   .picker .sheet-head { padding-top: calc(16px + env(safe-area-inset-top)); }
   .picker-list { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
+.picker-name { display: flex; align-items: center; gap: 14px; }
+.tag-choice .swatch { width: 28px; height: 28px; }

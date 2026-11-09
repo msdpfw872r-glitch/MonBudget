@@ -1,7 +1,7 @@
 /**
  * tri.js — Aides pour l'écran « À trier » : ordre des opérations, recherche de catégorie.
  *
- * Version : 0.4.4
+ * Version : 0.4.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -10,6 +10,7 @@
  * Historique :
  *   0.4.2  FRE (Fidag)  Première version : « commerces fréquents d'abord », recherche sans accents.
  *   0.4.4  FRE (Fidag)  Catégories par « derniers utilisés » ou « de A à Z ».
+ *   0.4.5  FRE (Fidag)  Même chose pour les personnes (lastUsedBy, orderByUse).
  */
 
 import { fold } from './text.js';
@@ -58,13 +59,21 @@ export function searchCategories(categories, query) {
  * @returns {Map<string, string>} id de catégorie → date ISO
  */
 export function lastUsedByCategory(transactions, rules = []) {
+  return lastUsedBy(transactions, rules, 'categoryId');
+}
+
+/**
+ * Date de dernière utilisation par valeur d'un champ (« categoryId » ou « personId »).
+ * @returns {Map<string, string>} id → date ISO
+ */
+export function lastUsedBy(transactions, rules, field) {
   const last = new Map();
   const note = (id, when) => {
     if (!id || !when) return;
     if (!last.has(id) || when > last.get(id)) last.set(id, when);
   };
-  for (const t of transactions) if (t.status === 'classee') note(t.categoryId, t.classifiedAt);
-  for (const r of rules) note(r.categoryId, r.lastUsedAt);
+  for (const t of transactions) if (t.status === 'classee') note(t[field], t.classifiedAt);
+  for (const r of rules ?? []) note(r[field], r.lastUsedAt);
   return last;
 }
 
@@ -74,6 +83,11 @@ export function lastUsedByCategory(transactions, rules = []) {
  * - 'alpha'  : de A à Z (ordre du dictionnaire français, sans tenir compte des accents).
  */
 export function orderCategories(categories, mode = 'recent', lastUsed = new Map()) {
+  return orderByUse(categories, mode, lastUsed);
+}
+
+/** Ordonne des éléments qui ont un nom (catégories, personnes) : 'recent' ou 'alpha'. */
+export function orderByUse(categories, mode = 'recent', lastUsed = new Map()) {
   const alpha = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
   const list = [...categories];
   if (mode === 'alpha') return list.sort(alpha);

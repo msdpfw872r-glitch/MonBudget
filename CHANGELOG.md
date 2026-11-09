@@ -1,5 +1,9 @@
 # Historique des versions
 
+## 0.4.5 — 2026-11-09 — FRE (Fidag)
+- À trier : « Pour qui ? » garde ses gros boutons de couleur jusqu'à 6 personnes ; au-delà, une seule étiquette ouvre la même fenêtre de choix que les catégories (loupe, « Derniers utilisés » / « De A à Z », une personne par ligne avec sa couleur).
+- 48 tests automatiques.
+
 ## 0.4.4 — 2026-11-09 — FRE (Fidag)
 - À trier : « C'est quoi ? » n'est plus qu'**une étiquette** (« Choisir une catégorie… » ou la catégorie choisie). En la touchant, une fenêtre s'ouvre avec la **loupe**, le choix **« Derniers utilisés » / « De A à Z »** (retenu d'une fois à l'autre) et toutes les catégories, une par ligne : celles du bon genre (dépenses ou rentrées) d'abord.
 - À trier sur iPad : les blocs du formulaire ne se tassent plus quand il est long (boutons coupés, texte qui dépassait de la case « Toujours classer ») : le formulaire défile.

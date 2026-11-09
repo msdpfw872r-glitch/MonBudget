@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.4.4
+ * Version : 0.4.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,9 +17,10 @@
  *   0.4.2  FRE (Fidag)  Aides de tri (tri.js).
  *   0.4.3  FRE (Fidag)  Version 0.4.3 (styles et écran À trier).
  *   0.4.4  FRE (Fidag)  Fenêtre de choix de catégorie (choix-categorie.js).
+ *   0.4.5  FRE (Fidag)  Fenêtre de choix générique (choix.js).
  */
 
-const VERSION = '0.4.4';
+const VERSION = '0.4.5';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -36,7 +37,7 @@ const FILES = [
   './js/ecran-trier.js',
   './js/ecran-importer.js',
   './js/ecran-factures.js',
-  './js/choix-categorie.js',
+  './js/choix.js',
   './src/core/format.js',
   './src/core/reglages.js',
   './src/core/regles.js',

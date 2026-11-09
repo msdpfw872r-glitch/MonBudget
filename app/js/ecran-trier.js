@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.4.4
+ * Version : 0.4.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -16,6 +16,7 @@
  *   0.4.3  FRE (Fidag)  iPad : liste et formulaire défilent séparément ; la liste garde sa position.
  *   0.4.4  FRE (Fidag)  « C'est quoi ? » : une seule étiquette qui ouvre une fenêtre de choix avec loupe
  *                       et ordre « Derniers utilisés » / « De A à Z » ; texte « L'autre opération… » au singulier.
+ *   0.4.5  FRE (Fidag)  « Pour qui ? » : au-delà de 6 personnes, une étiquette qui ouvre la même fenêtre de choix.
  */
 
 import { icon, esc } from './ui.js';
@@ -23,8 +24,11 @@ import { getDb } from './store.js';
 import { formatAmount, formatDateLong, formatDateShort, displayName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify } from '../src/core/regles.js';
-import { orderPending, countByMerchant, lastUsedByCategory } from '../src/core/tri.js';
-import { chooseCategory } from './choix-categorie.js';
+import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
+import { chooseCategory, choosePerson } from './choix.js';
+
+/** Au-delà de ce nombre de personnes, « Pour qui ? » devient une étiquette avec fenêtre de choix. */
+const PEOPLE_BUTTONS_MAX = 6;
 
 /** Nombre d'opérations montrées dans la liste de gauche (iPad). */
 const LIST_MAX = 50;
@@ -52,7 +56,16 @@ async function load(db) {
   const usage = new Map();
   for (const t of classified) usage.set(t.categoryId, (usage.get(t.categoryId) ?? 0) + 1);
   const lastUsed = lastUsedByCategory(classified, rules);
-  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed };
+  const lastUsedPerson = lastUsedBy(classified, rules, 'personId');
+  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed, lastUsedPerson };
+}
+
+/** Étiquette « Pour qui ? » (beaucoup de personnes) : ouvre la fenêtre de choix. */
+function personTag(p) {
+  return `<button type="button" class="tag-choice${p ? ' chosen' : ''}" data-ouvrir-personnes aria-haspopup="dialog">
+      ${p ? `<span class="swatch" data-color="${esc(p.color)}"></span><span class="tag-name">${esc(p.name)}</span><span class="tag-change">Changer</span>`
+        : `${icon('loupe')}<span class="tag-name">Choisir une personne…</span>`}
+    </button>`;
 }
 
 function personButtons(people, selected) {
@@ -79,7 +92,8 @@ function detail(tx, data) {
       <p class="progress-text">${position} sur ${data.pending.length}</p>
 
       <h2>Pour qui ?</h2>
-      <div class="picks picks-people">${personButtons(data.people, state.personId)}</div>
+      ${data.people.length > PEOPLE_BUTTONS_MAX ? personTag(data.people.find((p) => p.id === state.personId))
+        : `<div class="picks picks-people">${personButtons(data.people, state.personId)}</div>`}
 
       <h2>C’est quoi ?</h2>
       <button type="button" class="tag-choice${chosen ? ' chosen' : ''}" data-ouvrir-categories aria-haspopup="dialog">
@@ -188,7 +202,11 @@ export function trierView() {
         const b = e.target.closest('button');
         if (!b) return;
         if (b.dataset.person) { state.personId = b.dataset.person; redraw(); }
-        else if ('ouvrirCategories' in b.dataset) {
+        else if ('ouvrirPersonnes' in b.dataset) {
+          const id = await choosePerson({ people: data.people, lastUsed: data.lastUsedPerson, selected: state.personId });
+          if (id) { state.personId = id; redraw(); }
+          root.querySelector('[data-ouvrir-personnes]')?.focus({ preventScroll: true });
+        } else if ('ouvrirCategories' in b.dataset) {
           const id = await chooseCategory({ categories: data.categories, lastUsed: data.lastUsed,
             type: tx.amount < 0 ? 'depense' : 'recette', selected: state.categoryId });
           if (id) {

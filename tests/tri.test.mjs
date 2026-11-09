@@ -2,18 +2,19 @@
  * tri.test.mjs — Tests de l'ordre des opérations à trier et de la recherche de catégorie.
  * Lancer : npm test
  *
- * Version : 0.4.4
+ * Version : 0.4.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.4.2  FRE (Fidag)  Première version.
  *   0.4.4  FRE (Fidag)  Ordre des catégories.
+ *   0.4.5  FRE (Fidag)  Ordre et recherche des personnes.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { orderPending, countByMerchant, searchCategories, lastUsedByCategory, orderCategories } from '../app/src/core/tri.js';
+import { orderPending, countByMerchant, searchCategories, lastUsedByCategory, orderCategories, lastUsedBy, orderByUse } from '../app/src/core/tri.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
 const tx = (id, date, merchantKey) => ({ id, date, merchantKey });
@@ -64,4 +65,16 @@ test('catégories : derniers utilisés ou de A à Z', () => {
   assert.equal(last.has('dons'), false, 'une opération pas encore triée ne compte pas');
   assert.deepEqual(orderCategories(cats, 'recent', last).map((c) => c.id), ['alim', 'pharmacie', 'dons', 'energie']);
   assert.deepEqual(orderCategories(cats, 'alpha').map((c) => c.name), ['Alimentation et courses', 'Dons', 'Énergie et charges', 'Pharmacie']);
+});
+
+test('personnes : derniers utilisés, de A à Z, recherche', () => {
+  const people = [{ id: 'maman', name: 'Maman' }, { id: 'papa', name: 'Papa' }, { id: 'menage', name: 'Ménage' }, { id: 'eloise', name: 'Éloïse' }];
+  const txs = [
+    { status: 'classee', personId: 'papa', classifiedAt: '2026-11-08T10:00:00Z' },
+    { status: 'classee', personId: 'menage', classifiedAt: '2026-11-09T10:00:00Z' },
+  ];
+  const last = lastUsedBy(txs, [], 'personId');
+  assert.deepEqual(orderByUse(people, 'recent', last).map((p) => p.id), ['menage', 'papa', 'eloise', 'maman']);
+  assert.deepEqual(orderByUse(people, 'alpha').map((p) => p.name), ['Éloïse', 'Maman', 'Ménage', 'Papa']);
+  assert.deepEqual(searchCategories(people, 'elo').map((p) => p.id), ['eloise'], 'la recherche marche aussi pour les personnes');
 });
