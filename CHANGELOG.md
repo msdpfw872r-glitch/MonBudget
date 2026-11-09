@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.10.2 — 2026-11-09 — FRE (Fidag)
+- « Vraie app », étape 3 : **l'app s'ouvre comme une vraie app sécurisée**.
+  - Premier lancement : écran **Bienvenue** (e-mail + mot de passe). Premier appareil : choix de la **phrase de secours** (avertissement rouge, « J'ai compris ») → l'espace chiffré est créé en ligne et l'app s'ouvre. Appareil suivant : phrase de secours → les données arrivent.
+  - Juste après : « Ouvrir l'app avec Face ID ? » (Activer / Plus tard).
+  - **Verrouillage automatique une minute après avoir quitté l'app** ; écran « Mon Budget est verrouillé » avec Face ID proposé tout de suite, ou la phrase de secours. Fonctionne sans Internet.
+  - Données de l'appareil **chiffrées** : lisibles seulement app ouverte ; au verrouillage, l'écran est vidé ; contenu caché dans l'aperçu des apps.
+  - Réglages › **Compte et synchronisation** : état, Synchroniser maintenant, Face ID (activer / ne plus utiliser), Verrouiller maintenant, se reconnecter si la connexion a expiré, **Se déconnecter et effacer cet appareil** (les données restent en ligne ; prévient si des changements n'ont pas pu partir).
+- Remplace l'ancien écran Réglages › Synchronisation et le bandeau « Synchronisation en pause ».
+
 ## 0.10.1 — 2026-11-09 — FRE (Fidag)
 - « Vraie app », étape 2 : **verrou** (`app/src/core/verrou.js`). Création de l'espace chiffré au premier appareil, arrivée d'un appareil suivant avec la phrase de passe ; clés gardées enveloppées sur l'appareil pour que **Face ID marche sans Internet** ; phrase de passe changée ailleurs reprise depuis le cloud ; règle de verrouillage après une minute hors de l'app. Pas encore branché sur les écrans.
 

@@ -1,7 +1,7 @@
 /**
  * chiffrement.js — Chiffrement de bout en bout pour la synchronisation (Web Crypto uniquement).
  *
- * Version : 0.8.3
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,6 +15,7 @@
  *
  * Historique :
  *   0.8.3  FRE (Fidag)  Première version.
+ *   0.10.2 FRE (Fidag)  Messages : « phrase de secours ».
  */
 
 const subtle = () => globalThis.crypto.subtle;
@@ -58,8 +59,8 @@ export const normalizePassphrase = (p) => String(p ?? '').normalize('NFC').trim(
 /** Message si la phrase de passe est trop faible, sinon null. */
 export function passphraseProblem(p) {
   const s = normalizePassphrase(p);
-  if (s.length < MIN_PASSPHRASE) return `La phrase de passe doit avoir au moins ${MIN_PASSPHRASE} caractères. Par exemple quatre mots : « vélo jardin soleil 1954 ».`;
-  if (new Set(s).size < 5) return 'La phrase de passe est trop simple. Choisissez plusieurs mots différents.';
+  if (s.length < MIN_PASSPHRASE) return `La phrase de secours doit avoir au moins ${MIN_PASSPHRASE} caractères. Par exemple quatre mots : « vélo jardin soleil 1954 ».`;
+  if (new Set(s).size < 5) return 'La phrase de secours est trop simple. Choisissez plusieurs mots différents.';
   return null;
 }
 
@@ -153,7 +154,7 @@ export async function unwrapWithPassphrase(env, passphrase) {
   try {
     return await unseal(key, env, AAD_PASSPHRASE);
   } catch {
-    throw new ChiffrementError('Phrase de passe incorrecte. Vérifiez les majuscules et les espaces, puis réessayez.');
+    throw new ChiffrementError('Phrase de secours incorrecte. Vérifiez les majuscules et les espaces, puis réessayez.');
   }
 }
 
@@ -189,6 +190,6 @@ export async function unwrapWithPrf(env, prfSecret) {
   try {
     return await unseal(key, env, AAD_PASSKEY);
   } catch {
-    throw new ChiffrementError('Face ID n’a pas pu ouvrir les données. Utilisez la phrase de passe.');
+    throw new ChiffrementError('Face ID n’a pas pu ouvrir les données. Utilisez la phrase de secours.');
   }
 }

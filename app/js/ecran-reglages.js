@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.9.1
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -18,6 +18,7 @@
  *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? » après le menu Partager.
  *   0.8.6  FRE (Fidag)  Synchronisation entre les iPad (#/reglages/synchro).
  *   0.9.1  FRE (Fidag)  Synchronisation en haut des Réglages (visible sans défiler sur iPhone).
+ *   0.10.2 FRE (Fidag)  « Compte et synchronisation » (#/reglages/compte) remplace l'ancien écran Synchronisation.
  */
 
 import { APP_VERSION } from './version.js';
@@ -27,7 +28,7 @@ import * as R from '../src/core/reglages.js';
 import { saveRule, deleteRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
 import { backupCard, saveNow, showSaveResult, restaurerView, raccourciView } from './ecran-sauvegarde.js';
-import { synchroView, synchroRow } from './ecran-synchro.js';
+import { compteView, compteRow } from './ecran-compte.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -99,7 +100,7 @@ function accueilReglages() {
       const db = await getDb();
       const o = await R.overview(db);
       root.innerHTML = `
-        <section class="card list">${await synchroRow()}</section>
+        <section class="card list">${await compteRow()}</section>
         ${await backupCard(db)}
         <section class="card list">
           ${row({ href: '#/reglages/regles', title: 'Règles retenues',
@@ -399,7 +400,8 @@ export function reglagesView(path) {
     case 'regles': return id ? regle(id) : regles();
     case 'restaurer': return restaurerView();
     case 'raccourci': return raccourciView();
-    case 'synchro': return synchroView();
+    case 'compte':
+    case 'synchro': return compteView();
     default: return accueilReglages();
   }
 }

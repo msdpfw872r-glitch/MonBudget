@@ -50,7 +50,7 @@ export async function createSpace(phys, remote, passphrase, user) {
   return keys;
 }
 
-/** Appareil suivant : ouvre l'espace existant avec la phrase de passe et garde l'enveloppe sur l'appareil. */
+/** Appareil suivant : ouvre l'espace existant avec la phrase de secours et garde l'enveloppe sur l'appareil. */
 export async function joinSpace(phys, remote, passphrase, user) {
   const env = await remote.getKey('passphrase');
   if (!env) throw new K.ChiffrementError('Aucun espace chiffré dans le cloud pour ce compte.');
@@ -84,7 +84,7 @@ export async function removeDevicePasskey(phys) {
 /** Déverrouille avec le secret PRF (Face ID). */
 export async function unlockWithPrf(phys, prfSecret) {
   const dev = await readDevice(phys);
-  if (!dev?.passkey) throw new K.ChiffrementError('Face ID n’est pas activé sur cet appareil. Utilisez la phrase de passe.');
+  if (!dev?.passkey) throw new K.ChiffrementError('Face ID n’est pas activé sur cet appareil. Utilisez la phrase de secours.');
   return K.openDek(await K.unwrapWithPrf(dev.passkey.env, prfSecret));
 }
 

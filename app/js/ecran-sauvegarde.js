@@ -2,7 +2,7 @@
  * ecran-sauvegarde.js — Sauvegarder, restaurer (avec confirmation bien visible), rappel sur l'accueil,
  * guide pas à pas pour l'app Raccourcis.
  *
- * Version : 0.9.1
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -14,6 +14,7 @@
  *                       (un raccourci répond comme une annulation).
  *   0.9.0  FRE (Fidag)  Restauration : avertit que les données remplaceront aussi celles du cloud (synchro).
  *   0.9.1  FRE (Fidag)  Textes « appareil » au lieu de « iPad » (iPhone aussi).
+ *   0.10.2 FRE (Fidag)  Restauration : la synchronisation est toujours active (session.js).
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -22,7 +23,7 @@ import { APP_VERSION } from './version.js';
 import { shareOrDownload } from './partage.js';
 import { formatDateLong } from '../src/core/format.js';
 import { ReglageError, upgradeSeed } from '../src/core/reglages.js';
-import * as syncService from './synchro-service.js';
+import * as session from './session.js';
 import { createBackup, markBackupDone, readBackup, restoreBackup, backupReminder, countsOf } from '../src/core/sauvegarde.js';
 
 const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '’');
@@ -190,8 +191,8 @@ export function restaurerView() {
               <span>${b.createdAt ? `Sauvegarde du ${esc(whenText(b.createdAt))}` : esc(pending.fileName)}</span>
               <span>${esc(countsText(b.counts))}</span></div>
           </div>
-          ${syncService.getState().phase !== 'inactif' ? `<p><strong>Synchronisation entre appareils :</strong> à la prochaine synchronisation,
-            ces données remplaceront aussi celles du cloud et des autres appareils.</p>` : ''}
+          <p><strong>Vos autres appareils aussi :</strong> à la prochaine synchronisation,
+            ces données remplaceront celles de votre espace en ligne et de vos autres appareils.</p>
           <p class="note">Conseil : si vous n’êtes pas sûre, sauvegardez d’abord les données d’aujourd’hui.</p>
           <p class="flash" data-message-sauvegarde role="status" hidden></p>
           <button type="button" class="btn btn-secondary btn-wide" data-sauvegarder>${icon('sauvegarde')}Sauvegarder d’abord les données d’aujourd’hui</button>
@@ -233,7 +234,7 @@ export function restaurerView() {
             await upgradeSeed(db, seed);
             pending = null;
             done = counts;
-            syncService.scheduleSync(0);
+            session.scheduleSync(0);
             document.dispatchEvent(new CustomEvent('donnees-modifiees'));
             rerender();
           } catch (ex) {

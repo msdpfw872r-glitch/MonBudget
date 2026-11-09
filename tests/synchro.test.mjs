@@ -55,7 +55,7 @@ test('coffre : création unique, phrase de passe, passkey, changement de phrase'
   const k1 = await S.createVault(remote, PHRASE);
   assert.equal(await S.vaultExists(remote), true);
   await assert.rejects(S.createVault(remote, PHRASE), /existe déjà/);
-  await assert.rejects(S.unlockWithPassphrase(remote, 'une autre phrase longue'), /Phrase de passe incorrecte/);
+  await assert.rejects(S.unlockWithPassphrase(remote, 'une autre phrase longue'), /Phrase de secours incorrecte/);
 
   const pk = { credentialId: K.randomBytes(16), prfSalt: K.randomBytes(32), prfSecret: K.randomBytes(32), label: 'iPad de Maman' };
   const name = await S.addPasskey(remote, PHRASE, pk);

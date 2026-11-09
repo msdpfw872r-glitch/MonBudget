@@ -1,7 +1,7 @@
 /**
  * passkey.js — Face ID / Touch ID par passkey (WebAuthn) avec l'extension PRF.
  *
- * Version : 0.8.6
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -12,6 +12,7 @@
  *
  * Historique :
  *   0.8.6  FRE (Fidag)  Première version.
+ *   0.10.2 FRE (Fidag)  Messages : « phrase de secours ».
  */
 
 import { RP_ID, RP_NAME } from './firebase-config.js';
@@ -37,10 +38,10 @@ export async function passkeyAvailable() {
 
 function webauthnError(e) {
   if (e instanceof PasskeyError) return e;
-  if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return new PasskeyError('Face ID a été annulé. Réessayez, ou utilisez la phrase de passe.');
+  if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return new PasskeyError('Face ID a été annulé. Réessayez, ou utilisez la phrase de secours.');
   if (e?.name === 'InvalidStateError') return new PasskeyError('Cet iPad a déjà une clé Face ID pour Mon Budget.');
   if (e?.name === 'SecurityError') return new PasskeyError('Face ID ne fonctionne que depuis l’adresse officielle de l’app.');
-  return new PasskeyError('Face ID n’a pas marché. Utilisez la phrase de passe.');
+  return new PasskeyError('Face ID n’a pas marché. Utilisez la phrase de secours.');
 }
 
 /**
@@ -68,7 +69,7 @@ export async function getPrfSecret(credentialId, prfSalt) {
     throw webauthnError(e);
   }
   const first = bytes(cred?.getClientExtensionResults?.().prf?.results?.first);
-  if (!first) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données. Utilisez la phrase de passe.');
+  if (!first) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données. Utilisez la phrase de secours.');
   return first;
 }
 
@@ -97,7 +98,7 @@ export async function createPasskey(label) {
     throw webauthnError(e);
   }
   const ext = cred.getClientExtensionResults?.().prf;
-  if (!ext?.enabled) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données (mise à jour d’iPadOS nécessaire). La phrase de passe reste possible.');
+  if (!ext?.enabled) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données (mise à jour d’iPadOS nécessaire). La phrase de secours reste possible.');
   const credentialId = new Uint8Array(cred.rawId);
   // Certains appareils donnent le secret dès la création ; sinon, un second Face ID le lit.
   const prfSecret = bytes(ext.results?.first) ?? await getPrfSecret(credentialId, prfSalt);

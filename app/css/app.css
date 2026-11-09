@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.8.6
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -27,6 +27,7 @@
  *   0.5.2  FRE (Fidag)  Montants cliquables (détail des opérations).
  *   0.6.0  FRE (Fidag)  Sauvegarde : écran de restauration bien visible, bandeau de rappel, guide Raccourcis.
  *   0.8.6  FRE (Fidag)  Champs e-mail / mot de passe, bandeau « synchronisation en pause ».
+ *   0.10.2 FRE (Fidag)  Écrans de connexion et de verrouillage ; contenu caché quand l'app passe en arrière-plan.
  */
 
 @font-face {
@@ -846,3 +847,21 @@ button.stat.detail-link { padding: 18px 20px; border-radius: var(--rayon); box-s
 
 .sync-banner svg { width: 28px; height: 28px; flex-shrink: 0; }
 .danger-zone + .card { margin-top: 0; }
+
+/* ---------- 0.10.2 Connexion et verrouillage ---------- */
+
+.lock-screen {
+  min-height: 100vh; min-height: 100dvh;
+  padding: max(32px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom));
+  background: var(--fond);
+  display: flex; justify-content: center; align-items: flex-start;
+}
+.lock-inner { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 20px; margin-top: 4vh; }
+.lock-brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 700; color: var(--accent-fonce); }
+.lock-brand img { border-radius: 18px; }
+.lock-screen h1 { font-size: 30px; margin: 0; }
+.lock-card { align-items: center; text-align: center; }
+.lock-card .round-icon svg { width: 30px; height: 30px; }
+.lock-card .form { width: 100%; text-align: left; display: flex; flex-direction: column; }
+/* Aperçu du sélecteur d'apps : rien de lisible quand l'app passe en arrière-plan. */
+body.masque .shell, body.masque dialog { visibility: hidden; }

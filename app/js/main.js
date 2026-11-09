@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.8.6
+ * Version : 0.10.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -22,6 +22,8 @@
  *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? ».
  *   0.8.6  FRE (Fidag)  Synchronisation : démarrage, bandeau « en pause » (Face ID), écrans mis à jour
  *                       quand des changements arrivent de l'autre iPad.
+ *   0.10.2 FRE (Fidag)  L'app ne s'affiche qu'une fois connectée et déverrouillée (écrans de ecran-verrou.js) ;
+ *                       au verrouillage, l'écran est vidé.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -39,8 +41,9 @@ import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
 import { openDetail } from './detail.js';
 import { reminderBanner, saveNow, showSaveResult } from './ecran-sauvegarde.js';
-import { synchroBanner, handleBannerClick } from './ecran-synchro.js';
-import * as syncService from './synchro-service.js';
+import { initLockScreens, lockScreenShown } from './ecran-verrou.js';
+import * as session from './session.js';
+import { isUnlocked } from './store.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -72,7 +75,7 @@ function accueilView() {
     async render(root) {
       const today = new Date();
       const db = await getDb();
-      const [data, bills, banner, syncBanner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db), synchroBanner()]);
+      const [data, bills, banner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db)]);
       const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
@@ -90,7 +93,6 @@ function accueilView() {
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
-        ${syncBanner}
         ${banner}
         <p class="flash" data-message-sauvegarde role="status" hidden></p>
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
@@ -118,11 +120,6 @@ function accueilView() {
         <a class="btn btn-primary btn-wide btn-import" href="#/importer">${icon('importer')}Importer un relevé</a>`;
       paintColors(root);
       root.onclick = async (e) => {
-        const unlocked = await handleBannerClick(e, root);
-        if (unlocked !== null) {
-          if (unlocked) await this.render(root);
-          return;
-        }
         const save = e.target.closest('[data-sauvegarder]');
         if (save) {
           save.disabled = true;
@@ -220,6 +217,8 @@ async function renderMain(id, ticket) {
 }
 
 async function render() {
+  // App verrouillée : rien à afficher (ecran-verrou.js montre la connexion ou le verrou).
+  if (!isUnlocked() || lockScreenShown()) return;
   const ticket = ++renderCount;
   const { id, path } = currentRoute();
   if (id !== 'importer') resetImporterIfDone();
@@ -280,13 +279,6 @@ document.addEventListener('donnees-recues', () => {
   updateBadge();
   if (['accueil', 'journal', 'resume'].includes(lastMainRoute)) renderMain(lastMainRoute, renderCount);
 });
-// La synchronisation se met en pause ou reprend : le bandeau de l'accueil suit.
-let lastSyncPhase = null;
-document.addEventListener('synchro-etat', (e) => {
-  const key = `${e.detail.phase}/${e.detail.unlocked}`;
-  if (key !== lastSyncPhase && lastMainRoute === 'accueil' && lastSyncPhase !== null) renderMain('accueil', renderCount);
-  lastSyncPhase = key;
-});
 
 dialog.addEventListener('close', () => {
   if (SHEET_ROUTES.includes(currentRoute().id)) location.hash = `#/${lastMainRoute}`;
@@ -296,9 +288,21 @@ WIDE.addEventListener('change', render);
 window.addEventListener('hashchange', render);
 
 buildNav();
-render();
-// Ouvre la base dès le démarrage (installe les données de départ au premier lancement).
-getDb().then(() => syncService.init()).catch(() => {});
+// Rien de l'app n'est affiché avant la connexion et le déverrouillage ; au verrouillage, l'écran est vidé.
+initLockScreens({
+  onOpen: () => render(),
+  onLock: () => {
+    renderCount++;
+    if (dialog.open) dialog.close();
+    view.innerHTML = '';
+    dialogBody.innerHTML = '';
+  },
+});
+session.start().catch(() => {
+  view.innerHTML = '';
+  storageError(view);
+  document.querySelector('.shell').hidden = false;
+});
 
 /* ---------- Hors ligne et mise à jour ---------- */
 

@@ -63,7 +63,7 @@ test('enveloppe phrase de passe : 600 000 itérations, bonne / mauvaise phrase',
   // Accents écrits autrement (forme décomposée) : même phrase.
   const back = await K.unwrapWithPassphrase(env, '  vélo jardin soleil 1954 ');
   assert.deepEqual(back, raw);
-  await assert.rejects(K.unwrapWithPassphrase(env, 'velo jardin soleil 1954'), /Phrase de passe incorrecte/);
+  await assert.rejects(K.unwrapWithPassphrase(env, 'velo jardin soleil 1954'), /Phrase de secours incorrecte/);
   await assert.rejects(K.unwrapWithPassphrase({ ...env, iterations: 1000 }, PHRASE), /n’est pas valable/, 'enveloppe affaiblie refusée');
 });
 
@@ -83,7 +83,7 @@ test('enveloppe passkey (PRF → HKDF) : bon secret ouvre, autre secret non', as
   assert.equal(K.fromB64(env.hkdfSalt).length, 32);
   assert.deepEqual(K.fromB64(env.credentialId), credentialId);
   assert.deepEqual(await K.unwrapWithPrf(env, prf), raw);
-  await assert.rejects(K.unwrapWithPrf(env, K.randomBytes(32)), /phrase de passe/);
+  await assert.rejects(K.unwrapWithPrf(env, K.randomBytes(32)), /phrase de secours/);
   assert.match(await K.passkeyDocName(credentialId), /^pk_[0-9a-f]{16}$/);
   assert.equal(await K.passkeyDocName(env.credentialId), await K.passkeyDocName(credentialId));
 });

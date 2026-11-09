@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   index.html — Mon Budget : page unique de l'app.
-  Version : 0.8.5
+  Version : 0.10.2
   Auteur  : FRE (Fidag)
   Date    : 2026-11-08
   Historique :
@@ -9,6 +9,7 @@
     0.3.0  FRE (Fidag)  Bouton « Retour » dans la fenêtre (sous-pages de Réglages), fenêtre de confirmation.
     0.4.0  FRE (Fidag)  Version 0.4.0 (aucun changement de structure).
     0.8.5  FRE (Fidag)  CSP : réseau autorisé seulement vers Firebase (synchronisation chiffrée).
+    0.10.2 FRE (Fidag)  Écran plein écran de connexion / verrouillage ; l'app est masquée tant qu'elle est verrouillée.
 -->
 <html lang="fr">
 <head>
@@ -33,8 +34,9 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <div id="verrou" class="lock-screen" role="main" aria-label="Mon Budget"></div>
   <a class="skip" href="#vue">Aller au contenu</a>
-  <div class="shell">
+  <div class="shell" hidden>
     <nav class="sidebar" aria-label="Navigation principale">
       <span class="brand">Mon Budget</span>
       <div class="sidebar-links" data-nav="main"></div>

@@ -50,7 +50,7 @@ test('Face ID : activé avec la phrase de passe, puis ouvre seul, sans Internet'
   assert.equal(remote.keys.size, 1, 'l’enveloppe Face ID reste sur l’appareil');
   const k = await V.unlockWithPrf(ipad1, pk.prfSecret);
   assert.equal(await K.docId(k, 'rules', 'r'), await K.docId(keys1, 'rules', 'r'), 'même clé des données');
-  await assert.rejects(V.unlockWithPrf(ipad1, K.randomBytes(32)), /phrase de passe/);
+  await assert.rejects(V.unlockWithPrf(ipad1, K.randomBytes(32)), /phrase de secours/);
 });
 
 test('données de l’appareil : lisibles seulement une fois déverrouillé', async () => {
