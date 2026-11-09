@@ -16,7 +16,7 @@
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
-import { formatAmount, formatCHF, formatDateLong, displayName } from '../src/core/format.js';
+import { formatAmount, formatCHF, formatDateLong, displayName, opName } from '../src/core/format.js';
 import { listPeople, listCategories } from '../src/core/reglages.js';
 import { journal, monthSummary, searchOperations, exportMonth } from '../src/core/journal.js';
 import { lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
@@ -50,7 +50,7 @@ export function opRow(t, data) {
   const notCounted = !toSort && (t.isCardBillPayment || c?.excludeFromTotals);
   return `<button type="button" class="op-row${toSort ? ' op-to-sort' : ''}" data-operation="${esc(t.id)}">
       <span class="op-date">${esc(formatDateLong(t.date))}</span>
-      <span class="op-name">${esc(displayName(t.description))}</span>
+      <span class="op-name">${esc(opName(t))}</span>
       <span class="op-who">${toSort ? '<span class="tag tag-alert">À trier</span>'
         : p ? `<span class="tag" data-color="${esc(p.color)}">${esc(p.name)}</span>` : ''}</span>
       <span class="op-cat">${toSort ? '' : esc(c?.name ?? 'Catégorie supprimée')}${notCounted ? '<span class="op-note">pas compté dans les totaux</span>' : ''}</span>
@@ -69,7 +69,7 @@ export function journalView() {
       const db = await getDb();
       const data = await loadAll(db);
       const ctx = { categoriesById: data.categoriesById, peopleById: data.peopleById, accountsById: data.accounts,
-        nameOf: (t) => displayName(t.description) };
+        nameOf: (t) => opName(t) };
       const current = () => {
         const p = currentPeriod(data.transactions);
         const personId = currentPerson();

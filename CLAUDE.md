@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.4.0
+- Version du brief : 1.5.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -10,6 +10,7 @@ Historique du brief :
 - 1.2.0 — FRE (Fidag) — Décisions de l'utilisateur (v0.4.0) : Maman et Papa ont chacun leur carte UBS (deux comptes « carte »), la facture est commune et prélevée par LSV sur le compte UBS ; les achats par carte sont rattachés à ce prélèvement (voir § 4, « Cartes et factures »). L'agent peut mettre `main` à jour pour publier chaque étape.
 - 1.3.0 — FRE (Fidag) — Décision de l'utilisateur (v0.6.0) : nom de la sauvegarde jusqu'à la milliseconde (jamais deux fois le même) ; restauration avec écran de confirmation bien visible ; sauvegarde utilisable avec un raccourci Apple (menu Partager).
 - 1.4.0 — FRE (Fidag) — Formats réels reçus (v0.7.0) : la BCVs fournit un relevé **CSV** (pas camt.053, abandonné) ; Swisscard un CSV français avec colonne Débit/Crédit et Statut. Opérations « En suspens » non importées. Les titulaires des cartes Swisscard sont choisis dans l'app.
+- 1.5.0 — FRE (Fidag) — camt.053 ajouté (v0.8.0) selon la spécification `docs/specs/camt053.md` (v1.0) : importable dans n'importe quel compte bancaire, contrepartie comme nom d'opération et clé des règles.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -122,7 +123,8 @@ Couleurs : fond `#F3F6F4`, surfaces `#FFFFFF`, texte `#1C2826`, texte secondaire
 | Banque | Format | État |
 |---|---|---|
 | UBS | Export « Transactions » Excel (.xlsx), en-têtes français : Date de transaction, Numéro de compte ou de carte, Description, Revenu ou dépense, Montant, Monnaie, Catégorie | **Fait** (v0.1.0). Le fichier peut mélanger le compte et une carte UBS (`****1234`). |
-| BCVs | Relevé de compte **CSV** : en-tête (« Relevé de compte jusqu'au », « N° de compte », nom, adresse), puis `Date;Libellé;Montant;Valeur` ; « ; », Windows-1252, dates JJ.MM.AA. La facture Swisscard y est prélevée par « Débit LSV SWISSCARD ». | **Fait** (v0.7.0, `importers/bcvs.js`). camt.053 abandonné (pas utilisé par l'utilisatrice). |
+| BCVs | Relevé de compte **CSV** : en-tête (« Relevé de compte jusqu'au », « N° de compte », nom, adresse), puis `Date;Libellé;Montant;Valeur` ; « ; », Windows-1252, dates JJ.MM.AA. La facture Swisscard y est prélevée par « Débit LSV SWISSCARD ». | **Fait** (v0.7.0, `importers/bcvs.js`). |
+| camt.053 (toutes banques) | XML ISO 20022, versions .04 et .08 — voir `docs/specs/camt053.md`. | **Fait** (v0.8.0, `importers/camt053.js`) sur fichiers construits selon la norme : **à confirmer sur un vrai relevé**. |
 | Mastercard (Swisscard) | CSV : `Date transaction, Description, Commerçant, Numéro de carte, Monnaie, Montant, Monnaie étrangère, Montant étranger, Débit/Crédit, Statut, Catégorie de commerçant, Catégorie enregistrée` ; « , », guillemets, montants positifs + Débit/Crédit ; plusieurs cartes. | **Fait** (v0.7.0, `importers/swisscard.js`, alias EN/DE). « En suspens » non importées. |
 
 Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT_LABEL`, `detect(rows|text)`, `parse(...)` → `{ transactions, warnings, period, accounts }`. L'écran d'import détecte le format automatiquement et vérifie qu'il correspond au compte choisi.

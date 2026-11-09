@@ -14,7 +14,7 @@
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
-import { formatCHF, formatAmount, formatDateLong, displayName } from '../src/core/format.js';
+import { formatCHF, formatAmount, formatDateLong, displayName, opName } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
 import { listBills, billStatus, candidates, linkBill, cardsPaidFrom } from '../src/core/cartes.js';
 import { toCents } from '../src/core/text.js';
@@ -80,7 +80,7 @@ function facture(id) {
           <section class="card list">
             ${items.map((t) => `<label class="row check-row">
               <input type="checkbox" data-achat="${esc(t.id)}"${checked.has(t.id) ? ' checked' : ''}>
-              <span class="row-text"><span class="row-title">${esc(displayName(t.description))}</span>
+              <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
                 <span class="row-sub">${esc(formatDateLong(t.date))}</span></span>
               <span class="row-title">${formatAmount(t.amount)}</span>
             </label>`).join('')}

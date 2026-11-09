@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.7.0
+ * Version : 0.8.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -25,9 +25,10 @@
  *   0.6.0  FRE (Fidag)  Sauvegarde / restauration.
  *   0.6.1  FRE (Fidag)  Version 0.6.1.
  *   0.7.0  FRE (Fidag)  Lecteurs BCVs et Swisscard.
+ *   0.8.0  FRE (Fidag)  Lecteur XML et relevés camt.053.
  */
 
-const VERSION = '0.7.0';
+const VERSION = '0.8.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -68,6 +69,8 @@ const FILES = [
   './src/importers/ubs.js',
   './src/importers/bcvs.js',
   './src/importers/swisscard.js',
+  './src/importers/camt053.js',
+  './src/core/xml.js',
   './src/data/seed.json',
   './fonts/atkinson-hyperlegible-400.woff2',
   './fonts/atkinson-hyperlegible-700.woff2',

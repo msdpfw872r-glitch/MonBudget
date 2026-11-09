@@ -2,7 +2,7 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.7.0
+- Version : 0.8.0
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
@@ -57,6 +57,7 @@ npm test
 - UBS : « Transactions » en Excel ou CSV
 - BCVs : relevé de compte CSV
 - Mastercard Swisscard : transactions CSV (les opérations « en suspens » viennent au prochain import)
+- Toutes banques : relevé camt.053 (XML, versions .04 et .08), voir `docs/specs/camt053.md`
 
 ## À venir
 

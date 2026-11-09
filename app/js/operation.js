@@ -15,7 +15,7 @@
 
 import { icon, esc, confirmer } from './ui.js';
 import { chooseCategory, choosePerson } from './choix.js';
-import { formatAmount, formatDateLong, displayName } from '../src/core/format.js';
+import { formatAmount, formatDateLong, displayName, opName } from '../src/core/format.js';
 import { classify, isGenericKey } from '../src/core/regles.js';
 import { ReglageError } from '../src/core/reglages.js';
 
@@ -41,7 +41,7 @@ function dialogEl() {
  */
 export function editOperation(db, tx, ctx) {
   const d = dialogEl();
-  const name = displayName(tx.description);
+  const name = opName(tx);
   const st = { personId: tx.personId ?? ctx.accounts.get(tx.accountId)?.personId ?? null, categoryId: tx.categoryId ?? null, remember: tx.status !== 'classee' && !isGenericKey(tx.merchantKey) };
   const rule = Boolean(tx.ruleId);
 

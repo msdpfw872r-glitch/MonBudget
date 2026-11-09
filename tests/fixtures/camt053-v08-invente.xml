@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fichier INVENTÉ, construit selon la norme camt.053.001.08 (Swiss Payment Standards) pour les tests.
+     Noms, IBAN et montants fictifs. FRE (Fidag), 2026-11-09. -->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>MSG-0001</MsgId><CreDtTm>2026-11-09T18:00:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>STMT-0001</Id>
+      <ElctrncSeqNb>42</ElctrncSeqNb>
+      <FrToDt><FrDtTm>2026-10-01T00:00:00</FrDtTm><ToDtTm>2026-10-31T23:59:59</ToDtTm></FrToDt>
+      <Acct><Id><IBAN>CH0000000000000000001</IBAN></Id><Ccy>CHF</Ccy><Ownr><Nm>Titulaire Exemple</Nm></Ownr></Acct>
+      <Bal><Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">1000.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-09-30</Dt></Dt></Bal>
+      <Bal><Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">1850.90</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-10-31</Dt></Dt></Bal>
+
+      <!-- 1. Rente reçue (CRDT) : débiteur = caisse AVS -->
+      <Ntry>
+        <NtryRef>1</NtryRef><Amt Ccy="CHF">2390.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-03</Dt></BookgDt><ValDt><Dt>2026-10-03</Dt></ValDt><AcctSvcrRef>BANQ-0001</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>ESCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>E2E-AVS-10</EndToEndId></Refs>
+          <RltdPties><Dbtr><Pty><Nm>Caisse de compensation Exemple</Nm><PstlAdr><TwnNm>Sion</TwnNm><Ctry>CH</Ctry></PstlAdr></Pty></Dbtr>
+            <DbtrAcct><Id><IBAN>CH0000000000000000099</IBAN></Id></DbtrAcct></RltdPties>
+          <RmtInf><Ustrd>RENTE AVS OCTOBRE</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+        <AddtlNtryInf>Crédit</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 2. e-Bill (DBIT) : créancier = caisse maladie, référence QR -->
+      <Ntry>
+        <Amt Ccy="CHF">345.05</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-05</Dt></BookgDt><ValDt><Dt>2026-10-05</Dt></ValDt><AcctSvcrRef>BANQ-0002</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>ICDT</Cd><SubFmlyCd>DMCT</SubFmlyCd></Fmly></Domn><Prtry><Cd>EBILL</Cd></Prtry></BkTxCd>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>E2E-CM-10</EndToEndId></Refs>
+          <RltdPties><Cdtr><Pty><Nm>Caisse Maladie Exemple SA</Nm></Pty></Cdtr><CdtrAcct><Id><IBAN>CH0000000000000000088</IBAN></Id></CdtrAcct></RltdPties>
+          <RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Prtry>QRR</Prtry></CdOrPrtry></Tp><Ref>210000000003139471430009017</Ref></CdtrRefInf></Strd></RmtInf>
+        </TxDtls></NtryDtls>
+        <AddtlNtryInf>Ordre e-Bill</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 3. Ordre groupé AVEC détail : 2 créanciers, l'un avec bénéficiaire final -->
+      <Ntry>
+        <Amt Ccy="CHF">300.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-10</Dt></BookgDt><AcctSvcrRef>BANQ-0003</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>ICDT</Cd><SubFmlyCd>ESCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls><Btch><NbOfTxs>2</NbOfTxs></Btch>
+          <TxDtls><Refs><EndToEndId>E2E-G1</EndToEndId></Refs><Amt Ccy="CHF">120.00</Amt><CdtDbtInd>DBIT</CdtDbtInd>
+            <RltdPties><Cdtr><Pty><Nm>Plateforme de paiement Exemple</Nm></Pty></Cdtr><UltmtCdtr><Pty><Nm>Garage du Centre</Nm></Pty></UltmtCdtr></RltdPties>
+            <RmtInf><Ustrd>Service voiture</Ustrd><Ustrd>facture 77</Ustrd></RmtInf></TxDtls>
+          <TxDtls><Refs><EndToEndId>E2E-G2</EndToEndId></Refs><Amt Ccy="CHF">180.00</Amt><CdtDbtInd>DBIT</CdtDbtInd>
+            <RltdPties><Cdtr><Pty><Nm>Services Industriels Exemple</Nm></Pty></Cdtr></RltdPties></TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>Ordre e-banking groupé</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 4. Ordre groupé SANS détail (3 paiements) -->
+      <Ntry>
+        <Amt Ccy="CHF">450.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-12</Dt></BookgDt><AcctSvcrRef>BANQ-0004</AcctSvcrRef>
+        <NtryDtls><Btch><NbOfTxs>3</NbOfTxs></Btch></NtryDtls>
+        <AddtlNtryInf>Ordre collectif</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 5. Prélèvement LSV de la facture de carte -->
+      <Ntry>
+        <Amt Ccy="CHF">253.40</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-21</Dt></BookgDt><AcctSvcrRef>BANQ-0005</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RDDT</Cd><SubFmlyCd>PMDD</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls><TxDtls><Refs><EndToEndId>NOTPROVIDED</EndToEndId></Refs>
+          <RltdPties><Cdtr><Pty><Nm>SWISSCARD AECS GMBH</Nm></Pty></Cdtr></RltdPties></TxDtls></NtryDtls>
+        <AddtlNtryInf>Débit LSV</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 6. Frais (sans contrepartie) -->
+      <Ntry>
+        <Amt Ccy="CHF">6.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-31</Dt></BookgDt><AcctSvcrRef>BANQ-0006</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>ACMT</Cd><Fmly><Cd>MDOP</Cd><SubFmlyCd>CHRG</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <AddtlNtryInf>Frais de tenue de compte</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 7. Retrait au bancomat -->
+      <Ntry>
+        <Amt Ccy="CHF">200.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-15</Dt></BookgDt><AcctSvcrRef>BANQ-0007</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>CCRD</Cd><SubFmlyCd>CWDL</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <AddtlNtryInf>Retrait Bancomat Ville-Exemple</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 8. Extourne d'un paiement (crédit qui annule un débit) -->
+      <Ntry>
+        <Amt Ccy="CHF">50.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><RvslInd>true</RvslInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-20</Dt></BookgDt><AcctSvcrRef>BANQ-0008</AcctSvcrRef>
+        <NtryDtls><TxDtls><Refs><EndToEndId>E2E-RV</EndToEndId></Refs>
+          <RltdPties><Cdtr><Pty><Nm>Boutique Exemple</Nm></Pty></Cdtr></RltdPties></TxDtls></NtryDtls>
+        <AddtlNtryInf>Extourne</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 9. Paiement par carte de débit, nom seulement dans le texte -->
+      <Ntry>
+        <Amt Ccy="CHF">34.65</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-10-22</Dt></BookgDt><AcctSvcrRef>BANQ-0009</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>CCRD</Cd><SubFmlyCd>POSD</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls><TxDtls><Refs><EndToEndId>E2E-POS</EndToEndId></Refs><AddtlTxInf>Boulangerie Exemple Ville</AddtlTxInf></TxDtls></NtryDtls>
+        <AddtlNtryInf>Paiement carte de débit</AddtlNtryInf>
+      </Ntry>
+
+      <!-- 10. Écriture en attente (PDNG) : pas importée, pas dans les soldes -->
+      <Ntry>
+        <Amt Ccy="CHF">99.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts><Cd>PDNG</Cd></Sts>
+        <BookgDt><Dt>2026-10-31</Dt></BookgDt><AcctSvcrRef>BANQ-0010</AcctSvcrRef>
+        <AddtlNtryInf>Ordre en attente</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

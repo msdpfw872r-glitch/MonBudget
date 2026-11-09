@@ -1,7 +1,7 @@
 /**
  * format.js — Affichage en français de Suisse : montants et dates.
  *
- * Version : 0.7.0
+ * Version : 0.8.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,7 @@
  *   0.2.0  FRE (Fidag)  Première version : formatCHF, formatAmount, formatDateLong, formatMonth.
  *   0.4.0  FRE (Fidag)  displayName (nom lisible d'une opération), formatDateShort, formatPeriod.
  *   0.7.0  FRE (Fidag)  displayName : « Numéro de carte : … » et « Paiement JJ.MM.AAAA HH:MM » retirés (BCVs).
+ *   0.8.0  FRE (Fidag)  opName : nom de la contrepartie ou du commerçant quand la banque le donne.
  */
 
 const APOS = '’'; // apostrophe typographique ’
@@ -103,4 +104,12 @@ export function displayName(description) {
     if (i > 0 && SMALL_WORDS.has(w)) return w;
     return w.replace(/(^|[-'’])(\p{L})/gu, (_, p, c) => p + c.toUpperCase());
   }).join(' ');
+}
+
+/**
+ * Nom à afficher pour une opération : le commerçant ou la contrepartie quand la banque les donne
+ * (Swisscard, camt.053), sinon le texte de la banque nettoyé.
+ */
+export function opName(t) {
+  return displayName(t?.merchant || t?.description);
 }

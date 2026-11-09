@@ -1,5 +1,16 @@
 # Historique des versions
 
+## 0.8.0 — 2026-11-09 — FRE (Fidag)
+- **Relevés camt.053** (format standard des banques suisses, versions .04 et .08), selon la spécification `docs/specs/camt053.md` : une opération par détail de transaction (sinon par écriture), montant signé, extourne inversée, **nom de la contrepartie** (créancier pour un paiement, débiteur pour une rentrée, bénéficiaire final d'abord), référence QR / SCOR ou communication, type d'opération en mots simples (virement, prélèvement LSV, carte, bancomat, frais).
+- Un relevé camt.053 peut aller dans **n'importe quel compte bancaire** de l'app (UBS, BCVs…) : l'app reconnaît l'IBAN, ou demande une fois.
+- Les règles retenues se font sur le **vrai bénéficiaire** (« Caisse Maladie Exemple SA ») et plus sur « Ordre e-Bill ».
+- Contrôles affichés à l'import : « Soldes vérifiés : le relevé est complet » ou écart signalé ; paiement groupé sans détail ; somme du détail différente de l'écriture.
+- Anti-doublon par référence de la banque : réimporter un relevé qui reprend des jours déjà importés (« données déjà téléchargées ») n'ajoute rien.
+- Écritures non comptabilisées (en attente) : pas importées, comptées à part.
+- Nom affiché des opérations : le commerçant ou la contrepartie quand la banque les donne (Swisscard, camt.053).
+- Lecteur XML sans dépendance (`app/src/core/xml.js`) ; fichiers d'exemple **construits selon la norme** (à confirmer sur un vrai relevé).
+- 87 tests automatiques.
+
 ## 0.7.0 — 2026-11-09 — FRE (Fidag)
 - **BCVs** : import du relevé de compte (fichier CSV de l'e-banking : en-tête « Relevé de compte… », colonnes Date ; Libellé ; Montant ; Valeur, accents Windows, dates JJ.MM.AA). Le prélèvement « Débit LSV SWISSCARD … » est reconnu comme facture de carte (pas compté dans les totaux).
 - **Mastercard Swisscard** : import des transactions (colonnes Date transaction, Description, Commerçant, Numéro de carte, Montant, Débit/Crédit, Statut…). Plusieurs cartes dans le même fichier (****1234). Montant d'origine en monnaie étrangère gardé en note. Le paiement de la facture reçu sur la carte n'est pas compté comme une rentrée.

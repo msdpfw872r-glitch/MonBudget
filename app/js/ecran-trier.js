@@ -24,7 +24,7 @@
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
-import { formatAmount, formatDateLong, formatDateShort, displayName } from '../src/core/format.js';
+import { formatAmount, formatDateLong, formatDateShort, displayName, opName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify, isGenericKey } from '../src/core/regles.js';
 import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
@@ -83,7 +83,7 @@ function personButtons(people, selected) {
 function detail(tx, data) {
   const acc = data.accounts.get(tx.accountId);
   const type = tx.amount < 0 ? 'depense' : 'recette';
-  const name = displayName(tx.description);
+  const name = opName(tx);
   const chosen = data.categories.find((c) => c.id === state.categoryId);
   const position = data.pending.indexOf(tx) + 1;
   const same = data.counts.get(tx.merchantKey) ?? 1;
@@ -138,7 +138,7 @@ function listPane(data, current) {
   const rest = data.pending.length - shown.length;
   return `<section class="card list sort-list" aria-label="Opérations à trier">
     ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
-        <span class="row-text"><span class="row-title">${esc(displayName(t.description))}</span>
+        <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
         <span class="row-sub">${esc(formatDateShort(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
         <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
@@ -155,7 +155,7 @@ function orderSwitch() {
 function openList(data, current) {
   const items = data.pending.map((t) => ({
     id: t.id,
-    name: displayName(t.description),
+    name: opName(t),
     sub: `${formatDateShort(t.date)}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}`,
     aside: formatAmount(t.amount),
     tx: t,

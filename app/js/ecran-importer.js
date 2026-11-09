@@ -2,13 +2,14 @@
  * ecran-importer.js — Écran « Importer un relevé » : choisir le fichier, répondre aux questions
  * (à qui est cette carte ?), voir le résumé, importer ; liste des imports avec annulation.
  *
- * Version : 0.7.0
+ * Version : 0.8.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version (fichier « Transactions » UBS).
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés.
+ *   0.8.0  FRE (Fidag)  Relevés standard camt.053 (fichiers .xml) ; contrôles affichés (soldes vérifiés…).
  *   0.7.0  FRE (Fidag)  BCVs et Swisscard ; « Une autre carte : l'ajouter » puis « À qui est cette carte ? » ;
  *                       opérations « en suspens » indiquées.
  */
@@ -39,13 +40,13 @@ function errorCard(message) {
   return `<section class="card alert" role="alert"><h2>${icon('attention')}Le fichier n’a pas pu être importé</h2><p>${esc(message)}</p></section>`;
 }
 
-const ACCEPT = '.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/comma-separated-values,application/vnd.ms-excel';
+const ACCEPT = '.xlsx,.csv,.xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/comma-separated-values,application/vnd.ms-excel,text/xml,application/xml';
 
 function chooseFile(error = '') {
   return `${error ? errorCard(error) : ''}
     <section class="card">
       <h2>Choisir le fichier de la banque</h2>
-      <p class="note">Le fichier des opérations téléchargé depuis l’e-banking. Pour UBS : « Transactions », en Excel ou en CSV.</p>
+      <p class="note">Le fichier des opérations téléchargé depuis l’e-banking : UBS « Transactions », relevé BCVs, transactions Swisscard, ou relevé de compte standard de n’importe quelle banque.</p>
       <label class="btn btn-primary btn-wide btn-file">
         ${icon('importer')}Ouvrir mes fichiers
         <input type="file" accept="${ACCEPT}" data-fichier>
@@ -104,7 +105,8 @@ function preview(plan) {
         <span class="row-text"><span class="row-title">Relevé bien lu</span>
         <span class="row-sub">${esc(bankName(plan.format))} · ${esc(formatPeriod(plan.period))}</span></span></div>
       ${countsTable(c)}
-      ${plan.warnings.length ? `<details class="note"><summary>${plural(plan.warnings.length, 'ligne n’a pas pu être lue', 'lignes n’ont pas pu être lues')}</summary>
+      ${(plan.notes ?? []).map((n) => `<p class="flash">${icon('ok')}${esc(n)}</p>`).join('')}
+      ${plan.warnings.length ? `<details class="note"><summary>${plural(plan.warnings.length, 'remarque sur ce fichier', 'remarques sur ce fichier')}</summary>
         <ul>${plan.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
     </section>
     ${nothing

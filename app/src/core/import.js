@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.7.0
+ * Version : 0.8.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,8 @@
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version (UBS).
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
+ *   0.8.0  FRE (Fidag)  camt.053 (toutes banques) : importable dans n'importe quel compte bancaire (IBAN),
+ *                       contrepartie, référence, contrôles affichés (notes) ; détection des fichiers XML.
  *   0.7.0  FRE (Fidag)  BCVs (relevé CSV) et Swisscard ; opérations « en suspens » comptées à part ;
  *                       clé des règles d'après le commerçant si la banque le donne ; plusieurs cartes inconnues → question.
  */
@@ -28,11 +30,14 @@ import { autoLinkAll, unlinkBill } from './cartes.js';
 import * as ubs from '../importers/ubs.js';
 import * as bcvs from '../importers/bcvs.js';
 import * as swisscard from '../importers/swisscard.js';
+import * as camt053 from '../importers/camt053.js';
 
 /** Importateurs connus (même interface : FORMAT_ID, FORMAT_LABEL, detect, parse). */
 export const IMPORTERS = [swisscard, bcvs, ubs];
+/** Importateurs qui lisent le texte brut (XML). */
+export const TEXT_IMPORTERS = [camt053];
 
-const BANK_NAMES = { 'ubs-transactions-xlsx': 'UBS', 'bcvs-csv': 'BCVs', 'swisscard-csv': 'Mastercard (Swisscard)' };
+const BANK_NAMES = { 'ubs-transactions-xlsx': 'UBS', 'bcvs-csv': 'BCVs', 'swisscard-csv': 'Mastercard (Swisscard)', camt053: 'un relevé de compte standard' };
 export const bankName = (format) => BANK_NAMES[format] ?? 'cette banque';
 
 /**
@@ -50,7 +55,19 @@ export async function readBankFile(data) {
       throw new ReglageError('Ce fichier n’a pas pu être ouvert. Téléchargez-le à nouveau depuis votre banque.');
     }
   } else if (looksLikeText(bytes)) {
-    sheets = [parseCsv(decodeText(bytes))];
+    const text = decodeText(bytes);
+    if (/^\s*</.test(text)) {
+      for (const imp of TEXT_IMPORTERS) {
+        if (imp.detect(text)) {
+          let res;
+          try { res = imp.parse(text); } catch { throw new ReglageError('Ce relevé n’a pas pu être lu. Téléchargez-le à nouveau depuis votre banque.'); }
+          if (!res.transactions.length && !res.pendingCount) throw new ReglageError('Ce relevé ne contient aucune opération.');
+          return { ...res, format: imp.FORMAT_ID, label: imp.FORMAT_LABEL };
+        }
+      }
+    } else {
+      sheets = [parseCsv(text)];
+    }
   }
   for (const rows of sheets) {
     for (const imp of IMPORTERS) {
@@ -66,7 +83,9 @@ export async function readBankFile(data) {
 
 /** Comptes de l'app qui reçoivent ce format de fichier. */
 async function accountsForFormat(db, format) {
-  return (await db.getAll('accounts')).filter((a) => a.importFormat === format).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  // Le relevé standard camt.053 vient de n'importe quelle banque : tous les comptes bancaires sont possibles.
+  const ok = format === 'camt053' ? (a) => a.kind === 'compte' : (a) => a.importFormat === format;
+  return (await db.getAll('accounts')).filter(ok).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 /** Masque une référence pour l'affichage : IBAN → « …0000 0 », carte → « ****1234 ». */
@@ -83,7 +102,9 @@ export function shortRef(ref) {
 export async function prepareImport(db, parsed, { fileName = '' } = {}) {
   const accounts = await accountsForFormat(db, parsed.format);
   if (!accounts.length) {
-    throw new ReglageError(`Ce fichier vient de ${bankName(parsed.format)}, mais aucun de vos comptes n’utilise ce fichier. Ajoutez le compte dans Réglages, « Mes comptes ».`);
+    throw new ReglageError(parsed.format === 'camt053'
+      ? 'Ce relevé de compte ne peut aller dans aucun compte : ajoutez d’abord votre compte bancaire dans Réglages, « Mes comptes ».'
+      : `Ce fichier vient de ${bankName(parsed.format)}, mais aucun de vos comptes n’utilise ce fichier. Ajoutez le compte dans Réglages, « Mes comptes ».`);
   }
 
   // 1. À quel compte appartient chaque référence du fichier ?
@@ -130,6 +151,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
       accountId: acc.id,
       date: t.date,
       description: t.description,
+      // Commerçant (Swisscard) ou contrepartie (camt.053) : nom affiché de l'opération.
+      merchant: t.merchant ?? null,
       // La règle se fait sur le nom du commerçant quand la banque le donne (« Migros » pour tous les Migros).
       merchantKey: merchantKey(t.merchant || t.description),
       amount: t.amount,
@@ -143,6 +166,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
       isCardBillPayment: Boolean(t.isCardBillPayment) && acc.kind === 'compte',
       cardBillId: null,
       note: t.note ?? '',
+      ...(t.counterparty ? { counterparty: t.counterparty, reference: t.reference ?? null, communication: t.communication ?? null,
+        operationCode: t.operationCode ?? null, bankRef: t.bankRef ?? null, endToEndId: t.endToEndId ?? null, alert: t.alert || null } : {}),
     };
     if (tx.isCardBillPayment && billCategory) {
       tx = { ...tx, categoryId: billCategory.id, personId: null, status: 'classee' };
@@ -169,6 +194,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     period: parsed.period,
     accountIds: [...new Set([...byRef.values()].map((a) => a.id))],
     warnings: parsed.warnings ?? [],
+    notes: parsed.notes ?? [],
+    report: parsed.report ?? null,
     counts,
     transactions,
     ruleHits: [...ruleHits.entries()],

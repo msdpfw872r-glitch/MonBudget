@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fichier INVENTÉ, construit selon la norme camt.053.001.04 (ancienne version) pour les tests.
+     Deux comptes ; le 1er reprend une écriture déjà présente dans le fichier .08 (même référence banque).
+     Le 2e compte a un solde de clôture faux (écart volontaire). FRE (Fidag), 2026-11-09. -->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>MSG-0002</MsgId><CreDtTm>2026-11-09T18:05:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>STMT-A</Id>
+      <Acct><Id><IBAN>CH0000000000000000001</IBAN></Id><Ccy>CHF</Ccy></Acct>
+      <Bal><Tp><CdOrPrtry><Cd>PRCD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">1000.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-10-02</Dt></Dt></Bal>
+      <Bal><Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">3290.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-11-05</Dt></Dt></Bal>
+      <Ntry>
+        <Amt Ccy="CHF">2390.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-03</Dt></BookgDt><AcctSvcrRef>BANQ-0001</AcctSvcrRef>
+        <NtryDtls><TxDtls><Refs><EndToEndId>E2E-AVS-10</EndToEndId></Refs>
+          <RltdPties><Dbtr><Nm>Caisse de compensation Exemple</Nm></Dbtr></RltdPties></TxDtls></NtryDtls>
+        <AddtlNtryInf>Crédit</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="CHF">100.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-11-05</Dt></BookgDt><AcctSvcrRef>BANQ-0101</AcctSvcrRef>
+        <NtryDtls><TxDtls><Refs><EndToEndId>E2E-OP</EndToEndId></Refs>
+          <RltdPties><Cdtr><Nm>Famille   Exemple</Nm><PstlAdr><AdrLine>Rue 1</AdrLine><AdrLine>1000 Ville</AdrLine></PstlAdr></Cdtr>
+            <CdtrAcct><Id><IBAN>CH0000000000000000077</IBAN></Id></CdtrAcct></RltdPties>
+          <RltdAgts><CdtrAgt><FinInstnId><BIC>EXAMCHZZ</BIC></FinInstnId></CdtrAgt></RltdAgts>
+          <RmtInf><Ustrd>Cadeau anniversaire</Ustrd></RmtInf></TxDtls></NtryDtls>
+        <AddtlNtryInf>Ordre permanent</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+    <Stmt>
+      <Id>STMT-B</Id>
+      <Acct><Id><IBAN>CH0000000000000000002</IBAN></Id><Ccy>CHF</Ccy></Acct>
+      <Bal><Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">10.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Dt><Dt>2026-10-31</Dt></Dt></Bal>
+      <Bal><Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp><Amt Ccy="CHF">500.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Dt><Dt>2026-11-05</Dt></Dt></Bal>
+      <Ntry>
+        <Amt Ccy="CHF">500.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-11-02</Dt></BookgDt><AcctSvcrRef>BANQ-0201</AcctSvcrRef>
+        <NtryDtls><TxDtls><Refs><EndToEndId>E2E-EP</EndToEndId></Refs>
+          <RltdPties><Dbtr><Nm>Titulaire Exemple</Nm></Dbtr><UltmtDbtr><Nm>Assurance Exemple</Nm></UltmtDbtr></RltdPties></TxDtls></NtryDtls>
+        <AddtlNtryInf>Crédit</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>
