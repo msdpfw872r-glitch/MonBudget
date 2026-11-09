@@ -2,7 +2,7 @@
  * ecran-synchro.js — Réglages › Synchronisation : connexion, création du coffre, Face ID,
  * déverrouillage, état ; bandeau « synchronisation en pause » de l'accueil.
  *
- * Version : 0.8.6
+ * Version : 0.9.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -10,6 +10,7 @@
  *
  * Historique :
  *   0.8.6  FRE (Fidag)  Première version.
+ *   0.9.1  FRE (Fidag)  Textes pour tous les appareils (iPad et iPhone).
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -49,7 +50,7 @@ export async function statusText() {
 /** Ligne de la vue d'ensemble des Réglages. */
 export async function synchroRow() {
   return `<a class="row" href="#/reglages/synchro">
-    <span class="row-text"><span class="row-title">Synchronisation entre les iPad</span>
+    <span class="row-text"><span class="row-title">Synchronisation entre appareils</span>
     <span class="row-sub">${esc(await statusText())}</span></span>${icon('suite')}</a>`;
 }
 
@@ -59,7 +60,7 @@ export async function synchroBanner() {
   if (s.phase !== 'verrouille' || s.unlocked) return '';
   const dev = await sync.deviceSettings();
   return `<div class="warn-box warn-action sync-banner" role="status">${icon('cadenas')}
-      <span><strong>Synchronisation en pause.</strong> Vos changements restent sur cet iPad.</span>
+      <span><strong>Synchronisation en pause.</strong> Vos changements restent sur cet appareil.</span>
       ${dev?.credentialId
         ? `<button type="button" class="btn btn-primary" data-faceid>${icon('cadenas')}Déverrouiller avec Face ID</button>`
         : `<a class="btn btn-primary" href="#/reglages/synchro">${icon('cadenas')}Déverrouiller</a>`}
@@ -90,9 +91,9 @@ export async function handleBannerClick(e, root) {
 
 function loginHtml() {
   return `<section class="card">
-      <h2>Synchroniser entre les iPad</h2>
-      <p class="note">Les données sont <strong>chiffrées sur l’iPad</strong> avant d’être envoyées : personne d’autre, pas même
-      Google (Firebase), ne peut les lire. Elles restent aussi sur chaque iPad, et l’app fonctionne sans Internet.</p>
+      <h2>Synchroniser entre l’iPad et l’iPhone</h2>
+      <p class="note">Les données sont <strong>chiffrées sur l’appareil</strong> avant d’être envoyées : personne d’autre, pas même
+      Google (Firebase), ne peut les lire. Elles restent aussi sur chaque appareil (iPad, iPhone), et l’app fonctionne sans Internet.</p>
     </section>
     <form class="card form" data-login>
       <h2>Se connecter</h2>
@@ -110,8 +111,8 @@ function createHtml() {
       <div class="danger-head">${icon('attention')}<h2 id="coffre-titre">Important : la phrase de passe ne peut pas être retrouvée</h2></div>
       <p>La phrase de passe est la <strong>seule clé</strong> des données envoyées dans le cloud. Personne ne peut la retrouver
       ni la remettre à zéro, pas même le développeur.</p>
-      <p><strong>Si vous perdez la phrase de passe ET Face ID sur tous les iPad, les données du cloud sont perdues pour toujours.</strong>
-      (Les données restent sur chaque iPad et dans vos sauvegardes fichiers.)</p>
+      <p><strong>Si vous perdez la phrase de passe ET Face ID sur tous les appareils, les données du cloud sont perdues pour toujours.</strong>
+      (Les données restent sur chaque appareil et dans vos sauvegardes fichiers.)</p>
       <p>Écrivez-la sur papier et rangez-la en lieu sûr.</p>
     </section>
     <form class="card form" data-create>
@@ -120,7 +121,7 @@ function createHtml() {
         <input type="password" name="p1" autocomplete="new-password" required></label>
       <label class="field"><span>La même phrase, encore une fois</span>
         <input type="password" name="p2" autocomplete="new-password" required></label>
-      <label class="field"><span>Nom de cet iPad</span>
+      <label class="field"><span>Nom de cet appareil (par exemple « iPhone de Maman »)</span>
         <input type="text" name="label" value="iPad" maxlength="40" required></label>
       <label class="choice choice-check danger-check">
         <input type="checkbox" name="compris" required>
@@ -135,15 +136,15 @@ function createHtml() {
 function unlockHtml(dev, firstTime) {
   return `<section class="card">
       <h2>Ouvrir les données du cloud</h2>
-      ${firstTime ? `<p class="note">Première fois sur cet iPad : les données du cloud y seront copiées. Quand une même opération
-        existe des deux côtés, c’est celle du cloud qui est gardée ; ce qui n’existe que sur cet iPad est ajouté au cloud.</p>` : ''}
+      ${firstTime ? `<p class="note">Première fois sur cet appareil : les données du cloud y seront copiées. Quand une même opération
+        existe des deux côtés, c’est celle du cloud qui est gardée ; ce qui n’existe que sur cet appareil est ajouté au cloud.</p>` : ''}
       ${dev?.credentialId ? `<button type="button" class="btn btn-primary btn-wide btn-big" data-faceid>${icon('cadenas')}Déverrouiller avec Face ID</button>` : ''}
     </section>
     <form class="card form" data-unlock>
       <h2>${dev?.credentialId ? 'Ou avec la phrase de passe' : 'Avec la phrase de passe'}</h2>
       <label class="field"><span>Phrase de passe</span>
         <input type="password" name="p" autocomplete="current-password" required></label>
-      ${dev?.credentialId ? '' : `<label class="field"><span>Nom de cet iPad</span>
+      ${dev?.credentialId ? '' : `<label class="field"><span>Nom de cet appareil (par exemple « iPhone de Maman »)</span>
         <input type="text" name="label" value="iPad" maxlength="40"></label>`}
       ${errorBox}
       <button type="submit" class="btn btn-${dev?.credentialId ? 'secondary' : 'primary'} btn-wide">Ouvrir avec la phrase de passe</button>
@@ -163,28 +164,28 @@ async function activeHtml(dev, canFaceId) {
       <div class="counts">
         <div class="count-line"><span>Dernière synchronisation</span><strong>${r ? esc(whenText(r.at)) : 'pas encore'}</strong></div>
         <div class="count-line"><span>Changements en attente d’envoi</span><strong>${n}</strong></div>
-        ${r && r.applied ? `<div class="count-line"><span>Reçus de l’autre iPad (dernière fois)</span><strong>${r.applied}</strong></div>` : ''}
+        ${r && r.applied ? `<div class="count-line"><span>Reçus des autres appareils (dernière fois)</span><strong>${r.applied}</strong></div>` : ''}
       </div>
       ${s.lastError ? `<p class="warn-box">${icon('attention')}<span>${esc(s.lastError)}</span></p>` : ''}
       ${errorBox}
       <button type="button" class="btn btn-primary btn-wide" data-sync-now${s.busy ? ' disabled' : ''}>${s.busy ? 'Synchronisation…' : 'Synchroniser maintenant'}</button>
     </section>
     ${canFaceId && !dev?.credentialId ? `<form class="card form" data-faceid-on>
-        <h2>Activer Face ID sur cet iPad</h2>
+        <h2>Activer Face ID sur cet appareil</h2>
         <p class="note">Ensuite, un simple regard suffit pour ouvrir les données. La phrase de passe reste la clé de secours.</p>
         ${justTyped ? '' : `<label class="field"><span>Phrase de passe</span>
           <input type="password" name="p" autocomplete="current-password" required></label>`}
-        <label class="field"><span>Nom de cet iPad</span>
+        <label class="field"><span>Nom de cet appareil (par exemple « iPhone de Maman »)</span>
           <input type="text" name="label" value="${esc(justTyped?.label ?? 'iPad')}" maxlength="40" required></label>
         <p class="form-error" data-faceid-error role="alert" tabindex="-1" hidden></p>
         <button type="submit" class="btn btn-primary btn-wide">${icon('cadenas')}Activer Face ID</button>
       </form>` : ''}
-    ${dev?.credentialId ? `<p class="note">Face ID est activé sur cet iPad (${esc(dev.label ?? '')}).</p>` : ''}
+    ${dev?.credentialId ? `<p class="note">Face ID est activé sur cet appareil (${esc(dev.label ?? '')}).</p>` : ''}
     <section class="card">
       <button type="button" class="btn btn-secondary btn-wide" data-lock>${icon('cadenas')}Verrouiller</button>
-      <button type="button" class="btn btn-secondary btn-wide" data-signout>Se déconnecter de cet iPad</button>
-      <p class="note">Verrouiller : la synchronisation s’arrête jusqu’au prochain Face ID. Se déconnecter : cet iPad ne synchronise plus ;
-      ses données restent sur l’iPad.</p>
+      <button type="button" class="btn btn-secondary btn-wide" data-signout>Se déconnecter de cet appareil</button>
+      <p class="note">Verrouiller : la synchronisation s’arrête jusqu’au prochain Face ID. Se déconnecter : cet appareil ne synchronise plus ;
+      ses données y restent.</p>
     </section>`;
 }
 
@@ -303,8 +304,8 @@ export function synchroView() {
           sync.lock();
         } else if ('signout' in b.dataset) {
           const ok = await confirmer({
-            titre: 'Se déconnecter de cet iPad ?',
-            message: 'Cet iPad ne synchronisera plus. Ses données restent sur l’iPad. Pour reprendre, il faudra se reconnecter et la phrase de passe.',
+            titre: 'Se déconnecter de cet appareil ?',
+            message: 'Cet appareil ne synchronisera plus. Ses données y restent. Pour reprendre, il faudra se reconnecter et la phrase de passe.',
             ok: 'Se déconnecter', non: 'Annuler', danger: true,
           });
           if (!ok) return;

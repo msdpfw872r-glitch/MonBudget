@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.8.6
+ * Version : 0.9.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,7 @@
  *   0.6.0  FRE (Fidag)  Carte « Sauvegarde » (sauvegarder, restaurer, guide Raccourcis).
  *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? » après le menu Partager.
  *   0.8.6  FRE (Fidag)  Synchronisation entre les iPad (#/reglages/synchro).
+ *   0.9.1  FRE (Fidag)  Synchronisation en haut des Réglages (visible sans défiler sur iPhone).
  */
 
 import { APP_VERSION } from './version.js';
@@ -98,8 +99,8 @@ function accueilReglages() {
       const db = await getDb();
       const o = await R.overview(db);
       root.innerHTML = `
-        ${await backupCard(db)}
         <section class="card list">${await synchroRow()}</section>
+        ${await backupCard(db)}
         <section class="card list">
           ${row({ href: '#/reglages/regles', title: 'Règles retenues',
             sub: o.rulesCount ? plural(o.rulesCount, 'commerce reconnu', 'commerces reconnus') : 'Aucune pour l’instant' })}

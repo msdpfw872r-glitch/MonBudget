@@ -1,5 +1,9 @@
 # Historique des versions
 
+## 0.9.1 — 2026-11-09 — FRE (Fidag)
+- Réglages : **Synchronisation entre appareils** placée tout en haut (sur iPhone, elle était sous la sauvegarde et il fallait faire défiler).
+- Textes de la synchronisation valables pour l'iPad **et l'iPhone** (« cet appareil », « Nom de cet appareil »).
+
 ## 0.9.0 — 2026-11-09 — FRE (Fidag)
 - **Synchronisation chiffrée de bout en bout entre les deux iPad** (Firebase, offre gratuite), étape 7 : finitions et mise en service.
   - Données chiffrées sur l'iPad (AES-GCM 256) avant tout envoi ; Firebase ne voit ni montants, ni libellés, ni identifiants.

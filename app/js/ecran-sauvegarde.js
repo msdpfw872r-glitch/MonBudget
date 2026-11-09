@@ -2,7 +2,7 @@
  * ecran-sauvegarde.js — Sauvegarder, restaurer (avec confirmation bien visible), rappel sur l'accueil,
  * guide pas à pas pour l'app Raccourcis.
  *
- * Version : 0.9.0
+ * Version : 0.9.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,7 @@
  *   0.6.1  FRE (Fidag)  Après le menu Partager, demander « Le fichier a-t-il bien été enregistré ? »
  *                       (un raccourci répond comme une annulation).
  *   0.9.0  FRE (Fidag)  Restauration : avertit que les données remplaceront aussi celles du cloud (synchro).
+ *   0.9.1  FRE (Fidag)  Textes « appareil » au lieu de « iPad » (iPhone aussi).
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -189,8 +190,8 @@ export function restaurerView() {
               <span>${b.createdAt ? `Sauvegarde du ${esc(whenText(b.createdAt))}` : esc(pending.fileName)}</span>
               <span>${esc(countsText(b.counts))}</span></div>
           </div>
-          ${syncService.getState().phase !== 'inactif' ? `<p><strong>Synchronisation entre les iPad :</strong> à la prochaine synchronisation,
-            ces données remplaceront aussi celles du cloud et de l’autre iPad.</p>` : ''}
+          ${syncService.getState().phase !== 'inactif' ? `<p><strong>Synchronisation entre appareils :</strong> à la prochaine synchronisation,
+            ces données remplaceront aussi celles du cloud et des autres appareils.</p>` : ''}
           <p class="note">Conseil : si vous n’êtes pas sûre, sauvegardez d’abord les données d’aujourd’hui.</p>
           <p class="flash" data-message-sauvegarde role="status" hidden></p>
           <button type="button" class="btn btn-secondary btn-wide" data-sauvegarder>${icon('sauvegarde')}Sauvegarder d’abord les données d’aujourd’hui</button>

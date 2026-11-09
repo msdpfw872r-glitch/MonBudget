@@ -1,7 +1,7 @@
 /**
  * synchro-service.js — État de la synchronisation dans l'app : connexion, déverrouillage, envois automatiques.
  *
- * Version : 0.8.6
+ * Version : 0.9.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,7 @@
  *
  * Historique :
  *   0.8.6  FRE (Fidag)  Première version.
+ *   0.9.1  FRE (Fidag)  Textes « appareil » au lieu de « iPad » (iPhone aussi).
  */
 
 import { getDb } from './store.js';
@@ -113,7 +114,7 @@ export async function unlockWithPassphrase(passphrase) {
 /** Face ID : à appeler directement dans le geste (toucher le bouton). */
 export async function unlockWithFaceId() {
   const dev = await deviceSettings();
-  if (!dev?.credentialId || !dev?.prfSalt) throw new pk.PasskeyError('Face ID n’est pas encore activé sur cet iPad. Utilisez la phrase de passe.');
+  if (!dev?.credentialId || !dev?.prfSalt) throw new pk.PasskeyError('Face ID n’est pas encore activé sur cet appareil. Utilisez la phrase de passe.');
   const secret = await pk.getPrfSecret(dev.credentialId, dev.prfSalt);
   try {
     const r = await getRemote();
