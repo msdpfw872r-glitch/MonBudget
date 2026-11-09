@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.8.4 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 4 : **moteur de synchronisation** (`app/src/core/synchro.js`), sans Firebase encore.
+  - Coffre : création de la clé des données, ouverture par phrase de passe ou par passkey (Face ID), ajout d'une passkey par appareil, changement de phrase de passe.
+  - Fusion « dernière écriture gagnante » par enregistrement ; suppressions transmises ; envoi par lots de 400 ; ce qui est modifié pendant l'envoi repart la fois suivante ; hors ligne, la file attend.
+  - Premier iPad : toutes les données existantes partent (migration). Deuxième iPad : reçoit tout, le cloud gagne, ses propres ajouts partent.
+  - Documents du cloud liés à leur nom : un document falsifié ou déplacé est refusé.
+- Restaurer une sauvegarde fichier : à la prochaine synchro, ces données **remplacent** celles du cloud (y compris suppressions). L'état de synchro d'un appareil n'est jamais mis dans une sauvegarde.
+- 111 tests automatiques (faux cloud en mémoire).
+
 ## 0.8.3 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 3 : **module de chiffrement** (`app/src/core/chiffrement.js`, Web Crypto seulement). Clé des données (AES-GCM 256, nouvelle valeur d'initialisation à chaque chiffrement), gardée en mémoire en clés non exportables ; enveloppe par phrase de passe (PBKDF2-SHA256, 600 000 itérations) et par passkey (secret PRF → HKDF-SHA256) ; noms de documents illisibles (HMAC). Pas encore branché sur l'app.
 - 100 tests automatiques.
