@@ -3,13 +3,14 @@
  * affichage des montants et des dates.
  * Lancer : npm test
  *
- * Version : 0.4.0
+ * Version : 0.8.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version.
  *   0.4.0  FRE (Fidag)  Noms lisibles des opérations et périodes des relevés.
+ *   0.8.5  FRE (Fidag)  Réseau : CSP limitée à Firebase ; SDK Firebase copié vérifié.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -77,17 +78,37 @@ test('le service worker met en cache tous les fichiers de l’app', async () => 
 });
 
 test('aucune requête vers Internet dans l’app', async () => {
-  const files = (await listFiles(app)).filter((f) => /\.(html|css|js|webmanifest)$/.test(f));
+  // Le SDK Firebase copié (vendor/) contient les adresses des services Google : seule la CSP compte pour lui.
+  const files = (await listFiles(app)).filter((f) => /\.(html|css|js|webmanifest)$/.test(f) && !f.startsWith('vendor/'));
   for (const f of files) {
     const src = await read(f);
     // Seuls les identifiants de format (espaces de noms XML) sont tolérés, jamais chargés.
-    const urls = [...src.matchAll(/https?:\/\/[^\s'"<>)]+/g)].map((m) => m[0])
+    // La CSP de index.html nomme les services Firebase autorisés : vérifiée à part ci-dessous.
+    const code = f === 'index.html' ? src.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, '') : src;
+    const urls = [...code.matchAll(/https?:\/\/[^\s'"<>)]+/g)].map((m) => m[0])
       .filter((u) => !/^http:\/\/(www\.w3\.org|schemas\.openxmlformats\.org|purl\.oclc\.org)\//.test(u));
     assert.deepEqual(urls, [], `adresse externe dans app/${f}`);
   }
   const html = await read('index.html');
   assert.match(html, /Content-Security-Policy" content="default-src 'self'/);
   assert.doesNotMatch(html, /\sstyle="/, 'pas de style en ligne (bloqué par la CSP)');
+  // Réseau : uniquement la synchronisation chiffrée Firebase, aucun script externe.
+  const csp = html.match(/Content-Security-Policy" content="([^"]+)"/)[1];
+  const dir = (name) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(name + ' '));
+  assert.equal(dir('script-src'), "script-src 'self'");
+  assert.equal(dir('connect-src'), "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com");
+});
+
+test('SDK Firebase copié : version 13.2.0, aucun import depuis Internet', async () => {
+  const dir = 'vendor/firebase/13.2.0/';
+  for (const f of ['firebase-app.js', 'firebase-auth.js', 'firebase-firestore-lite.js']) {
+    const src = await read(dir + f);
+    assert.doesNotMatch(src, /(from|import)\s*\(?\s*["']https?:/, `${f} : import externe`);
+    assert.doesNotMatch(src, /sourceMappingURL/);
+  }
+  assert.match(await read(dir + 'firebase-auth.js'), /from"\.\/firebase-app\.js"/);
+  assert.match(await read(dir + 'firebase-app.js'), /13\.2\.0/);
+  assert.match(await read('js/cloud.js'), /'\.\.\/vendor\/firebase\/13\.2\.0\/'/);
 });
 
 test('manifeste installable', async () => {

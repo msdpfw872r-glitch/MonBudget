@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.8.4
+ * Version : 0.8.5
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -30,9 +30,10 @@
  *   0.8.2  FRE (Fidag)  Version 0.8.2 (suivi des changements pour la synchro).
  *   0.8.3  FRE (Fidag)  Module de chiffrement (chiffrement.js).
  *   0.8.4  FRE (Fidag)  Moteur de synchronisation (synchro.js).
+ *   0.8.5  FRE (Fidag)  SDK Firebase copié (vendor/) et adaptateur cloud.js mis en cache.
  */
 
-const VERSION = '0.8.4';
+const VERSION = '0.8.5';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -61,6 +62,10 @@ const FILES = [
   './src/core/format.js',
   './src/core/chiffrement.js',
   './src/core/synchro.js',
+  './js/cloud.js',
+  './vendor/firebase/13.2.0/firebase-app.js',
+  './vendor/firebase/13.2.0/firebase-auth.js',
+  './vendor/firebase/13.2.0/firebase-firestore-lite.js',
   './src/core/reglages.js',
   './src/core/regles.js',
   './src/core/cartes.js',

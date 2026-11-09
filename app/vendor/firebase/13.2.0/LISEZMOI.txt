@@ -1,0 +1,37 @@
+SDK Firebase JavaScript 13.2.0 — copie locale
+=============================================
+
+Version : 0.8.5
+Auteur  : FRE (Fidag)
+Date    : 2026-11-09
+
+Pourquoi : l'app ne charge aucun script depuis Internet (CSP « script-src 'self' »,
+démarrage hors ligne). Les modules Firebase sont donc copiés ici et mis en cache
+par le service worker.
+
+Origine : paquet npm « firebase » 13.2.0 (licence Apache-2.0, voir LICENSE.txt),
+https://registry.npmjs.org/firebase/-/firebase-13.2.0.tgz
+  SHA-256 du paquet : 3399f5767761a417f40854b927f5c1585c2ff5c71a3327b0fd1943164e866b29
+
+Fichiers repris (versions « navigateur » du paquet) et SHA-256 de l'original :
+  firebase-app.js             a67a49aeb0937561e6405f721cf486dc3085e73763716e8233082417be769d40
+  firebase-auth.js            f29ff093124d9173c0fce1882d595ebfd4edfb84615fd8d6a55f4579acf3756b
+  firebase-firestore-lite.js  06514a934571c6aa4be07861f2e91562b0dfd91b0ff87fad704fc6f8d3925804
+
+Seules modifications (aucune autre ligne touchée) :
+  1. l'import « https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js »
+     devient « ./firebase-app.js » (dans firebase-auth.js et firebase-firestore-lite.js) ;
+  2. la dernière ligne « //# sourceMappingURL=… » est retirée (fichiers .map non copiés).
+
+Firestore « lite » : simples requêtes HTTPS, sans connexion permanente ni cache ;
+la file d'envoi hors ligne est gérée par l'app (app/src/core/synchro.js).
+
+Refaire la copie :
+  npm pack firebase@13.2.0 && tar xzf firebase-13.2.0.tgz
+  for f in firebase-app.js firebase-auth.js firebase-firestore-lite.js; do
+    sed -e 's#https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js"#./firebase-app.js"#' \
+        -e '/^\/\/# sourceMappingURL=/d' package/$f > app/vendor/firebase/13.2.0/$f
+  done
+
+Historique :
+  0.8.5  FRE (Fidag)  Première copie (13.2.0).

@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.8.5 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 5 : **SDK Firebase 13.2.0 copié dans l'app** (`app/vendor/firebase/13.2.0/` : app, auth, Firestore « lite »), sans CDN ; empreintes et procédure dans `LISEZMOI.txt`. Mis en cache pour le hors ligne, chargé seulement si la synchronisation est utilisée.
+- Adaptateur `app/js/cloud.js` : connexion e-mail + mot de passe (session gardée sur l'appareil, un seul compte accepté), lecture des changements depuis la dernière fois, écriture par lots. Messages d'erreur en mots simples.
+- Sécurité : la page n'autorise le réseau que vers `firestore.googleapis.com`, `identitytoolkit.googleapis.com` et `securetoken.googleapis.com` ; aucun script externe.
+
 ## 0.8.4 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 4 : **moteur de synchronisation** (`app/src/core/synchro.js`), sans Firebase encore.
   - Coffre : création de la clé des données, ouverture par phrase de passe ou par passkey (Face ID), ajout d'une passkey par appareil, changement de phrase de passe.
