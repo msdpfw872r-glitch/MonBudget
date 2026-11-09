@@ -1,7 +1,7 @@
 /**
  * suppression.js — « Supprimer des données » : choix par groupe (rien / tout / certains), résumé, suppression.
  *
- * Version : 0.12.0
+ * Version : 0.14.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -14,11 +14,13 @@
  * Historique :
  *   0.11.0 FRE (Fidag)  Première version.
  *   0.12.0 FRE (Fidag)  Toutes les catégories supprimables (celles de départ sont un exemple) ; personnes ajoutées à part.
+ *   0.14.0 FRE (Fidag)  « Tout remettre à zéro » (selection.reset) : comme à la première utilisation.
  */
 
 import { formatDateShort, formatMonth, opName, formatCHF } from './format.js';
 import { unlinkBill } from './cartes.js';
-import { normRef } from './reglages.js';
+import { normRef, installSeed } from './reglages.js';
+import { SYNCED_STORES } from '../data/db.js';
 
 export const GROUPS = [
   { id: 'imports', title: 'Imports', help: 'Supprime le fichier importé et ses opérations', one: 'import', many: 'imports' },
@@ -122,6 +124,13 @@ async function chosenIds(db, selection, group, opts) {
  * @returns {Promise<{lines: Array<{group: string, count: number, text: string}>, total: number}>}
  */
 export async function planDeletion(db, selection, opts = {}) {
+  if (selection.reset) {
+    const [t, r, i] = await Promise.all([db.count('transactions'), db.count('rules'), db.count('imports')]);
+    return { reset: true, total: 1, lines: [
+      { group: 'reset', count: t, text: `Toutes vos données : ${countText(t, groupById('operations'))}, ${countText(r, groupById('regles'))}, ${countText(i, groupById('imports'))}, vos catégories, personnes et comptes` },
+      { group: 'reset', count: 0, text: 'L’app repart comme à la première utilisation, avec les catégories, personnes et comptes d’exemple' },
+    ] };
+  }
   const lines = [];
   const importIds = new Set(await chosenIds(db, selection, 'imports', opts));
   const txs = await db.getAll('transactions');
@@ -155,6 +164,7 @@ const untouched = (t) => ({ ...t, personId: null, categoryId: null, status: 'a-t
  * @returns {Promise<{imports: number, operations: number, tri: number, regles: number, rattachements: number, numeros: number, categories: number, personnes: number}>}
  */
 export async function applyDeletion(db, selection, opts = {}) {
+  if (selection.reset) return resetAll(db, opts.seed);
   const done = { imports: 0, operations: 0, tri: 0, regles: 0, rattachements: 0, numeros: 0, categories: 0, personnes: 0 };
   // Tout est calculé AVANT de supprimer (les listes changent en cours de route).
   const ids = {};
@@ -208,5 +218,21 @@ export async function applyDeletion(db, selection, opts = {}) {
   };
   for (const id of ids.categories) { await removeUsed('categories', id); done.categories++; }
   for (const id of ids.personnes) { await removeUsed('people', id); done.personnes++; }
+  return done;
+}
+
+/**
+ * Tout remettre à zéro : comme à la première utilisation. Toutes les données sont effacées
+ * (aussi sur les autres appareils) puis les données d'exemple sont remises. Le compte, Face ID,
+ * l'état de synchronisation et les copies de sécurité en ligne sont gardés.
+ * @returns {Promise<{reset: true, operations: number, regles: number, imports: number}>}
+ */
+export async function resetAll(db, seed) {
+  if (!seed) throw new Error('Données d’exemple manquantes');
+  const done = { reset: true, operations: await db.count('transactions'), regles: await db.count('rules'), imports: await db.count('imports') };
+  for (const s of SYNCED_STORES) await db.clear(s);
+  const app = await db.get('settings', 'app');
+  if (app) await db.delete('settings', 'app');
+  await installSeed(db, seed);
   return done;
 }

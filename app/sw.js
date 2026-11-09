@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.13.0
+ * Version : 0.14.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -41,9 +41,10 @@
  *   0.11.0 FRE (Fidag)  Supprimer des données (suppression.js, ecran-supprimer.js).
  *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (copies.js).
  *   0.13.0 FRE (Fidag)  Version 0.13.0.
+ *   0.14.0 FRE (Fidag)  Version 0.14.0.
  */
 
-const VERSION = '0.13.0';
+const VERSION = '0.14.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */

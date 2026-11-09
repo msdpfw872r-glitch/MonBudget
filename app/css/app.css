@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.13.0
+ * Version : 0.14.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -31,6 +31,7 @@
  *   0.11.0 FRE (Fidag)  « Supprimer des données » : cases à trois états, listes à cocher, confirmation.
  *   0.12.0 FRE (Fidag)  Liste des copies de sécurité en ligne.
  *   0.13.0 FRE (Fidag)  Groupes de catégories qu'on peut fermer.
+ *   0.14.0 FRE (Fidag)  Bloc « Tout remettre à zéro ».
  */
 
 @font-face {
@@ -929,3 +930,9 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
 .cat-group-state svg { width: 20px; height: 20px; transition: transform .15s; transform: rotate(90deg); }
 .cat-group:not([open]) .cat-group-state svg { transform: rotate(0deg); }
 .cat-group summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+
+/* ---------- 0.14.0 Tout remettre à zéro ---------- */
+
+.del-reset-card { margin-top: 16px; border: 2px dashed #A3271B; }
+.del-reset-card h2 { color: #7E1E15; }
+.del-reset .row-text { padding: 6px 4px; }

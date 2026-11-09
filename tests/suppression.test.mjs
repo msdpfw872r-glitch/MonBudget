@@ -2,13 +2,14 @@
  * suppression.test.mjs — Tests de « Supprimer des données » : groupes, rien / tout / certains, résumé, effets.
  * Lancer : npm test
  *
- * Version : 0.12.0
+ * Version : 0.14.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.11.0 FRE (Fidag)  Première version.
  *   0.12.0 FRE (Fidag)  Toutes les catégories supprimables ; catégories d'exemple remises.
+ *   0.14.0 FRE (Fidag)  Tout remettre à zéro.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -136,4 +137,25 @@ test('toutes les catégories supprimées, puis les catégories d’exemple remis
   assert.equal(await db.count('categories'), seed.categories.length);
   assert.equal(await R.restoreSampleCategories(db, seed), 0, 'rien en double');
   assert.equal((await db.get('outbox', 'categories/alimentation-et-courses')).deleted, false, 'remises aussi sur les autres appareils');
+});
+
+test('tout remettre à zéro : comme à la première utilisation, transmis aux autres appareils', async () => {
+  const { db, tante } = await base();
+  await db.put('settings', { id: 'sync', cursor: 5, joinedAt: 'x' });
+  await R.restoreSampleCategories(db, seed);
+  await db.delete('categories', 'animaux');
+  const plan = await D.planDeletion(db, { reset: true, imports: 'all' }, opts);
+  assert.equal(plan.reset, true);
+  assert.match(plan.lines[0].text, /4 opérations, 2 règles, 2 imports/);
+  const done = await D.applyDeletion(db, { reset: true }, opts);
+  assert.deepEqual([done.reset, done.operations, done.regles, done.imports], [true, 4, 2, 2]);
+  for (const s of ['transactions', 'rules', 'imports']) assert.equal(await db.count(s), 0, s);
+  assert.equal(await db.count('categories'), seed.categories.length, 'catégories d’exemple remises (animaux compris)');
+  assert.equal(await db.count('people'), seed.people.length);
+  assert.equal(await db.get('people', tante.id), undefined);
+  assert.deepEqual((await db.get('accounts', 'carte-ubs-maman')).bankRefs ?? [], []);
+  assert.ok((await db.get('settings', 'app')).seededAt);
+  assert.equal((await db.get('settings', 'sync')).cursor, 5, 'la synchronisation continue');
+  assert.equal((await db.get('outbox', 'transactions/a')).deleted, true);
+  assert.equal((await db.get('outbox', 'categories/animaux')).deleted, false, 'remise aussi en ligne');
 });

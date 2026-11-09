@@ -2,7 +2,7 @@
  * ecran-supprimer.js — Réglages › Supprimer des données (choisir, vérifier, taper SUPPRIMER, valider),
  * Réglages › Imports (supprimer un import), Réglages › Copies de sécurité (en ligne et fichier).
  *
- * Version : 0.12.0
+ * Version : 0.14.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,8 @@
  *   0.11.0 FRE (Fidag)  Première version.
  *   0.12.0 FRE (Fidag)  Copies de sécurité en ligne (10, commentaire, remettre, supprimer), copie automatique avant
  *                       une suppression ; toutes les catégories supprimables ; « Remettre les catégories d'exemple ».
+ *   0.14.0 FRE (Fidag)  Les cases cochées sont gardées à chaque changement (aussi avec « Retour ») ;
+ *                       « Tout remettre à zéro » (comme à la première utilisation).
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -57,6 +59,18 @@ function chooseView() {
       const totals = {};
       for (const g of D.GROUPS) totals[g.id] = (await D.listGroup(db, g.id, o)).length;
       const chosen = D.GROUPS.filter((g) => stateOf(g.id, totals[g.id]).st !== 'none').length;
+      if (selection.reset) {
+        root.innerHTML = `<p class="steps"><strong>1. Choisir</strong> › 2. Vérifier › 3. Confirmer</p>
+          <section class="del-group on del-reset"><span class="row-text"><span class="row-title">Tout remettre à zéro</span>
+            <span class="row-sub">Choisi : toutes les données seront effacées, l’app repartira comme à la première utilisation.</span></span></section>
+          <button type="button" class="btn btn-danger btn-wide btn-big" data-next>Continuer : vérifier</button>
+          <button type="button" class="btn btn-secondary btn-wide" data-reset-off>Ne pas tout remettre à zéro, choisir quoi supprimer</button>`;
+        root.onclick = (e) => {
+          if (e.target.closest('[data-next]')) go('#/reglages/supprimer/verifier');
+          else if (e.target.closest('[data-reset-off]')) { selection = {}; this.render(root); }
+        };
+        return;
+      }
       root.innerHTML = `<p class="steps"><strong>1. Choisir</strong> › 2. Vérifier › 3. Confirmer</p>
         <p class="note">Pour chaque genre de données : rien, tout, ou seulement certains éléments.</p>
         ${D.GROUPS.map((g) => {
@@ -71,7 +85,13 @@ function chooseView() {
           </section>`;
         }).join('')}
         <button type="button" class="btn btn-danger btn-wide btn-big" data-next${chosen ? '' : ' disabled'}>
-          ${chosen ? `Continuer : vérifier (${chosen} choix)` : 'Choisissez d’abord quoi supprimer'}</button>`;
+          ${chosen ? `Continuer : vérifier (${chosen} choix)` : 'Choisissez d’abord quoi supprimer'}</button>
+        <section class="card del-reset-card">
+          <h2>Tout remettre à zéro</h2>
+          <p class="note">Efface <strong>toutes</strong> les données (opérations, imports, règles, catégories, personnes, comptes) et repart
+          comme à la première utilisation, avec les données d’exemple. Le compte, Face ID et les copies de sécurité en ligne sont gardés.</p>
+          <button type="button" class="btn btn-danger-outline btn-wide" data-reset>Tout effacer et repartir de zéro</button>
+        </section>`;
       root.onclick = (e) => {
         const t = e.target.closest('[data-toggle]');
         if (t) {
@@ -79,6 +99,7 @@ function chooseView() {
           selection[id] = stateOf(id, totals[id]).st === 'all' ? null : 'all';
           this.render(root);
         } else if (e.target.closest('[data-next]')) go('#/reglages/supprimer/verifier');
+        else if (e.target.closest('[data-reset]')) { selection = { reset: true }; go('#/reglages/supprimer/verifier'); }
       };
     },
   };
@@ -129,11 +150,17 @@ function pickView(groupId) {
           mb.indeterminate = c > 0 && c < inMonth.length;
         }
       };
+      // Chaque changement est gardé tout de suite (« Retour » ne perd rien).
+      const commit = () => {
+        const ids = boxes().filter((b) => b.checked).map((b) => b.value);
+        selection[groupId] = ids.length === items.length && ids.length ? 'all' : ids;
+      };
       refresh();
       root.onchange = (e) => {
         const mb = e.target.closest('[data-month-box]');
         if (mb) for (const b of boxes()) if (b.dataset.inMonth === mb.dataset.monthBox) b.checked = mb.checked;
         refresh();
+        commit();
       };
       root.querySelector('[data-search-input]').addEventListener('input', (e) => {
         const q = e.target.value.trim().toLowerCase();
@@ -141,13 +168,9 @@ function pickView(groupId) {
       });
       root.onclick = (e) => {
         const visible = boxes().filter((b) => !b.closest('[data-search]').hidden);
-        if (e.target.closest('[data-all]')) { for (const b of visible) b.checked = true; refresh(); }
-        else if (e.target.closest('[data-none]')) { for (const b of visible) b.checked = false; refresh(); }
-        else if (e.target.closest('[data-keep]')) {
-          const ids = boxes().filter((b) => b.checked).map((b) => b.value);
-          selection[groupId] = ids.length === items.length && ids.length ? 'all' : ids;
-          go('#/reglages/supprimer');
-        }
+        if (e.target.closest('[data-all]')) { for (const b of visible) b.checked = true; refresh(); commit(); }
+        else if (e.target.closest('[data-none]')) { for (const b of visible) b.checked = false; refresh(); commit(); }
+        else if (e.target.closest('[data-keep]')) { commit(); go('#/reglages/supprimer'); }
       };
     },
   };
@@ -166,9 +189,9 @@ function verifyView() {
       if (!plan.lines.length) { go('#/reglages/supprimer'); return; }
       root.innerHTML = `<p class="steps">1. Choisir › <strong>2. Vérifier › 3. Confirmer</strong></p>
         <section class="danger-zone" aria-labelledby="del-titre">
-          <div class="danger-head">${icon('attention')}<h2 id="del-titre">Ceci sera supprimé</h2></div>
+          <div class="danger-head">${icon('attention')}<h2 id="del-titre">${plan.reset ? 'Tout sera effacé' : 'Ceci sera supprimé'}</h2></div>
           <ul class="del-list">${plan.lines.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul>
-          <p><strong>Aussi sur vos autres appareils.</strong> Cela ne peut pas être annulé.</p>
+          <p><strong>Aussi sur vos autres appareils.</strong> Une copie de sécurité en ligne est faite juste avant : c’est le seul moyen de revenir en arrière.</p>
           <label class="field"><span>Pour confirmer, tapez SUPPRIMER</span>
             <input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" data-mot class="del-word"></label>
           <p class="form-error" role="alert" tabindex="-1" hidden></p>
@@ -215,6 +238,22 @@ function verifyView() {
 }
 
 function doneView(root) {
+  if (done.reset) {
+    root.innerHTML = `<section class="card del-done">
+        <span class="round-icon ok">${icon('ok')}</span>
+        <h2>Tout a été remis à zéro</h2>
+        <div class="counts">
+          <div class="count-line"><span>Opérations effacées</span><strong>${fmtN(done.operations)}</strong></div>
+          <div class="count-line"><span>Règles effacées</span><strong>${fmtN(done.regles)}</strong></div>
+          <div class="count-line"><span>Imports effacés</span><strong>${fmtN(done.imports)}</strong></div>
+        </div>
+        <p class="note">L’app repart avec les données d’exemple. Vos autres appareils seront mis à jour à la prochaine synchronisation.
+        ${autoCopied ? 'Une copie en ligne des données d’avant a été faite (Réglages › Copies de sécurité).' : ''}</p>
+      </section>
+      <a class="btn btn-primary btn-wide" href="#/accueil" data-fini>Aller à l’accueil</a>`;
+    root.onclick = (e) => { if (e.target.closest('[data-fini]')) done = null; };
+    return;
+  }
   const labels = [['imports', 'Imports supprimés'], ['operations', 'Opérations supprimées'], ['tri', 'Opérations remises à trier'],
     ['regles', 'Règles supprimées'], ['rattachements', 'Factures détachées de leurs achats'], ['numeros', 'Numéros oubliés'],
     ['categories', 'Catégories supprimées'], ['personnes', 'Personnes supprimées']];

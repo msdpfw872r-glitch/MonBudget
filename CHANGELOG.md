@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.14.0 — 2026-11-09 — FRE (Fidag)
+- Supprimer des données : les cases cochées dans une liste sont **gardées tout de suite**, même en revenant avec « Retour » (avant, il fallait toucher « Garder ce choix »).
+- **Tout remettre à zéro** (en bas de « Supprimer des données ») : efface toutes les données — opérations, imports, règles, catégories, personnes, comptes — et repart **comme à la première utilisation**, avec les données d'exemple. Même vérification (taper SUPPRIMER), copie en ligne automatique juste avant ; le compte, Face ID et les copies de sécurité en ligne sont gardés. Transmis aux autres appareils.
+- 141 tests automatiques.
+
 ## 0.13.0 — 2026-11-09 — FRE (Fidag)
 - Modifier une règle (Réglages › Règles retenues) : si des opérations avaient déjà été classées par elle, l'app demande « **Reclasser aussi les anciennes opérations ?** » — **Reclasser** ou **Laisser comme ça**. Les opérations triées à la main ne changent jamais.
 - Réglages › Mes catégories : **de A à Z**, et chaque groupe (Dépenses, Rentrées, Mises de côté) **se ferme et s'ouvre** en touchant son titre (« Fermer » / « Ouvrir », avec le nombre de catégories).
