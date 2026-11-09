@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.10.2
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -28,6 +28,7 @@
  *   0.6.0  FRE (Fidag)  Sauvegarde : écran de restauration bien visible, bandeau de rappel, guide Raccourcis.
  *   0.8.6  FRE (Fidag)  Champs e-mail / mot de passe, bandeau « synchronisation en pause ».
  *   0.10.2 FRE (Fidag)  Écrans de connexion et de verrouillage ; contenu caché quand l'app passe en arrière-plan.
+ *   0.11.0 FRE (Fidag)  « Supprimer des données » : cases à trois états, listes à cocher, confirmation.
  */
 
 @font-face {
@@ -865,3 +866,42 @@ button.stat.detail-link { padding: 18px 20px; border-radius: var(--rayon); box-s
 .lock-card .form { width: 100%; text-align: left; display: flex; flex-direction: column; }
 /* Aperçu du sélecteur d'apps : rien de lisible quand l'app passe en arrière-plan. */
 body.masque .shell, body.masque dialog { visibility: hidden; }
+
+/* ---------- 0.11.0 Supprimer des données ---------- */
+
+.row-danger .row-title { color: #7E1E15; }
+.steps { margin: 0; font-size: 19px; color: var(--texte-2); }
+.steps strong { color: #7E1E15; }
+.del-group {
+  display: flex; align-items: center; gap: 14px; padding: 12px 16px; min-height: 76px;
+  background: var(--surface); border-radius: var(--rayon-petit); box-shadow: var(--ombre); border: 3px solid transparent;
+}
+.del-group.on { border-color: #A3271B; }
+.del-group .row-text { flex: 1; min-width: 0; }
+.tbox {
+  width: 56px; height: 56px; flex-shrink: 0; padding: 11px; border: 0; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; position: relative;
+}
+.tbox::before { content: ''; position: absolute; inset: 11px; border: 3px solid #6B7875; border-radius: 9px; background: #FFFFFF; }
+.tbox.all::before, .tbox.some::before { background: #A3271B; border-color: #A3271B; }
+.tbox svg { position: relative; width: 24px; height: 24px; stroke: #FFFFFF; stroke-width: 3.2; fill: none; stroke-linecap: round; }
+.tbox:disabled { opacity: .4; cursor: default; }
+.del-pill { font-size: 19px; font-weight: 700; padding: 4px 12px; border-radius: 999px; white-space: nowrap; background: #EEF2F0; color: var(--texte-2); }
+.del-pill.all, .del-pill.some { background: #FDECEA; color: #7E1E15; }
+.del-quick { display: flex; gap: 10px; }
+.del-quick .btn { flex: 1; }
+.del-item { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 6px 16px; cursor: pointer; }
+.del-item + .del-item { border-top: 1px solid var(--trait-doux); }
+.del-item input { width: 28px; height: 28px; margin: 0; flex-shrink: 0; accent-color: #A3271B; }
+.del-month-head { background: var(--fond); }
+.del-bar { position: sticky; bottom: 0; padding: 12px 0 4px; background: linear-gradient(transparent, var(--fond) 30%); }
+.del-list { margin: 0; padding-left: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 20px; }
+.del-word { border-color: #A3271B !important; font-size: 22px !important; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+.del-done { align-items: stretch; }
+.del-done .round-icon { align-self: center; }
+.del-done h2 { text-align: center; }
+@media (max-width: 600px) {
+  .del-group { flex-wrap: wrap; }
+  .del-group .row-text { flex-basis: calc(100% - 80px); }
+  .del-pill { margin-left: 70px; }
+}

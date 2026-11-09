@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.11.0 — 2026-11-09 — FRE (Fidag)
+- **Supprimer des données** (Réglages, en bas) selon la maquette `docs/maquette/supprimer-donnees.html` : pour chaque genre — Imports, Opérations (par mois ou une par une), Tri des opérations, Règles retenues, Rattachements aux factures de carte, Numéros reconnus, Catégories et personnes ajoutées — on choisit **Rien**, **Tout** ou **certains éléments** (liste à cocher avec loupe, « Tout cocher / Tout décocher »). Écran « Vérifier » : ce qui va partir, **taper SUPPRIMER**, Valider, dernière question ; puis le récapitulatif. Les suppressions partent aussi vers les autres appareils.
+- Réglages › **Imports** : la liste des fichiers importés, « Supprimer » pour un import (même confirmation).
+- La sauvegarde manuelle n'est plus mise en avant (données synchronisées) : plus de carte « Sauvegarde » ni de bandeau de rappel. Reste une ligne discrète **Copie de sécurité (fichier)** pour revenir en arrière après une suppression par erreur.
+
 ## 0.10.3 — 2026-11-09 — FRE (Fidag)
 - « Vraie app », étape 4 : documentation. Conception mise à jour (`docs/specs/synchro.md` 1.2, § 8 : app verrouillée, données de l'appareil chiffrées), **checklist iPad / iPhone** refaite (`docs/synchro-mise-en-service.md` 2.0), brief 1.8.0.
 - 126 tests automatiques.

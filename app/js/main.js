@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.10.2
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -24,6 +24,7 @@
  *                       quand des changements arrivent de l'autre iPad.
  *   0.10.2 FRE (Fidag)  L'app ne s'affiche qu'une fois connectée et déverrouillée (écrans de ecran-verrou.js) ;
  *                       au verrouillage, l'écran est vidé.
+ *   0.11.0 FRE (Fidag)  Plus de bandeau « Pensez à sauvegarder » (données synchronisées).
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -40,7 +41,7 @@ import { currentMonth, paint as paintColors } from './mois.js';
 import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
 import { openDetail } from './detail.js';
-import { reminderBanner, saveNow, showSaveResult } from './ecran-sauvegarde.js';
+import { saveNow, showSaveResult } from './ecran-sauvegarde.js';
 import { initLockScreens, lockScreenShown } from './ecran-verrou.js';
 import * as session from './session.js';
 import { isUnlocked } from './store.js';
@@ -75,7 +76,7 @@ function accueilView() {
     async render(root) {
       const today = new Date();
       const db = await getDb();
-      const [data, bills, banner] = await Promise.all([loadAll(db), billsToCheck(db), reminderBanner(db)]);
+      const [data, bills] = await Promise.all([loadAll(db), billsToCheck(db)]);
       const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
@@ -93,7 +94,6 @@ function accueilView() {
           </div>
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
-        ${banner}
         <p class="flash" data-message-sauvegarde role="status" hidden></p>
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
         ${pending ? `<a class="todo" href="#/trier">

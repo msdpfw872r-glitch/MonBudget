@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.10.3
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -38,9 +38,10 @@
  *   0.10.1 FRE (Fidag)  Verrou (verrou.js).
  *   0.10.2 FRE (Fidag)  Écrans de connexion / verrouillage (session.js, ecran-verrou.js, ecran-compte.js).
  *   0.10.3 FRE (Fidag)  Version 0.10.3.
+ *   0.11.0 FRE (Fidag)  Supprimer des données (suppression.js, ecran-supprimer.js).
  */
 
-const VERSION = '0.10.3';
+const VERSION = '0.11.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -71,11 +72,13 @@ const FILES = [
   './src/core/synchro.js',
   './src/data/coffre.js',
   './src/core/verrou.js',
+  './src/core/suppression.js',
   './js/cloud.js',
   './js/passkey.js',
   './js/session.js',
   './js/ecran-verrou.js',
   './js/ecran-compte.js',
+  './js/ecran-supprimer.js',
   './vendor/firebase/13.2.0/firebase-app.js',
   './vendor/firebase/13.2.0/firebase-auth.js',
   './vendor/firebase/13.2.0/firebase-firestore-lite.js',

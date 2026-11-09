@@ -2,7 +2,7 @@
  * ecran-sauvegarde.js — Sauvegarder, restaurer (avec confirmation bien visible), rappel sur l'accueil,
  * guide pas à pas pour l'app Raccourcis.
  *
- * Version : 0.10.2
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,6 +15,7 @@
  *   0.9.0  FRE (Fidag)  Restauration : avertit que les données remplaceront aussi celles du cloud (synchro).
  *   0.9.1  FRE (Fidag)  Textes « appareil » au lieu de « iPad » (iPhone aussi).
  *   0.10.2 FRE (Fidag)  Restauration : la synchronisation est toujours active (session.js).
+ *   0.11.0 FRE (Fidag)  Restaurer et Raccourcis rangés sous Réglages › Copie de sécurité.
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -135,7 +136,7 @@ let done = null;    // résultat de la dernière restauration
 export function restaurerView() {
   return {
     title: 'Restaurer une sauvegarde',
-    parent: '#/reglages',
+    parent: '#/reglages/copie',
     async render(root) {
       const db = await getDb();
       const rerender = () => this.render(root);
@@ -254,7 +255,7 @@ export function restaurerView() {
 export function raccourciView() {
   return {
     title: 'Sauvegarder avec Raccourcis',
-    parent: '#/reglages',
+    parent: '#/reglages/copie',
     render(root) {
       root.innerHTML = `<section class="card guide">
           <h2>1. Créer le dossier</h2>

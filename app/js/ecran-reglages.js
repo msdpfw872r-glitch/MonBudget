@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.10.2
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -19,6 +19,8 @@
  *   0.8.6  FRE (Fidag)  Synchronisation entre les iPad (#/reglages/synchro).
  *   0.9.1  FRE (Fidag)  Synchronisation en haut des Réglages (visible sans défiler sur iPhone).
  *   0.10.2 FRE (Fidag)  « Compte et synchronisation » (#/reglages/compte) remplace l'ancien écran Synchronisation.
+ *   0.11.0 FRE (Fidag)  Plus de carte « Sauvegarde » (synchronisation) : lignes Imports, Copie de sécurité,
+ *                       Supprimer des données (#/reglages/imports, /copie, /supprimer).
  */
 
 import { APP_VERSION } from './version.js';
@@ -27,8 +29,9 @@ import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
 import { saveRule, deleteRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
-import { backupCard, saveNow, showSaveResult, restaurerView, raccourciView } from './ecran-sauvegarde.js';
+import { restaurerView, raccourciView } from './ecran-sauvegarde.js';
 import { compteView, compteRow } from './ecran-compte.js';
+import { supprimerView, importsView, copieView, copieRow } from './ecran-supprimer.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -101,7 +104,6 @@ function accueilReglages() {
       const o = await R.overview(db);
       root.innerHTML = `
         <section class="card list">${await compteRow()}</section>
-        ${await backupCard(db)}
         <section class="card list">
           ${row({ href: '#/reglages/regles', title: 'Règles retenues',
             sub: o.rulesCount ? plural(o.rulesCount, 'commerce reconnu', 'commerces reconnus') : 'Aucune pour l’instant' })}
@@ -109,18 +111,14 @@ function accueilReglages() {
           ${row({ href: '#/reglages/personnes', title: 'Pour qui', sub: esc(o.people.map((p) => p.name).join(', ')) })}
           ${row({ href: '#/reglages/comptes', title: 'Mes comptes', sub: esc(o.accounts.map((a) => a.name).join(', ')) || 'Aucun compte' })}
           ${row({ href: '#/factures', title: 'Factures de carte', sub: 'Rattacher les achats des cartes à la facture' })}
+          ${row({ href: '#/reglages/imports', title: 'Imports', sub: plural(await db.count('imports'), 'fichier importé', 'fichiers importés') })}
+        </section>
+        <section class="card list">
+          ${await copieRow(db)}
+          <a class="row row-danger" href="#/reglages/supprimer"><span class="row-text"><span class="row-title">Supprimer des données</span>
+            <span class="row-sub">Imports, opérations, tri, règles…</span></span>${icon('suite')}</a>
         </section>
         <p class="footnote">Mon Budget · version ${APP_VERSION}</p>`;
-      root.onclick = async (e) => {
-        const b = e.target.closest('[data-sauvegarder]');
-        if (!b) return;
-        b.disabled = true;
-        const r = await saveNow();
-        await this.render(root);
-        // Après « Oui, c'est enregistré », la carte est redessinée (« Dernière : … »).
-        const again = async () => { await this.render(root); showSaveResult(root.querySelector('[data-message-sauvegarde]'), { ...r, status: 'shared' }); };
-        showSaveResult(root.querySelector('[data-message-sauvegarde]'), r, again);
-      };
     },
   };
 }
@@ -402,6 +400,9 @@ export function reglagesView(path) {
     case 'raccourci': return raccourciView();
     case 'compte':
     case 'synchro': return compteView();
+    case 'supprimer': return supprimerView(path[1]);
+    case 'imports': return importsView();
+    case 'copie': return copieView();
     default: return accueilReglages();
   }
 }

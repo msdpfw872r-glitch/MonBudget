@@ -1,7 +1,7 @@
 /**
  * ui.js — Petits outils d'interface partagés : icônes, échappement du texte, confirmation.
  *
- * Version : 0.8.6
+ * Version : 0.11.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,7 @@
  *   0.4.2  FRE (Fidag)  Icône « loupe ».
  *   0.5.0  FRE (Fidag)  Confirmation : texte du bouton « non » au choix ; icône « exporter ».
  *   0.8.6  FRE (Fidag)  Icône « cadenas » (synchronisation).
+ *   0.11.0 FRE (Fidag)  Icône « corbeille ».
  */
 
 /* Icônes au trait (même dessin que la maquette). */
@@ -30,6 +31,7 @@ const ICONS = {
   ok: '<path d="M5 12l5 5 9-10"/>',
   carte: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',
   attention: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+  corbeille: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   cadenas: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
 };
 
