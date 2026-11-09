@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.6.0
+ * Version : 0.6.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,7 @@
  *   0.4.0  FRE (Fidag)  Cartes (à qui, facture prélevée sur, numéros reconnus), règles retenues
  *                       modifiables et supprimables, accès aux factures de carte.
  *   0.6.0  FRE (Fidag)  Carte « Sauvegarde » (sauvegarder, restaurer, guide Raccourcis).
+ *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? » après le menu Partager.
  */
 
 import { APP_VERSION } from './version.js';
@@ -23,7 +24,7 @@ import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
 import { saveRule, deleteRule } from '../src/core/regles.js';
 import { shortRef } from '../src/core/import.js';
-import { backupCard, saveNow, saveMessage, restaurerView, raccourciView } from './ecran-sauvegarde.js';
+import { backupCard, saveNow, showSaveResult, restaurerView, raccourciView } from './ecran-sauvegarde.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -111,8 +112,9 @@ function accueilReglages() {
         b.disabled = true;
         const r = await saveNow();
         await this.render(root);
-        const msg = root.querySelector('[data-message-sauvegarde]');
-        if (msg) { msg.textContent = saveMessage(r); msg.hidden = false; }
+        // Après « Oui, c'est enregistré », la carte est redessinée (« Dernière : … »).
+        const again = async () => { await this.render(root); showSaveResult(root.querySelector('[data-message-sauvegarde]'), { ...r, status: 'shared' }); };
+        showSaveResult(root.querySelector('[data-message-sauvegarde]'), r, again);
       };
     },
   };

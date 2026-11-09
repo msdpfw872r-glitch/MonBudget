@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.6.1 — 2026-11-09 — FRE (Fidag)
+- Sauvegarde avec un raccourci : l'app affichait « La sauvegarde a été annulée » alors que le raccourci avait bien enregistré le fichier (l'iPad répond à l'app de la même façon pour un raccourci et pour une annulation). L'app demande maintenant **« Le fichier a-t-il bien été enregistré ? »** — « Oui, c'est enregistré » note la sauvegarde, « Non » ne note rien.
+- Plus de petit fichier « texte » de 38 octets à côté de la sauvegarde : seul le fichier `.json` est envoyé au menu Partager (le titre était reçu par le raccourci comme un 2e fichier). Même chose pour les exports du Journal et du Résumé.
+- Guide Raccourcis complété.
+
 ## 0.6.0 — 2026-11-09 — FRE (Fidag)
 - **Sauvegarder maintenant** (Réglages, et bandeau de l'accueil) : fichier `MonBudget_AAAA-MM-JJ_HH-MM-SS-mmm.json` — date et heure jusqu'à la milliseconde, deux sauvegardes n'ont jamais le même nom — avec toutes les données, les règles et les versions. Ouvre le menu Partager de l'iPad (« Enregistrer dans Fichiers » ou un raccourci) ; sinon téléchargement. Annuler le partage ne compte pas comme une sauvegarde.
 - **Restaurer une sauvegarde** : choix du fichier, puis écran rouge bien visible « Attention : toutes vos données vont être supprimées et remplacées », avec ce qui sera supprimé (aujourd'hui dans l'app) et ce qui sera remis (dans la sauvegarde), bouton « Sauvegarder d'abord les données d'aujourd'hui », case « J'ai compris » obligatoire, bouton « Remplacer toutes mes données », puis une dernière vérification. Si la restauration échoue en cours de route, les données d'avant sont remises.

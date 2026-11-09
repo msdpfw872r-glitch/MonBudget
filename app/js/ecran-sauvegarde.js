@@ -2,7 +2,7 @@
  * ecran-sauvegarde.js — Sauvegarder, restaurer (avec confirmation bien visible), rappel sur l'accueil,
  * guide pas à pas pour l'app Raccourcis.
  *
- * Version : 0.6.0
+ * Version : 0.6.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -10,6 +10,8 @@
  *
  * Historique :
  *   0.6.0  FRE (Fidag)  Première version.
+ *   0.6.1  FRE (Fidag)  Après le menu Partager, demander « Le fichier a-t-il bien été enregistré ? »
+ *                       (un raccourci répond comme une annulation).
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -38,20 +40,53 @@ export function countsText(c) {
 
 /**
  * « Sauvegarder maintenant » : crée le fichier et ouvre le menu Partager (sinon le télécharge).
- * @returns {Promise<{status: 'shared'|'cancelled'|'downloaded', fileName: string}>}
+ * Si l'iPad ne dit pas si le fichier a été enregistré (raccourci ou menu fermé), on le demande.
+ * @returns {Promise<{status: 'shared'|'unsure'|'downloaded', fileName: string, at: string}>}
  */
 export async function saveNow() {
   const db = await getDb();
   const now = new Date();
   const { text, fileName } = await createBackup(db, { now, appVersion: APP_VERSION });
   const status = await shareOrDownload(text, fileName, 'application/json');
-  if (status !== 'cancelled') await markBackupDone(db, now);
-  return { status, fileName };
+  if (status !== 'unsure') await markBackupDone(db, now);
+  return { status, fileName, at: now.toISOString() };
 }
 
-export function saveMessage(r) {
-  if (r.status === 'cancelled') return 'La sauvegarde a été annulée : rien n’a été enregistré.';
-  return `Sauvegarde faite : ${r.fileName}`;
+/**
+ * Affiche le résultat dans la zone [data-message-sauvegarde] ; si c'est incertain, pose la question
+ * « Le fichier a-t-il bien été enregistré ? » (Oui → la sauvegarde est notée).
+ * @param {HTMLElement} box
+ * @param {() => void} [after]  à appeler après la réponse (pour redessiner)
+ */
+export function showSaveResult(box, r, after) {
+  if (!box) return;
+  box.hidden = false;
+  if (r.status !== 'unsure') {
+    box.className = 'flash';
+    box.textContent = `Sauvegarde faite : ${r.fileName}`;
+    return;
+  }
+  box.className = 'save-question';
+  box.innerHTML = `<span>Le fichier <strong>${esc(r.fileName)}</strong> a-t-il bien été enregistré ?</span>
+    <span class="save-question-buttons">
+      <button type="button" class="btn btn-primary" data-enregistre="oui">Oui, c’est enregistré</button>
+      <button type="button" class="btn btn-secondary" data-enregistre="non">Non</button>
+    </span>`;
+  box.onclick = async (e) => {
+    const b = e.target.closest('[data-enregistre]');
+    if (!b) return;
+    e.stopPropagation();
+    box.onclick = null;
+    if (b.dataset.enregistre === 'oui') {
+      await markBackupDone(await getDb(), new Date(r.at));
+      if (after) { await after(); return; }
+      box.className = 'flash';
+      box.textContent = `Sauvegarde faite : ${r.fileName}`;
+    } else {
+      box.className = 'flash';
+      box.textContent = 'Rien n’a été enregistré. Vous pouvez réessayer avec « Sauvegarder maintenant ».';
+    }
+  };
 }
 
 /** Bandeau de rappel pour l'accueil (vide si rien à rappeler). */
@@ -173,9 +208,7 @@ export function restaurerView() {
           btn.disabled = true;
           const r = await saveNow();
           btn.disabled = false;
-          const msg = root.querySelector('[data-message-sauvegarde]');
-          msg.textContent = saveMessage(r);
-          msg.hidden = false;
+          showSaveResult(root.querySelector('[data-message-sauvegarde]'), r);
         }
         else if ('remplacer' in btn.dataset && !btn.disabled) {
           const ok = await confirmer({
@@ -241,6 +274,8 @@ export function raccourciView() {
           <ol>
             <li>Dans Mon Budget : <strong>Réglages › Sauvegarder maintenant</strong>.</li>
             <li>Dans le menu Partager qui s’ouvre, touchez <strong>Sauvegarder Mon Budget</strong>.</li>
+            <li>De retour dans Mon Budget, l’app demande <strong>« Le fichier a-t-il bien été enregistré ? »</strong> :
+              touchez <strong>Oui, c’est enregistré</strong> (l’iPad ne le dit pas à l’app quand un raccourci est utilisé).</li>
           </ol>
         </section>
         <section class="card guide">

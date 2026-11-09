@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.6.0
+ * Version : 0.6.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -19,6 +19,7 @@
  *   0.5.0  FRE (Fidag)  Journal, Résumé du mois ; Accueil avec les chiffres du mois et les dernières opérations.
  *   0.5.2  FRE (Fidag)  Accueil : toucher un chiffre ou une barre affiche les opérations qui le composent.
  *   0.6.0  FRE (Fidag)  Accueil : bandeau « Pensez à sauvegarder » avec bouton.
+ *   0.6.1  FRE (Fidag)  Question « Le fichier a-t-il bien été enregistré ? ».
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -35,7 +36,7 @@ import { currentMonth, paint as paintColors } from './mois.js';
 import { monthSummary, journal } from '../src/core/journal.js';
 import { editOperation } from './operation.js';
 import { openDetail } from './detail.js';
-import { reminderBanner, saveNow, saveMessage } from './ecran-sauvegarde.js';
+import { reminderBanner, saveNow, showSaveResult } from './ecran-sauvegarde.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -117,9 +118,8 @@ function accueilView() {
           save.disabled = true;
           const r = await saveNow();
           await this.render(root);
-          const msg = root.querySelector('[data-message-sauvegarde]');
-          msg.textContent = saveMessage(r);
-          msg.hidden = false;
+          const again = async () => { await this.render(root); showSaveResult(root.querySelector('[data-message-sauvegarde]'), { ...r, status: 'shared' }); };
+          showSaveResult(root.querySelector('[data-message-sauvegarde]'), r, again);
           return;
         }
         const d = e.target.closest('[data-detail]');
