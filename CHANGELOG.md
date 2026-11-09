@@ -1,5 +1,8 @@
 # Historique des versions
 
+## 0.10.1 — 2026-11-09 — FRE (Fidag)
+- « Vraie app », étape 2 : **verrou** (`app/src/core/verrou.js`). Création de l'espace chiffré au premier appareil, arrivée d'un appareil suivant avec la phrase de passe ; clés gardées enveloppées sur l'appareil pour que **Face ID marche sans Internet** ; phrase de passe changée ailleurs reprise depuis le cloud ; règle de verrouillage après une minute hors de l'app. Pas encore branché sur les écrans.
+
 ## 0.10.0 — 2026-11-09 — FRE (Fidag)
 - « Vraie app », étape 1 : **base chiffrée sur l'appareil** (`app/src/data/coffre.js`). Une fois l'app déverrouillée, les données sont en mémoire ; chaque modification est aussitôt chiffrée dans IndexedDB (noms illisibles, contenu AES-GCM). Reprise des anciennes données en clair, effacement complet de l'appareil. Pas encore branché sur les écrans.
 - Base IndexedDB version 4 (tables « coffre » et « appareil »).
