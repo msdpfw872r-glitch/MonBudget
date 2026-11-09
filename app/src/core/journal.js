@@ -1,7 +1,7 @@
 /**
  * journal.js — Journal et résumé du mois : filtres, totaux, export pour Numbers / Excel.
  *
- * Version : 0.5.0
+ * Version : 0.5.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,9 +13,11 @@
  *
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version.
+ *   0.5.1  FRE (Fidag)  Périodes quelconques (from / to), recherche d'opérations, mois par mois, export d'une période.
  */
 
-import { toCents } from './text.js';
+import { toCents, fold } from './text.js';
+import { monthsIn } from './periode.js';
 
 /** "2026-10-14" → "2026-10". */
 export const monthOf = (date) => String(date).slice(0, 7);
@@ -38,10 +40,46 @@ export function shiftMonth(month, delta) {
  * @param {string} f.month       "AAAA-MM"
  * @param {string|null} [f.personId]  null = tout le monde
  */
-export function journal(transactions, { month, personId = null }) {
+export function journal(transactions, { month = null, from = null, to = null, personId = null }) {
+  const inside = month ? (t) => monthOf(t.date) === month : (t) => (!from || t.date >= from) && (!to || t.date <= to);
   return transactions
-    .filter((t) => monthOf(t.date) === month && (!personId || t.personId === personId))
+    .filter((t) => inside(t) && (!personId || t.personId === personId))
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+}
+
+/**
+ * Cherche des opérations : chaque mot tapé doit se trouver dans le texte de la banque, le nom du
+ * commerce, la catégorie, la personne, le compte, la date (JJ.MM.AAAA) ou le montant (« 64.80 », « 64,80 »).
+ * Sans tenir compte des accents ni des majuscules.
+ * @param {{categoriesById?: Map, peopleById?: Map, accountsById?: Map, nameOf?: (t) => string}} [ctx]
+ */
+export function searchOperations(list, query, ctx = {}) {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return list;
+  return list.filter((t) => {
+    const [y, m, d] = t.date.split('-');
+    const amount = (Math.abs(toCents(t.amount)) / 100).toFixed(2);
+    const hay = fold([
+      t.description,
+      ctx.nameOf?.(t),
+      t.status === 'classee' ? ctx.categoriesById?.get(t.categoryId)?.name : 'à trier',
+      ctx.peopleById?.get(t.personId)?.name,
+      ctx.accountsById?.get(t.accountId)?.name,
+      `${d}.${m}.${y}`,
+      amount, amount.replace('.', ','),
+    ].filter(Boolean).join(' | '));
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+/** Totaux par mois sur une période (pour l'année ou des dates libres). */
+export function summaryByMonth(transactions, categories, { from, to, personId = null }) {
+  return monthsIn({ from, to }).map((month) => {
+    const lo = from > `${month}-01` ? from : `${month}-01`;
+    const hi = to < `${month}-31` ? to : `${month}-31`;
+    const s = monthSummary(transactions, categories, { from: lo, to: hi, personId });
+    return { month, income: s.income, expenses: s.expenses, balance: s.balance };
+  });
 }
 
 /** Vrai si l'opération compte dans les totaux. */
@@ -61,9 +99,9 @@ export function counts(t, categoriesById) {
  *   excluded: {count: number}, toSort: {count: number, total: number}
  * }} montants en francs (dépenses positives)
  */
-export function monthSummary(transactions, categories, { month, personId = null }) {
+export function monthSummary(transactions, categories, { month = null, from = null, to = null, personId = null }) {
   const cats = new Map(categories.map((c) => [c.id, c]));
-  const list = journal(transactions, { month, personId });
+  const list = journal(transactions, { month, from, to, personId });
   let income = 0;
   let expenses = 0;
   const persons = new Map();
@@ -111,12 +149,13 @@ function cell(v) {
  * dates JJ.MM.AAAA, une ligne par opération, totaux à la fin.
  * @returns {string} texte avec BOM UTF-8 (Excel reconnaît les accents)
  */
-export function exportMonth(transactions, { month, personId = null, categories, people, accounts }) {
+export function exportMonth(transactions, { month = null, from = null, to = null, personId = null, list = null, categories, people, accounts }) {
   const C = new Map(categories.map((c) => [c.id, c]));
   const P = new Map(people.map((p) => [p.id, p]));
   const A = new Map(accounts.map((a) => [a.id, a]));
   const rows = [['Date', 'Compte', 'Pour qui', 'Catégorie', 'Texte de la banque', 'Montant', 'Monnaie', 'Compté dans les totaux']];
-  for (const t of [...journal(transactions, { month, personId })].reverse()) {
+  // `list` : opérations déjà choisies (par ex. le résultat d'une recherche).
+  for (const t of [...(list ?? journal(transactions, { month, from, to, personId }))].reverse()) {
     const [y, m, d] = t.date.split('-');
     rows.push([
       `${d}.${m}.${y}`,
@@ -129,7 +168,12 @@ export function exportMonth(transactions, { month, personId = null, categories, 
       counts(t, C) ? 'oui' : 'non',
     ]);
   }
-  const s = monthSummary(transactions, categories, { month, personId });
+  const s = list ? summaryOf(list, categories) : monthSummary(transactions, categories, { month, from, to, personId });
   rows.push([], ['Rentrées', '', '', '', '', s.income.toFixed(2)], ['Dépenses', '', '', '', '', (-s.expenses).toFixed(2)], ['Reste', '', '', '', '', s.balance.toFixed(2)]);
   return '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n') + '\r\n';
+}
+
+/** Totaux d'une liste d'opérations déjà choisie (résultat de recherche). */
+export function summaryOf(list, categories) {
+  return monthSummary(list, categories, {});
 }

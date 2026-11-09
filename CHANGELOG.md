@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.5.1 — 2026-11-09 — FRE (Fidag)
+- **Périodes** dans le Journal et le Résumé : « Semaine » (lundi → dimanche), « Mois », « Année », « Tout » et « Dates » (du… au…, avec le calendrier). Boutons « ‹ … » / « … › » pour la période précédente ou suivante (même durée pour des dates choisies).
+- Résumé : « Il reste cette semaine / ce mois-ci / cette année / sur la période » ; tableau **« Mois par mois »** (rentrées, dépenses, reste) dès que la période couvre plusieurs mois.
+- Journal : **loupe « Chercher une opération »** : commerce, texte de la banque, catégorie, personne, compte, date (JJ.MM.AAAA) ou montant (« 64.80 » ou « 64,80 »), sans tenir compte des accents ; plusieurs mots possibles. Le total des opérations trouvées s'affiche.
+- Journal : « Exporter » envoie exactement les opérations affichées (période, personne, recherche) ; Résumé : « Exporter » la période choisie.
+- 64 tests automatiques.
+
 ## 0.5.0 — 2026-11-09 — FRE (Fidag)
 - **Journal** : les opérations du mois, du plus récent au plus ancien ; boutons « ‹ Septembre » / « Novembre › » pour changer de mois ; filtre « Tout le monde / Maman / Papa / Ménage » ; tableau sur iPad, liste sur iPhone. Les opérations pas encore triées sont marquées « À trier », les virements et factures de carte « pas compté dans les totaux ».
 - **Modifier une opération** depuis le Journal (ou l'Accueil) : pour qui, c'est quoi ; si elle avait été classée par une règle, l'app demande « Changer aussi la règle ? ».

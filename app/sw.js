@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.5.0
+ * Version : 0.5.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,9 +20,10 @@
  *   0.4.5  FRE (Fidag)  Fenêtre de choix générique (choix.js).
  *   0.4.6  FRE (Fidag)  Version 0.4.6.
  *   0.5.0  FRE (Fidag)  Journal, Résumé, modifier une opération.
+ *   0.5.1  FRE (Fidag)  Périodes (periode.js), partage de fichier (partage.js).
  */
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -41,6 +42,7 @@ const FILES = [
   './js/ecran-factures.js',
   './js/choix.js',
   './js/mois.js',
+  './js/partage.js',
   './js/operation.js',
   './js/ecran-journal.js',
   './js/ecran-resume.js',
@@ -52,6 +54,7 @@ const FILES = [
   './src/core/csv.js',
   './src/core/tri.js',
   './src/core/journal.js',
+  './src/core/periode.js',
   './src/data/db.js',
   './src/core/text.js',
   './src/core/xlsx.js',

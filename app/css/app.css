@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.5.0
+ * Version : 0.5.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -23,6 +23,7 @@
  *   0.4.5  FRE (Fidag)  Pastille de couleur dans la fenêtre de choix et l'étiquette « Pour qui ? ».
  *   0.4.6  FRE (Fidag)  À trier : colonne de gauche (titre, ordre, liste) ; navigation iPhone ; montants dans les choix.
  *   0.5.0  FRE (Fidag)  Journal (tableau / liste), Résumé (chiffres, barres), Accueil, choix du mois, filtres.
+ *   0.5.1  FRE (Fidag)  Choix de période (semaine, mois, année, tout, dates), loupe du journal, mois par mois.
  */
 
 @font-face {
@@ -725,3 +726,37 @@ details.note summary { cursor: pointer; min-height: 44px; }
 .warn-action > span { flex: 1 1 200px; }
 .stat-minus { background: var(--alerte-texte); }
 .stat-minus span { color: #FFF1E0; }
+
+/* ---------- 0.5.1 : périodes, loupe du journal, mois par mois ---------- */
+
+.period-kinds { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.period-kinds .pick { padding: 6px 6px; }
+@media (max-width: 599px) {
+  .period-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.period-alone { margin: 0; text-align: left; }
+.period-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.period-dates .field > span { margin-bottom: 0; }
+input[type="date"] {
+  font: inherit; font-size: 20px; color: var(--texte);
+  min-height: var(--tactile); padding: 0 14px; width: 100%;
+  border: 2px solid var(--trait); border-radius: 14px; background: var(--surface);
+}
+.journal-search input::placeholder { font-size: 19px; }
+
+.month-table { display: flex; flex-direction: column; }
+.month-row { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px 20px; font-size: 19px; align-items: center; }
+.month-row + .month-row { border-top: 1px solid var(--trait-doux); }
+.month-row span:not(:first-child) { text-align: right; }
+.month-row-head { color: var(--texte-2); font-weight: 700; background: var(--fond); }
+.month-row .minus { color: var(--alerte-texte); font-weight: 700; }
+.month-row .plus { color: var(--accent); font-weight: 700; }
+@media (max-width: 599px) {
+  .month-row { grid-template-columns: 1fr 1fr; }
+  .month-row-head { display: none; }
+  .month-row span:first-child { grid-column: 1 / -1; font-weight: 700; }
+  .month-row span:not(:first-child) { text-align: left; }
+  .month-row span:nth-child(2)::before { content: 'Rentrées : '; color: var(--texte-2); font-weight: 400; }
+  .month-row span:nth-child(3)::before { content: 'Dépenses : '; color: var(--texte-2); font-weight: 400; }
+  .month-row span:nth-child(4)::before { content: 'Reste : '; color: var(--texte-2); font-weight: 400; }
+}
