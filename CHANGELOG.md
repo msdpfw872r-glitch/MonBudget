@@ -1,5 +1,9 @@
 # Historique des versions
 
+## 0.8.3 — 2026-11-09 — FRE (Fidag)
+- Synchronisation chiffrée, étape 3 : **module de chiffrement** (`app/src/core/chiffrement.js`, Web Crypto seulement). Clé des données (AES-GCM 256, nouvelle valeur d'initialisation à chaque chiffrement), gardée en mémoire en clés non exportables ; enveloppe par phrase de passe (PBKDF2-SHA256, 600 000 itérations) et par passkey (secret PRF → HKDF-SHA256) ; noms de documents illisibles (HMAC). Pas encore branché sur l'app.
+- 100 tests automatiques.
+
 ## 0.8.2 — 2026-11-09 — FRE (Fidag)
 - Synchronisation chiffrée, étape 2 : **suivi des changements** sur l'appareil (base version 3). Chaque modification reçoit une date (`updatedAt`) et est notée dans une file d'envoi (`outbox`) ; une suppression laisse une trace. Rien n'est encore envoyé. Les données existantes sont gardées telles quelles.
 - La file d'envoi n'est pas mise dans les sauvegardes fichiers ; une restauration rend les données restaurées « les plus récentes ».

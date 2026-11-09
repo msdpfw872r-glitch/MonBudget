@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.8.2
+ * Version : 0.8.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -28,9 +28,10 @@
  *   0.8.0  FRE (Fidag)  Lecteur XML et relevés camt.053.
  *   0.8.1  FRE (Fidag)  Configuration Firebase (firebase-config.js).
  *   0.8.2  FRE (Fidag)  Version 0.8.2 (suivi des changements pour la synchro).
+ *   0.8.3  FRE (Fidag)  Module de chiffrement (chiffrement.js).
  */
 
-const VERSION = '0.8.2';
+const VERSION = '0.8.3';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -57,6 +58,7 @@ const FILES = [
   './js/ecran-journal.js',
   './js/ecran-resume.js',
   './src/core/format.js',
+  './src/core/chiffrement.js',
   './src/core/reglages.js',
   './src/core/regles.js',
   './src/core/cartes.js',
