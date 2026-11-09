@@ -1,0 +1,273 @@
+<!doctype html>
+<!--
+  supprimer-donnees.html — Maquette : « Supprimer des données » et Réglages sans sauvegarde manuelle.
+  Version : 1.0
+  Auteur  : FRE (Fidag)
+  Date    : 2026-11-09
+  Maquette statique (pas branchée sur l'app), à ouvrir dans un navigateur.
+  Historique :
+    1.0  FRE (Fidag)  Première version, à valider avant de coder.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Maquette — Supprimer des données</title>
+<style>
+  @font-face { font-family: AH; src: url(../../app/fonts/atkinson-hyperlegible-400.woff2); font-weight: 400; }
+  @font-face { font-family: AH; src: url(../../app/fonts/atkinson-hyperlegible-700.woff2); font-weight: 700; }
+  :root { --fond:#F3F6F4; --surface:#FFF; --texte:#1C2826; --t2:#4F5E5B; --trait:#D9E1DE; --accent:#1D6F61; --doux:#E1F0EC;
+          --rouge:#A3271B; --rouge-f:#7E1E15; --rouge-fond:#FDECEA; --al-fond:#FFF1E0; --al:#8A4B00; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px; background: #C9D3CF; font-family: AH, system-ui, sans-serif; color: var(--texte); font-size: 19px; }
+  .board { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
+  .frame-title { font-size: 22px; font-weight: 700; margin: 0 0 12px; color: #2A3A37; }
+  .frame-note { font-size: 17px; color: #2A3A37; max-width: 390px; margin: 10px 0 0; }
+  .phone { width: 390px; height: 844px; background: var(--fond); border-radius: 36px; overflow: hidden; position: relative;
+           box-shadow: 0 10px 30px rgba(0,0,0,.18); display: flex; flex-direction: column; }
+  .ipad { width: 1180px; height: 820px; background: #8E9A97; border-radius: 28px; overflow: hidden; position: relative;
+          box-shadow: 0 10px 30px rgba(0,0,0,.18); display: flex; align-items: center; justify-content: center; }
+  .sheet { width: 700px; height: 780px; background: var(--fond); border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; }
+  .sheet-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--trait); }
+  .sheet-head h2 { flex: 1; margin: 0; font-size: 24px; }
+  .status { height: 44px; flex-shrink: 0; }
+  .head { display: flex; justify-content: space-between; align-items: center; padding: 6px 20px 14px; gap: 12px; }
+  .head h1 { margin: 0; font-size: 30px; line-height: 1.15; }
+  .scroll { flex: 1; overflow: hidden; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .sheet .scroll { padding: 20px; }
+  .scroll > * { flex-shrink: 0; }
+  .btn { min-height: 56px; border-radius: 16px; border: 2px solid var(--trait); background: var(--surface); color: var(--texte);
+         font: inherit; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px; }
+  .btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-wide { width: 100%; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-danger { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+  .btn-off { background: #E4E8E6; border-color: #E4E8E6; color: #6B7875; }
+  .btn-small { min-height: 48px; font-size: 18px; padding: 0 14px; }
+  .card { background: var(--surface); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(28,40,38,.08); }
+  .card h2 { margin: 0; font-size: 21px; }
+  .note { margin: 0; color: var(--t2); font-size: 19px; }
+  .row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 6px 0; }
+  .row + .row { border-top: 1px solid #E6ECE9; }
+  .row-text { flex: 1; display: flex; flex-direction: column; }
+  .row-title { font-weight: 700; }
+  .row-sub { color: var(--t2); font-size: 18px; }
+  .chev { width: 22px; height: 22px; fill: none; stroke: var(--t2); stroke-width: 2; }
+  .danger-row .row-title { color: var(--rouge-f); }
+  /* Case à trois états */
+  .box { width: 34px; height: 34px; border-radius: 9px; border: 3px solid #7C8B88; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #fff; }
+  .box svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+  .box.all { background: var(--rouge); border-color: var(--rouge); }
+  .box.some { background: var(--rouge); border-color: var(--rouge); }
+  .group { background: var(--surface); border-radius: 20px; box-shadow: 0 1px 2px rgba(28,40,38,.08); overflow: hidden; }
+  .group.on { outline: 3px solid var(--rouge); }
+  .g-head { display: flex; align-items: center; gap: 14px; padding: 12px 16px; min-height: 72px; }
+  .g-title { font-weight: 700; font-size: 21px; }
+  .g-sub { color: var(--t2); font-size: 18px; }
+  .pill { font-size: 17px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.none { background: #EEF2F0; color: var(--t2); }
+  .pill.all, .pill.some { background: var(--rouge-fond); color: var(--rouge-f); }
+  .g-body { border-top: 1px solid #E6ECE9; padding: 6px 16px 12px; display: flex; flex-direction: column; }
+  .item { display: flex; align-items: center; gap: 14px; min-height: 60px; }
+  .item + .item { border-top: 1px solid #F0F3F2; }
+  .item .box { width: 30px; height: 30px; }
+  .quick { display: flex; gap: 10px; padding: 10px 0 4px; }
+  .search { display: flex; align-items: center; gap: 10px; border: 2px solid var(--trait); border-radius: 14px; min-height: 52px; padding: 0 14px; color: var(--t2); margin: 6px 0; }
+  .search svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .danger-zone { background: var(--rouge-fond); border: 3px solid var(--rouge); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .danger-zone h2 { margin: 0; font-size: 24px; color: var(--rouge-f); display: flex; gap: 10px; align-items: flex-start; }
+  .danger-zone h2 svg { width: 32px; height: 32px; flex-shrink: 0; fill: none; stroke: var(--rouge); stroke-width: 2; }
+  .danger-zone ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+  .field { display: flex; flex-direction: column; gap: 8px; font-weight: 700; }
+  .input { min-height: 56px; border: 3px solid var(--rouge); border-radius: 14px; background: #fff; display: flex; align-items: center; padding: 0 16px;
+           font-size: 22px; letter-spacing: 2px; font-weight: 700; }
+  .input.empty { border-color: var(--trait); color: #9AA6A3; letter-spacing: 0; font-weight: 400; font-size: 20px; }
+  .ok-big { width: 76px; height: 76px; border-radius: 50%; background: var(--doux); display: flex; align-items: center; justify-content: center; align-self: center; }
+  .ok-big svg { width: 40px; height: 40px; fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar { height: 84px; flex-shrink: 0; background: #fff; border-top: 1px solid var(--trait); display: flex; justify-content: space-around; align-items: center; font-size: 15px; color: var(--t2); }
+  .legend { display: flex; gap: 26px; margin: 0 0 28px; font-size: 19px; align-items: center; flex-wrap: wrap; }
+  .legend span { display: inline-flex; gap: 10px; align-items: center; }
+  h1.page { margin: 0 0 10px; font-size: 32px; }
+  p.lead { margin: 0 0 22px; max-width: 1100px; font-size: 20px; }
+  .info { background: var(--al-fond); color: var(--al); border: 2px solid #F0C48A; border-radius: 16px; padding: 12px 14px; font-size: 18px; }
+  .steps { display: flex; gap: 10px; font-size: 17px; color: var(--t2); }
+  .steps b { color: var(--rouge-f); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="ok" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="moins" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="suite" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="retour" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="att" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="loupe" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="corbeille" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<h1 class="page">Maquette — Supprimer des données (à valider)</h1>
+<p class="lead">Réglages › <b>Supprimer des données</b>. Pour chaque genre de données, on choisit <b>Rien</b>, <b>Tout</b> ou <b>certains éléments</b>.
+On vérifie ce qui va partir, on tape <b>SUPPRIMER</b> puis on valide. La suppression vaut aussi sur les autres appareils (synchronisation).
+La carte « Sauvegarde » disparaît des Réglages.</p>
+<div class="legend">
+  <span><span class="box"></span> Rien</span>
+  <span><span class="box all"><svg><use href="#ok"/></svg></span> Tout</span>
+  <span><span class="box some"><svg><use href="#moins"/></svg></span> Certains (« 2 sur 5 »)</span>
+  <span>Toucher la case : Rien ↔ Tout. Toucher « Choisir » : liste avec une case par élément.</span>
+</div>
+
+<div class="board">
+
+  <!-- 1. Réglages iPhone -->
+  <div>
+    <p class="frame-title">1 · Réglages (iPhone)</p>
+    <div class="phone">
+      <div class="status"></div>
+      <div class="head"><h1>Réglages</h1><span class="btn"><svg><use href="#retour"/></svg>Retour</span></div>
+      <div class="scroll">
+        <div class="card">
+          <div class="row"><span class="row-text"><span class="row-title">Compte et synchronisation</span><span class="row-sub">a@b.ch · À jour (il y a 1 min)</span></span><svg class="chev"><use href="#suite"/></svg></div>
+        </div>
+        <div class="card">
+          <div class="row"><span class="row-text"><span class="row-title">Règles retenues</span><span class="row-sub">12 commerces reconnus</span></span><svg class="chev"><use href="#suite"/></svg></div>
+          <div class="row"><span class="row-text"><span class="row-title">Mes catégories</span><span class="row-sub">40 catégories</span></span><svg class="chev"><use href="#suite"/></svg></div>
+          <div class="row"><span class="row-text"><span class="row-title">Pour qui</span><span class="row-sub">Maman, Papa, Ménage</span></span><svg class="chev"><use href="#suite"/></svg></div>
+          <div class="row"><span class="row-text"><span class="row-title">Mes comptes</span><span class="row-sub">UBS, BCVs, cartes…</span></span><svg class="chev"><use href="#suite"/></svg></div>
+          <div class="row"><span class="row-text"><span class="row-title">Imports</span><span class="row-sub">4 fichiers importés</span></span><svg class="chev"><use href="#suite"/></svg></div>
+        </div>
+        <div class="card">
+          <div class="row danger-row"><span class="row-text"><span class="row-title">Supprimer des données</span><span class="row-sub">Imports, opérations, tri, règles…</span></span><svg class="chev"><use href="#suite"/></svg></div>
+        </div>
+        <p class="note">Mon Budget · version 0.11.0</p>
+      </div>
+      <div class="tabbar"><span>Accueil</span><span>À trier</span><span>Journal</span><span>Résumé</span></div>
+    </div>
+    <p class="frame-note">Plus de carte « Sauvegarde » ni de bandeau « Pensez à sauvegarder ». Nouvelle ligne « Imports » (liste, supprimer un import) et « Supprimer des données » en bas.</p>
+  </div>
+
+  <!-- 2. Choix iPad -->
+  <div>
+    <p class="frame-title">2 · Choisir quoi supprimer (iPad, fenêtre Réglages)</p>
+    <div class="ipad">
+      <div class="sheet">
+        <div class="sheet-head"><span class="btn btn-small"><svg><use href="#retour"/></svg>Retour</span><h2>Supprimer des données</h2><span class="btn btn-small"><svg><use href="#fermer"/></svg>Fermer</span></div>
+        <div class="scroll">
+          <div class="steps"><b>1. Choisir</b> › 2. Vérifier › 3. Confirmer</div>
+
+          <div class="group on">
+            <div class="g-head"><span class="box some"><svg><use href="#moins"/></svg></span>
+              <span class="row-text"><span class="g-title">Imports</span><span class="g-sub">Supprime le fichier importé et ses opérations</span></span>
+              <span class="pill some">2 sur 4</span><span class="btn btn-small">Fermer la liste</span></div>
+            <div class="g-body">
+              <div class="item"><span class="box all"><svg><use href="#ok"/></svg></span><span class="row-text"><span class="row-title">UBS · octobre 2026</span><span class="row-sub">importé le 2 nov. · 86 opérations</span></span></div>
+              <div class="item"><span class="box all"><svg><use href="#ok"/></svg></span><span class="row-text"><span class="row-title">Swisscard · octobre 2026</span><span class="row-sub">importé le 2 nov. · 62 opérations</span></span></div>
+              <div class="item"><span class="box"></span><span class="row-text"><span class="row-title">BCVs · octobre 2026</span><span class="row-sub">importé le 3 nov. · 41 opérations</span></span></div>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="g-head"><span class="box"></span>
+              <span class="row-text"><span class="g-title">Opérations</span><span class="g-sub">Une par une, ou par mois</span></span>
+              <span class="pill none">Rien</span><span class="btn btn-small">Choisir</span></div>
+          </div>
+
+          <div class="group on">
+            <div class="g-head"><span class="box all"><svg><use href="#ok"/></svg></span>
+              <span class="row-text"><span class="g-title">Tri des opérations</span><span class="g-sub">Les opérations restent, elles reviennent dans « À trier »</span></span>
+              <span class="pill all">Tout · 1’204</span><span class="btn btn-small">Choisir</span></div>
+          </div>
+
+          <div class="group on">
+            <div class="g-head"><span class="box some"><svg><use href="#moins"/></svg></span>
+              <span class="row-text"><span class="g-title">Règles retenues</span><span class="g-sub">L’app ne classera plus seule ces commerces</span></span>
+              <span class="pill some">3 sur 12</span><span class="btn btn-small">Choisir</span></div>
+          </div>
+
+          <div class="group">
+            <div class="g-head"><span class="box"></span>
+              <span class="row-text"><span class="g-title">Rattachements aux factures de carte</span><span class="g-sub">Les achats sont détachés de la facture</span></span>
+              <span class="pill none">Rien</span><span class="btn btn-small">Choisir</span></div>
+          </div>
+          <p class="note">Plus bas : Numéros de comptes et cartes reconnus · Catégories et personnes ajoutées</p>
+        </div>
+        <div style="padding:16px 20px;background:#fff;border-top:1px solid var(--trait)"><span class="btn btn-danger btn-wide">Continuer : vérifier (4 choix)</span></div>
+      </div>
+    </div>
+    <p class="frame-note" style="max-width:1180px">Groupes possibles : Imports · Opérations · Tri des opérations · Règles retenues · Rattachements aux factures de carte · Numéros de comptes et cartes reconnus · Catégories et personnes ajoutées. Un groupe touché est entouré de rouge et dit « Tout · 1’204 » ou « 3 sur 12 » (jamais la couleur seule).</p>
+  </div>
+
+  <!-- 3. Choisir des règles iPhone -->
+  <div>
+    <p class="frame-title">3 · Choisir parmi les règles (iPhone)</p>
+    <div class="phone">
+      <div class="status"></div>
+      <div class="head"><h1>Règles retenues</h1><span class="btn"><svg><use href="#retour"/></svg>Retour</span></div>
+      <div class="scroll">
+        <div class="quick"><span class="btn btn-small" style="flex:1">Tout cocher</span><span class="btn btn-small" style="flex:1">Tout décocher</span></div>
+        <div class="search"><svg><use href="#loupe"/></svg>Chercher un commerce</div>
+        <div class="card" style="gap:0;padding:6px 16px">
+          <div class="item"><span class="box all"><svg><use href="#ok"/></svg></span><span class="row-text"><span class="row-title">COOP</span><span class="row-sub">Courses · Ménage</span></span></div>
+          <div class="item"><span class="box"></span><span class="row-text"><span class="row-title">MIGROS</span><span class="row-sub">Courses · Ménage</span></span></div>
+          <div class="item"><span class="box all"><svg><use href="#ok"/></svg></span><span class="row-text"><span class="row-title">PHARMACIE DE LA GARE</span><span class="row-sub">Santé · Maman</span></span></div>
+          <div class="item"><span class="box"></span><span class="row-text"><span class="row-title">CAISSE MALADIE EXEMPLE</span><span class="row-sub">Assurance maladie · Papa</span></span></div>
+          <div class="item"><span class="box all"><svg><use href="#ok"/></svg></span><span class="row-text"><span class="row-title">GARAGE DU CENTRE</span><span class="row-sub">Voiture · Ménage</span></span></div>
+          <div class="item"><span class="box"></span><span class="row-text"><span class="row-title">SIG SERVICES</span><span class="row-sub">Énergie · Ménage</span></span></div>
+        </div>
+      </div>
+      <div style="padding:14px 20px 26px;background:#fff;border-top:1px solid var(--trait)"><span class="btn btn-primary btn-wide">Garder ce choix (3 sur 12)</span></div>
+    </div>
+    <p class="frame-note">Même écran pour chaque groupe. Opérations : regroupées par mois, avec une case par mois et une case par opération, et la loupe.</p>
+  </div>
+
+  <!-- 4. Vérifier + confirmer iPhone -->
+  <div>
+    <p class="frame-title">4 · Vérifier et confirmer (iPhone)</p>
+    <div class="phone">
+      <div class="status"></div>
+      <div class="head"><h1>Vérifier</h1><span class="btn"><svg><use href="#retour"/></svg>Retour</span></div>
+      <div class="scroll">
+        <div class="danger-zone">
+          <h2><svg><use href="#att"/></svg>Ceci sera supprimé</h2>
+          <ul>
+            <li><b>2 imports</b> et leurs <b>148 opérations</b> (UBS et Swisscard d’octobre)</li>
+            <li>Le <b>tri de 1’056 opérations</b> : elles reviennent dans « À trier »</li>
+            <li><b>3 règles</b> : COOP, Pharmacie de la Gare, Garage du Centre</li>
+          </ul>
+          <p class="note" style="color:var(--rouge-f)"><b>Aussi sur vos autres appareils.</b> Cela ne peut pas être annulé.</p>
+          <label class="field">Pour confirmer, tapez SUPPRIMER
+            <span class="input">SUPPRIMER</span></label>
+        </div>
+      </div>
+      <div style="padding:14px 20px 26px;background:#fff;border-top:1px solid var(--trait);display:flex;flex-direction:column;gap:10px">
+        <span class="btn btn-danger btn-wide"><svg><use href="#corbeille"/></svg>Valider la suppression</span>
+        <span class="btn btn-wide">Annuler, ne rien supprimer</span>
+      </div>
+    </div>
+    <p class="frame-note">« Valider » reste gris tant que SUPPRIMER n’est pas tapé (majuscules ou minuscules acceptées). Puis une dernière fenêtre « Supprimer maintenant ? » Oui / Non.</p>
+  </div>
+
+  <!-- 5. Terminé -->
+  <div>
+    <p class="frame-title">5 · C’est fait</p>
+    <div class="phone">
+      <div class="status"></div>
+      <div class="head"><h1>Supprimer des données</h1></div>
+      <div class="scroll">
+        <div class="card" style="align-items:stretch;padding:24px 18px">
+          <span class="ok-big"><svg><use href="#ok"/></svg></span>
+          <h2 style="text-align:center">C’est supprimé</h2>
+          <div class="row"><span class="row-text">Imports supprimés</span><b>2</b></div>
+          <div class="row"><span class="row-text">Opérations supprimées</span><b>148</b></div>
+          <div class="row"><span class="row-text">Opérations remises à trier</span><b>1’056</b></div>
+          <div class="row"><span class="row-text">Règles supprimées</span><b>3</b></div>
+          <p class="note">Vos autres appareils seront mis à jour à la prochaine synchronisation.</p>
+        </div>
+        <span class="btn btn-primary btn-wide">Retour aux Réglages</span>
+      </div>
+      <div class="tabbar"><span>Accueil</span><span>À trier</span><span>Journal</span><span>Résumé</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
