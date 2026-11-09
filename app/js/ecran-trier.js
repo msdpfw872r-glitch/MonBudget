@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.4.6
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -19,13 +19,14 @@
  *   0.4.5  FRE (Fidag)  « Pour qui ? » : au-delà de 6 personnes, une étiquette qui ouvre la même fenêtre de choix.
  *   0.4.6  FRE (Fidag)  iPad : titre et ordre en haut de la colonne de gauche, formulaire tout en haut à droite.
  *                       iPhone : « Précédente » / « Suivante » et « Liste » (fenêtre avec loupe et ordre).
+ *   0.7.0  FRE (Fidag)  Textes génériques (« Crédit », « Ordre e-Bill », TWINT) : « Toujours classer » décoché d'office.
  */
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
 import { formatAmount, formatDateLong, formatDateShort, displayName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
-import { classify } from '../src/core/regles.js';
+import { classify, isGenericKey } from '../src/core/regles.js';
 import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
 import { chooseCategory, choosePerson, choose, savedOrder } from './choix.js';
 
@@ -45,7 +46,7 @@ const state = { currentId: null, personId: null, categoryId: null, remember: tru
 function resetChoice() {
   state.personId = null;
   state.categoryId = null;
-  state.remember = true;
+  state.remember = null; // décidé selon l'opération (décoché pour un texte générique)
 }
 
 async function load(db) {
@@ -118,7 +119,8 @@ function detail(tx, data) {
 
       <label class="choice choice-check remember">
         <input type="checkbox" data-remember${state.remember ? ' checked' : ''}>
-        <span>Toujours classer <strong>${esc(name)}</strong> comme ça${same > 1
+        <span>Toujours classer <strong>${esc(name)}</strong> comme ça${isGenericKey(tx.merchantKey)
+          ? '<br><span class="row-sub">Ce texte de la banque ne dit pas qui a été payé : mieux vaut trier ces opérations une par une.</span>' : ''}${same > 1
           ? `<br><span class="row-sub">${same > 2 ? `Les ${same - 1} autres opérations de ce commerce en attente seront classées aussi.` : 'L’autre opération de ce commerce en attente sera classée aussi.'}</span>` : ''}</span>
       </label>
       <p class="form-error" role="alert" tabindex="-1" hidden></p>
@@ -204,6 +206,7 @@ export function trierView() {
         }
         // Achat par carte : la titulaire de la carte est proposée d'avance.
         if (state.personId === null) state.personId = data.accounts.get(tx.accountId)?.personId ?? null;
+        if (state.remember === null) state.remember = !isGenericKey(tx.merchantKey);
         // Colonne de gauche (iPad) : titre, ordre, liste. Le formulaire commence tout en haut à droite.
         root.innerHTML = `<div class="sort-layout">
             <div class="sort-side">
@@ -287,7 +290,7 @@ export function trierView() {
           const err = root.querySelector('.form-error');
           try {
             const i = data.pending.indexOf(tx);
-            const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: state.remember });
+            const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: Boolean(state.remember) });
             const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i))
               .find((t) => t.id !== tx.id && !(res.rule && t.merchantKey === tx.merchantKey));
             state.currentId = next?.id ?? null;

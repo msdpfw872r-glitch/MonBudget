@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.4.4
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -14,6 +14,7 @@
  *   0.4.0  FRE (Fidag)  Première version : recherche, tri d'une opération, création / mise à jour /
  *                       suppression de règle, classement des autres opérations en attente.
  *   0.4.4  FRE (Fidag)  Date de classement (classifiedAt) pour proposer les catégories récentes.
+ *   0.7.0  FRE (Fidag)  isGenericKey : textes qui ne disent pas qui a été payé (« Crédit », « Ordre e-Bill »…).
  */
 
 import { merchantKey } from './text.js';
@@ -138,4 +139,14 @@ export async function deleteRule(db, id) {
     await db.put('transactions', { ...tx, ruleId: null });
   }
   await db.delete('rules', id);
+}
+
+/**
+ * Textes de banque qui ne disent pas qui a été payé (BCVs : « Crédit », « Ordre e-Bill »… ; TWINT).
+ * Une règle sur ces textes classerait tout de la même façon : « Toujours classer » n'est pas coché d'office.
+ */
+const GENERIC = new Set(['CREDIT', 'DEBIT', 'ORDRE E BILL', 'ORDRE E BANKING', 'ORDRE PERMANENT', 'ORDRE DE PAIEMENT',
+  'VIREMENT', 'PAIEMENT', 'VERSEMENT', 'BONIFICATION', 'TWINT', 'TWINT UBS TWINT ZURICH']);
+export function isGenericKey(key) {
+  return GENERIC.has(String(key ?? '').trim()) || /^TWINT( UBS)?( TWINT)?( ZURICH)?$/.test(String(key ?? '').trim());
 }

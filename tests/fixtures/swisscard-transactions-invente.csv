@@ -1,0 +1,11 @@
+Date transaction,Description,Commerçant,Numéro de carte,Monnaie,Montant,Monnaie étrangère,Montant étranger,Débit/Crédit,Statut,Catégorie de commerçant,Catégorie enregistrée
+"09.11.2026","MAGASIN EXEMPLE, VILLE","Magasin Exemple","5100 00** **** 1111","CHF","43.10","","","Débit","En suspens","Achats","DEPARTMENT STORES"
+"08.11.2026","PRIMEUR EXEMPLE, VILLE","Primeur Exemple","5100 00** **** 2222","CHF","16.70","","","Débit","En suspens","Comestibles","GROCERY STORES, SUPERMARKETS"
+"06.11.2026","MIGROS M EXEMPLE, VILLE","Migros","5100 00** **** 1111","CHF","7.95","","","Débit","Comptabilisée","Comestibles","GROCERY STORES, SUPERMARKETS"
+"05.11.2026","HOTEL EXEMPLE, EVIAN","Hôtel Exemple","5100 00** **** 2222","CHF","105.40","EUR","110.00","Débit","Comptabilisée","Voyager","LODGING NOT SPECIFIED"
+"04.11.2026","REMBOURSEMENT MAGASIN EXEMPLE, VILLE","Magasin Exemple","5100 00** **** 1111","CHF","20.00","","","Crédit","Comptabilisée","Achats","DEPARTMENT STORES"
+"03.11.2026","MIGROS M AUTRE, AUTRE-VILLE","Migros","5100 00** **** 2222","CHF","48.50","","","Débit","Comptabilisée","Comestibles","GROCERY STORES, SUPERMARKETS"
+"22.10.2026","VOTRE PAIEMENT, MERCI","","5100 00** **** 1111","CHF","253.40","","","Crédit","Comptabilisée","",""
+"15.10.2026","GARAGE EXEMPLE, VILLE","Garage Exemple","5100 00** **** 2222","CHF","120.00","","","Débit","Comptabilisée","Voiture","AUTOMOBILE SERVICE"
+"10.10.2026","PHARMACIE EXEMPLE, VILLE","Pharmacie Exemple","5100 00** **** 1111","CHF","33.40","","","Débit","Comptabilisée","Santé","DRUG STORES AND PHARMACIES"
+"02.10.2026","MIGROS M EXEMPLE, VILLE","Migros","5100 00** **** 1111","CHF","100.00","","","Débit","Comptabilisée","Comestibles","GROCERY STORES, SUPERMARKETS"

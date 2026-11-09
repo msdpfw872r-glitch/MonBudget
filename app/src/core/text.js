@@ -1,13 +1,14 @@
 /**
  * text.js — Outils communs : montants, dates, texte des opérations, empreintes.
  *
- * Version : 0.4.1
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.1.0  FRE (Fidag)  Première version.
  *   0.4.1  FRE (Fidag)  parseDateCH accepte une heure après la date.
+ *   0.7.0  FRE (Fidag)  merchantKey : « Numéro de carte : … » retiré (relevés BCVs).
  */
 
 /** Enlève les accents et met en majuscules. */
@@ -84,6 +85,7 @@ function check(y, mo, d, original) {
  */
 export function merchantKey(description) {
   return fold(description)
+    .replace(/\bNUMERO DE CARTE\b\s*:?/g, ' ')
     .replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, ' ')
     .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
     .replace(/[X*]{2,}\d*/g, ' ')

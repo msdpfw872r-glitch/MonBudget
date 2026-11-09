@@ -2,19 +2,21 @@
  * ecran-importer.js — Écran « Importer un relevé » : choisir le fichier, répondre aux questions
  * (à qui est cette carte ?), voir le résumé, importer ; liste des imports avec annulation.
  *
- * Version : 0.4.1
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version (fichier « Transactions » UBS).
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés.
+ *   0.7.0  FRE (Fidag)  BCVs et Swisscard ; « Une autre carte : l'ajouter » puis « À qui est cette carte ? » ;
+ *                       opérations « en suspens » indiquées.
  */
 
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import { formatPeriod, formatDateLong } from '../src/core/format.js';
-import { ReglageError, assignBankRef } from '../src/core/reglages.js';
+import { ReglageError, assignBankRef, createCardAccount, listPeople } from '../src/core/reglages.js';
 import { readBankFile, prepareImport, commitImport, listImports, undoImport, bankName } from '../src/core/import.js';
 
 // Import en cours (gardé tant que l'app est ouverte).
@@ -29,6 +31,7 @@ function countsTable(c) {
     ${line('Classées toutes seules', c.autoClassees)}
     ${line('À trier par vous', c.aTrier)}
     ${line('Déjà importées (ignorées)', c.doublons, false)}
+    ${c.enSuspens ? line('En suspens chez la banque (viendront au prochain import)', c.enSuspens, false) : ''}
   </div>`;
 }
 
@@ -73,9 +76,24 @@ function question(q) {
       L’app s’en souviendra pour les prochains fichiers.</p>
       <div class="picks picks-1">
         ${q.choices.map((a) => `<button type="button" class="pick pick-big" data-compte="${esc(a.id)}">${esc(a.name)}</button>`).join('')}
+        ${q.kind === 'carte' ? `<button type="button" class="pick pick-big pick-new" data-nouvelle-carte>${icon('plus')}Une autre carte : l’ajouter</button>` : ''}
       </div>
     </section>
     <button type="button" class="btn btn-secondary btn-wide" data-recommencer>Choisir un autre fichier</button>`;
+}
+
+/** « À qui est la carte ****2222 ? » (nouvelle carte). */
+function whoseCard(q, people) {
+  return `<section class="card">
+      <h2>À qui est la carte ${esc(q.label)} ?</h2>
+      <p class="note">Cette personne sera proposée d’avance pour trier les achats de cette carte. Vous pourrez changer le nom
+      de la carte dans Réglages, « Mes comptes ».</p>
+      <div class="picks picks-1">
+        ${people.map((p) => `<button type="button" class="pick pick-big" data-titulaire="${esc(p.id)}">${esc(p.name)}</button>`).join('')}
+        <button type="button" class="pick pick-big" data-titulaire="">Personne en particulier (carte commune)</button>
+      </div>
+    </section>
+    <button type="button" class="btn btn-secondary btn-wide" data-retour-question>Retour</button>`;
 }
 
 function preview(plan) {
@@ -90,7 +108,7 @@ function preview(plan) {
         <ul>${plan.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
     </section>
     ${nothing
-      ? `<p class="flash">Toutes ces opérations sont déjà dans l’app. Il n’y a rien de nouveau à importer.</p>
+      ? `<p class="flash">${c.enSuspens && !c.trouvees ? 'Toutes les opérations de ce fichier sont encore en suspens chez la banque : elles viendront au prochain import.' : 'Toutes ces opérations sont déjà dans l’app. Il n’y a rien de nouveau à importer.'}</p>
          <button type="button" class="btn btn-secondary btn-wide" data-recommencer>Choisir un autre fichier</button>`
       : `<button type="button" class="btn btn-primary btn-wide btn-import" data-importer>Importer ${plural(c.nouvelles, 'opération', 'opérations')}</button>
          <button type="button" class="btn btn-secondary btn-wide" data-recommencer>Annuler</button>`}`;
@@ -158,6 +176,22 @@ export function importerView() {
               await assignBankRef(db, b.dataset.compte, session.question.ref);
               await plan(db);
               await rerender();
+            } else if ('nouvelleCarte' in b.dataset && session?.question) {
+              session.newCard = true;
+              await rerender();
+            } else if ('retourQuestion' in b.dataset) {
+              session.newCard = false;
+              await rerender();
+            } else if ('titulaire' in b.dataset && session?.question) {
+              await createCardAccount(db, {
+                name: `${bankName(session.parsed.format)} ${session.question.label}`,
+                ref: session.question.ref,
+                importFormat: session.parsed.format,
+                personId: b.dataset.titulaire || null,
+              });
+              session.newCard = false;
+              await plan(db);
+              await rerender();
             } else if ('importer' in b.dataset && session?.plan) {
               b.disabled = true;
               session.record = await commitImport(db, session.plan);
@@ -179,6 +213,7 @@ export function importerView() {
       }
 
       if (session?.record) return show(done(session.record));
+      if (session?.question && session.newCard) return show(whoseCard(session.question, await listPeople(db)));
       if (session?.question) return show(question(session.question));
       if (session?.plan) return show(preview(session.plan));
       return show(chooseFile());

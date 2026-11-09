@@ -1,5 +1,17 @@
 # Historique des versions
 
+## 0.7.0 — 2026-11-09 — FRE (Fidag)
+- **BCVs** : import du relevé de compte (fichier CSV de l'e-banking : en-tête « Relevé de compte… », colonnes Date ; Libellé ; Montant ; Valeur, accents Windows, dates JJ.MM.AA). Le prélèvement « Débit LSV SWISSCARD … » est reconnu comme facture de carte (pas compté dans les totaux).
+- **Mastercard Swisscard** : import des transactions (colonnes Date transaction, Description, Commerçant, Numéro de carte, Montant, Débit/Crédit, Statut…). Plusieurs cartes dans le même fichier (****1234). Montant d'origine en monnaie étrangère gardé en note. Le paiement de la facture reçu sur la carte n'est pas compté comme une rentrée.
+- Opérations Swisscard **« En suspens »** : pas importées (le montant peut encore changer) ; leur nombre est indiqué, elles viendront au prochain import.
+- Facture Mastercard **payée par le compte BCVs** : les achats des cartes Swisscard sont rattachés au prélèvement LSV automatiquement quand le total tombe juste.
+- Import : quand un fichier contient deux cartes inconnues, l'app demande pour chacune ; nouveau choix **« Une autre carte : l'ajouter »**, puis « À qui est cette carte ? ».
+- Règles Swisscard d'après le **commerçant** (« Migros » pour tous les magasins Migros).
+- Textes qui ne disent pas qui a été payé (« Crédit », « Ordre e-Bill », « Ordre permanent », TWINT…) : « Toujours classer » **décoché d'office**, avec une explication.
+- Les données d'une version précédente sont mises à jour (compte BCVs, facture Mastercard payée par la BCVs).
+- Fichiers d'exemple **inventés** (même forme que les vrais exports) ; vérifié aussi sur les vrais fichiers, sans les ajouter au dépôt.
+- 78 tests automatiques.
+
 ## 0.6.1 — 2026-11-09 — FRE (Fidag)
 - Sauvegarde avec un raccourci : l'app affichait « La sauvegarde a été annulée » alors que le raccourci avait bien enregistré le fichier (l'iPad répond à l'app de la même façon pour un raccourci et pour une annulation). L'app demande maintenant **« Le fichier a-t-il bien été enregistré ? »** — « Oui, c'est enregistré » note la sauvegarde, « Non » ne note rien.
 - Plus de petit fichier « texte » de 38 octets à côté de la sauvegarde : seul le fichier `.json` est envoyé au menu Partager (le titre était reçu par le raccourci comme un 2e fichier). Même chose pour les exports du Journal et du Résumé.

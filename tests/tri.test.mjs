@@ -14,6 +14,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { isGenericKey } from '../app/src/core/regles.js';
 import { orderPending, countByMerchant, searchCategories, lastUsedByCategory, orderCategories, lastUsedBy, orderByUse } from '../app/src/core/tri.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
@@ -77,4 +78,9 @@ test('personnes : derniers utilisés, de A à Z, recherche', () => {
   assert.deepEqual(orderByUse(people, 'recent', last).map((p) => p.id), ['menage', 'papa', 'eloise', 'maman']);
   assert.deepEqual(orderByUse(people, 'alpha').map((p) => p.name), ['Éloïse', 'Maman', 'Ménage', 'Papa']);
   assert.deepEqual(searchCategories(people, 'elo').map((p) => p.id), ['eloise'], 'la recherche marche aussi pour les personnes');
+});
+
+test('textes génériques : pas de règle proposée d’office', () => {
+  for (const k of ['CREDIT', 'ORDRE E BILL', 'ORDRE E BANKING', 'ORDRE PERMANENT', 'TWINT UBS TWINT ZURICH']) assert.equal(isGenericKey(k), true, k);
+  for (const k of ['MIGROS', 'PAIEMENT BOULANGERIE EXEMPLE', 'FRAIS CONTO PACK', 'DEBIT LSV SWISSCARD AECS GMBH']) assert.equal(isGenericKey(k), false, k);
 });

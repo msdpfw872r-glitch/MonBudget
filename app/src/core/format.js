@@ -1,7 +1,7 @@
 /**
  * format.js — Affichage en français de Suisse : montants et dates.
  *
- * Version : 0.4.0
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -10,6 +10,7 @@
  * Historique :
  *   0.2.0  FRE (Fidag)  Première version : formatCHF, formatAmount, formatDateLong, formatMonth.
  *   0.4.0  FRE (Fidag)  displayName (nom lisible d'une opération), formatDateShort, formatPeriod.
+ *   0.7.0  FRE (Fidag)  displayName : « Numéro de carte : … » et « Paiement JJ.MM.AAAA HH:MM » retirés (BCVs).
  */
 
 const APOS = '’'; // apostrophe typographique ’
@@ -87,6 +88,8 @@ const SMALL_WORDS = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'et', 'à', '
  */
 export function displayName(description) {
   const s = String(description ?? '')
+    .replace(/Num[ée]ro de carte\s*:?\s*[\d*X ]+/gi, ' ')
+    .replace(/^\s*Paiement\s+(?=\d{1,2}[./]\d{1,2}[./]\d{2,4})/i, ' ')
     .replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/g, ' ')
     .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
     .replace(/\bCARTE\b|\bCARD\b/gi, ' ')

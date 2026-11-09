@@ -1,7 +1,7 @@
 /**
  * operation.js — Fenêtre « Modifier l'opération » (depuis le Journal).
  *
- * Version : 0.5.0
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -10,12 +10,13 @@
  *
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version.
+ *   0.7.0  FRE (Fidag)  « Toujours classer » décoché d'office pour un texte générique.
  */
 
 import { icon, esc, confirmer } from './ui.js';
 import { chooseCategory, choosePerson } from './choix.js';
 import { formatAmount, formatDateLong, displayName } from '../src/core/format.js';
-import { classify } from '../src/core/regles.js';
+import { classify, isGenericKey } from '../src/core/regles.js';
 import { ReglageError } from '../src/core/reglages.js';
 
 const PEOPLE_BUTTONS_MAX = 6;
@@ -41,7 +42,7 @@ function dialogEl() {
 export function editOperation(db, tx, ctx) {
   const d = dialogEl();
   const name = displayName(tx.description);
-  const st = { personId: tx.personId ?? ctx.accounts.get(tx.accountId)?.personId ?? null, categoryId: tx.categoryId ?? null, remember: tx.status !== 'classee' };
+  const st = { personId: tx.personId ?? ctx.accounts.get(tx.accountId)?.personId ?? null, categoryId: tx.categoryId ?? null, remember: tx.status !== 'classee' && !isGenericKey(tx.merchantKey) };
   const rule = Boolean(tx.ruleId);
 
   const draw = () => {

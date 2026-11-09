@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.4.1
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,6 +15,8 @@
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version (UBS).
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
+ *   0.7.0  FRE (Fidag)  BCVs (relevé CSV) et Swisscard ; opérations « en suspens » comptées à part ;
+ *                       clé des règles d'après le commerçant si la banque le donne ; plusieurs cartes inconnues → question.
  */
 
 import { readXlsx, looksLikeZip } from './xlsx.js';
@@ -24,11 +26,13 @@ import { ReglageError, normRef, assignBankRef } from './reglages.js';
 import { findRule, applyRule } from './regles.js';
 import { autoLinkAll, unlinkBill } from './cartes.js';
 import * as ubs from '../importers/ubs.js';
+import * as bcvs from '../importers/bcvs.js';
+import * as swisscard from '../importers/swisscard.js';
 
 /** Importateurs connus (même interface : FORMAT_ID, FORMAT_LABEL, detect, parse). */
-export const IMPORTERS = [ubs];
+export const IMPORTERS = [swisscard, bcvs, ubs];
 
-const BANK_NAMES = { 'ubs-transactions-xlsx': 'UBS', camt053: 'BCVs', 'swisscard-csv': 'Mastercard (Swisscard)' };
+const BANK_NAMES = { 'ubs-transactions-xlsx': 'UBS', 'bcvs-csv': 'BCVs', 'swisscard-csv': 'Mastercard (Swisscard)' };
 export const bankName = (format) => BANK_NAMES[format] ?? 'cette banque';
 
 /**
@@ -52,12 +56,12 @@ export async function readBankFile(data) {
     for (const imp of IMPORTERS) {
       if (imp.detect(rows)) {
         const res = imp.parse(rows);
-        if (!res.transactions.length) throw new ReglageError('Ce fichier ne contient aucune opération.');
+        if (!res.transactions.length && !res.pendingCount) throw new ReglageError('Ce fichier ne contient aucune opération.');
         return { ...res, format: imp.FORMAT_ID, label: imp.FORMAT_LABEL };
       }
     }
   }
-  throw new ReglageError('Ce fichier n’est pas reconnu. Choisissez le fichier des opérations téléchargé depuis votre banque (pour UBS : « Transactions », en Excel ou en CSV).');
+  throw new ReglageError('Ce fichier n’est pas reconnu. Choisissez le fichier des opérations téléchargé depuis votre banque : pour UBS « Transactions » (Excel ou CSV), pour la BCVs le relevé de compte, pour Swisscard les transactions.');
 }
 
 /** Comptes de l'app qui reçoivent ce format de fichier. */
@@ -97,8 +101,10 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     let acc = accounts.find((a) => (a.bankRefs ?? []).includes(e.ref));
     if (!acc) {
       const sameKind = accounts.filter((a) => a.kind === e.kind);
-      // Un seul compte possible et encore sans numéro : on le prend sans poser de question.
-      if (sameKind.length === 1 && !(sameKind[0].bankRefs ?? []).length) {
+      const refsOfKind = [...refs.values()].filter((x) => x.kind === e.kind).length;
+      // Un seul compte possible, encore sans numéro, et une seule référence de ce genre dans le fichier :
+      // on le prend sans poser de question (avec deux cartes inconnues, on demande pour chacune).
+      if (sameKind.length === 1 && !(sameKind[0].bankRefs ?? []).length && refsOfKind === 1) {
         acc = sameKind[0];
         newRefs.push({ ref: e.ref, accountId: acc.id });
       }
@@ -112,7 +118,7 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
   const rules = await db.getAll('rules');
   const billCategory = (await db.getAll('categories')).find((c) => c.isCardBill && !c.archived);
   const importId = `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const counts = { trouvees: parsed.transactions.length, nouvelles: 0, autoClassees: 0, aTrier: 0, doublons: 0 };
+  const counts = { trouvees: parsed.transactions.length, nouvelles: 0, autoClassees: 0, aTrier: 0, doublons: 0, enSuspens: parsed.pendingCount ?? 0 };
   const transactions = [];
   const ruleHits = new Map();
 
@@ -124,7 +130,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
       accountId: acc.id,
       date: t.date,
       description: t.description,
-      merchantKey: merchantKey(t.description),
+      // La règle se fait sur le nom du commerçant quand la banque le donne (« Migros » pour tous les Migros).
+      merchantKey: merchantKey(t.merchant || t.description),
       amount: t.amount,
       currency: t.currency ?? 'CHF',
       bankCategory: t.bankCategory ?? null,
@@ -135,7 +142,7 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
       importId,
       isCardBillPayment: Boolean(t.isCardBillPayment) && acc.kind === 'compte',
       cardBillId: null,
-      note: '',
+      note: t.note ?? '',
     };
     if (tx.isCardBillPayment && billCategory) {
       tx = { ...tx, categoryId: billCategory.id, personId: null, status: 'classee' };

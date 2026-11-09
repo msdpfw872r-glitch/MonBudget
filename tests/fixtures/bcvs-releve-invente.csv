@@ -1,0 +1,22 @@
+Relevé de compte jusqu'au: 09.11.2026 ;;;
+;;;
+N° de compte: K 0000.00.00;;;
+Description: Compte Privé;;;
+Solde: CHF 1234.50;;;
+;;;
+Prénom Exemple;;;
+Rue de l'Exemple 1;;;
+1000 Ville-Exemple;;;
+;;;
+;;;
+Date;Libellé;Montant;Valeur
+09.11.26;Ordre e-Bill;-150.00;09.11.26
+09.11.26;Retrait BM 06.11.2026 18:27 BR Ville-Exemple Numéro de carte: 000000******0000;-200.00;06.11.26
+05.11.26;Ordre permanent;-100.00;05.11.26
+04.11.26;Frais Conto Pack;-6.00;05.11.26
+04.11.26;Crédit;1500.00;04.11.26
+30.10.26;Ordre e-Bill;-38.65;30.10.26
+30.10.26;Ordre e-Bill;-38.65;30.10.26
+23.10.26;Paiement 21.10.2026 15:45 Boulangerie Exemple Numéro de carte: 000000******0000;-12.40;21.10.26
+21.10.26;Débit LSV SWISSCARD AECS GMBH;-253.40;21.10.26
+20.10.26;Crédit;2000.00;20.10.26

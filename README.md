@@ -2,7 +2,7 @@
 
 Petite web app (iPad / iPhone) pour tenir le journal des dépenses et recettes à partir des relevés bancaires.
 
-- Version : 0.4.1
+- Version : 0.7.0
 - Auteur : FRE (Fidag)
 
 ## Contenu actuel
@@ -52,8 +52,12 @@ npm test
 - Paiement de la facture de carte repéré (`isCardBillPayment`) pour ne pas compter deux fois les achats de la carte.
 - Empreinte par opération : réimporter un fichier ou des périodes qui se chevauchent ne crée pas de doublon ; deux achats identiques le même jour restent distincts.
 
+## Banques
+
+- UBS : « Transactions » en Excel ou CSV
+- BCVs : relevé de compte CSV
+- Mastercard Swisscard : transactions CSV (les opérations « en suspens » viennent au prochain import)
+
 ## À venir
 
-- Journal, Résumé du mois, export (0.5.0)
-- Sauvegarde / restauration (0.6.0)
-- BCVs (camt.053), Swisscard Mastercard (CSV)
+- 1.0.0 : relecture accessibilité, page d'aide, guide d'installation

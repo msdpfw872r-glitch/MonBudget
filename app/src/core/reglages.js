@@ -1,7 +1,7 @@
 /**
  * reglages.js — Données de départ et réglages : comptes, personnes (« pour qui »), catégories.
  *
- * Version : 0.4.0
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,6 +13,8 @@
  *                       modification, archivage et suppression (avec vérification d'usage).
  *   0.4.0  FRE (Fidag)  Cartes : titulaire (« pour qui » proposé), compte qui paie la facture,
  *                       numéros reconnus dans les fichiers ; mise à jour des données de départ.
+ *   0.7.0  FRE (Fidag)  Formats BCVs (CSV) et Swisscard disponibles ; mise à jour des données (compte BCVs,
+ *                       facture Mastercard payée par la BCVs) ; nouvelle carte créée depuis l'import.
  */
 
 import { fold } from './text.js';
@@ -33,8 +35,8 @@ export const PERSON_COLORS = [
 /** Formats de fichier de banque connus (affichés en mots simples). */
 export const IMPORT_FORMATS = [
   { id: 'ubs-transactions-xlsx', label: 'UBS', available: true },
-  { id: 'camt053', label: 'BCVs', available: false },
-  { id: 'swisscard-csv', label: 'Mastercard (Swisscard)', available: false },
+  { id: 'bcvs-csv', label: 'BCVs', available: true },
+  { id: 'swisscard-csv', label: 'Mastercard (Swisscard)', available: true },
 ];
 
 export const ACCOUNT_KINDS = [
@@ -68,7 +70,7 @@ export async function installSeed(db, seed, now = new Date()) {
 }
 
 /** Version des données de départ (augmente quand seed.json gagne des éléments). */
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 /**
  * Ajoute à une base existante les éléments de départ apparus dans une nouvelle version
@@ -87,6 +89,15 @@ export async function upgradeSeed(db, seed) {
       await db.put(store, { ...(store === 'categories' ? { archived: false } : {}), ...item, order: order++ });
       added.push(item.id);
     }
+  }
+  // 0.7.0 : la BCVs se lit avec son fichier CSV ; la facture Mastercard est prélevée sur la BCVs.
+  const accounts = await db.getAll('accounts');
+  for (const a of accounts) {
+    if (a.importFormat === 'camt053') await db.put('accounts', { ...a, importFormat: 'bcvs-csv' });
+  }
+  const mc = accounts.find((a) => a.id === 'mastercard');
+  if (mc && mc.kind === 'carte' && !mc.billPaidFrom && accounts.some((a) => a.id === 'bcvs' && a.kind === 'compte')) {
+    await db.put('accounts', { ...mc, billPaidFrom: 'bcvs' });
   }
   await db.put('settings', { ...settings, dataVersion: DATA_VERSION, schemaVersion: SCHEMA_VERSION });
   return added;
@@ -214,6 +225,25 @@ export async function assignBankRef(db, accountId, ref) {
     if (a.id === accountId) refs.push(r);
     if (refs.length !== (a.bankRefs ?? []).length || a.id === accountId) await db.put('accounts', { ...a, bankRefs: refs });
   }
+}
+
+/**
+ * Crée un compte « carte » pour une carte trouvée dans un fichier (ex. 2e carte Swisscard).
+ * La facture est payée depuis le même compte que les autres cartes de cette banque.
+ */
+export async function createCardAccount(db, { name, ref, importFormat, personId = null }) {
+  const all = await db.getAll('accounts');
+  const sibling = all.find((a) => a.kind === 'carte' && a.importFormat === importFormat && a.billPaidFrom);
+  const n = cleanName(name, 'cette carte');
+  let unique = n;
+  for (let i = 2; all.some((a) => fold(a.name) === fold(unique)); i++) unique = `${n} (${i})`;
+  const acc = {
+    id: newId(all, unique), name: unique, kind: 'carte', importFormat,
+    personId: personId || null, billPaidFrom: sibling?.billPaidFrom ?? null, bankRefs: [], order: nextOrder(all),
+  };
+  await db.put('accounts', acc);
+  await assignBankRef(db, acc.id, ref);
+  return db.get('accounts', acc.id);
 }
 
 export async function removeBankRef(db, accountId, ref) {

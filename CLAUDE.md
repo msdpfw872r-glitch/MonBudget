@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.3.0
+- Version du brief : 1.4.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -9,6 +9,7 @@ Historique du brief :
 - 1.1.0 — FRE (Fidag) — § 2.1 fait : le dépôt existe déjà sous le nom `msdpfw872r-glitch/MonBudget` (public) ; adresse publiée `https://msdpfw872r-glitch.github.io/MonBudget/` (chemins relatifs obligatoires dans l'app). Structure `app/` en place depuis la v0.2.0.
 - 1.2.0 — FRE (Fidag) — Décisions de l'utilisateur (v0.4.0) : Maman et Papa ont chacun leur carte UBS (deux comptes « carte »), la facture est commune et prélevée par LSV sur le compte UBS ; les achats par carte sont rattachés à ce prélèvement (voir § 4, « Cartes et factures »). L'agent peut mettre `main` à jour pour publier chaque étape.
 - 1.3.0 — FRE (Fidag) — Décision de l'utilisateur (v0.6.0) : nom de la sauvegarde jusqu'à la milliseconde (jamais deux fois le même) ; restauration avec écran de confirmation bien visible ; sauvegarde utilisable avec un raccourci Apple (menu Partager).
+- 1.4.0 — FRE (Fidag) — Formats réels reçus (v0.7.0) : la BCVs fournit un relevé **CSV** (pas camt.053, abandonné) ; Swisscard un CSV français avec colonne Débit/Crédit et Statut. Opérations « En suspens » non importées. Les titulaires des cartes Swisscard sont choisis dans l'app.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -121,8 +122,8 @@ Couleurs : fond `#F3F6F4`, surfaces `#FFFFFF`, texte `#1C2826`, texte secondaire
 | Banque | Format | État |
 |---|---|---|
 | UBS | Export « Transactions » Excel (.xlsx), en-têtes français : Date de transaction, Numéro de compte ou de carte, Description, Revenu ou dépense, Montant, Monnaie, Catégorie | **Fait** (v0.1.0). Le fichier peut mélanger le compte et une carte UBS (`****1234`). |
-| BCVs | camt.053 (XML ISO 20022), téléchargé dans l'e-banking sous « Relevés à télécharger ». Attention : l'option « Inclus les données déjà téléchargées » renvoie tout → l'anti-doublon est indispensable. | **À faire**. Écris un lecteur camt.053 générique (namespaces `camt.053.001.04` et `.08`, `Ntry` + `NtryDtls/TxDtls`, `CdtDbtInd`, `BookgDt`, `RltdPties`, `RmtInf/Ustrd`, `AcctSvcrRef` pour l'empreinte). L'utilisateur fournira un fichier anonymisé plus tard ; d'ici là, teste sur un fichier que tu construis selon la norme et **signale-le**. |
-| Mastercard (Swisscard) | CSV téléchargé via les « Web Services » Swisscard dans le navigateur (pas depuis l'app). Colonnes connues d'un outil open source (en anglais) : Transaction date, Amount, Currency, Merchant Category, Registered Category, Description ; séparateur virgule. | **À faire**, fichier réel fourni plus tard. Prévois des alias d'en-têtes FR/DE/EN et vérifie le sens du signe sur le vrai fichier. |
+| BCVs | Relevé de compte **CSV** : en-tête (« Relevé de compte jusqu'au », « N° de compte », nom, adresse), puis `Date;Libellé;Montant;Valeur` ; « ; », Windows-1252, dates JJ.MM.AA. La facture Swisscard y est prélevée par « Débit LSV SWISSCARD ». | **Fait** (v0.7.0, `importers/bcvs.js`). camt.053 abandonné (pas utilisé par l'utilisatrice). |
+| Mastercard (Swisscard) | CSV : `Date transaction, Description, Commerçant, Numéro de carte, Monnaie, Montant, Monnaie étrangère, Montant étranger, Débit/Crédit, Statut, Catégorie de commerçant, Catégorie enregistrée` ; « , », guillemets, montants positifs + Débit/Crédit ; plusieurs cartes. | **Fait** (v0.7.0, `importers/swisscard.js`, alias EN/DE). « En suspens » non importées. |
 
 Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT_LABEL`, `detect(rows|text)`, `parse(...)` → `{ transactions, warnings, period, accounts }`. L'écran d'import détecte le format automatiquement et vérifie qu'il correspond au compte choisi.
 

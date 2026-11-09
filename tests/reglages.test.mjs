@@ -2,13 +2,14 @@
  * reglages.test.mjs — Tests des données de départ et des réglages (comptes, personnes, catégories).
  * Lancer : npm test
  *
- * Version : 0.4.0
+ * Version : 0.7.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
  * Historique :
  *   0.3.0  FRE (Fidag)  Première version (base en mémoire, même interface qu'IndexedDB).
  *   0.4.0  FRE (Fidag)  Cartes UBS de Maman et Papa : titulaire, compte qui paie la facture, numéros reconnus.
+ *   0.7.0  FRE (Fidag)  BCVs en CSV ; facture Mastercard payée par la BCVs.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -75,14 +76,16 @@ test('comptes : ajout, modification, suppression', async () => {
   assert.equal(a.id, 'ubs-carte');
   await R.saveAccount(db, { id: 'ubs', name: 'UBS compte privé', kind: 'compte', importFormat: 'ubs-transactions-xlsx' });
   assert.equal((await db.get('accounts', 'ubs')).name, 'UBS compte privé');
-  await assert.rejects(R.saveAccount(db, { name: 'Autre', kind: 'livret', importFormat: 'camt053' }), /compte ou d’une carte/);
+  await assert.rejects(R.saveAccount(db, { name: 'Autre', kind: 'livret', importFormat: 'bcvs-csv' }), /compte ou d’une carte/);
   await assert.rejects(R.saveAccount(db, { name: 'Autre', kind: 'compte', importFormat: 'inconnu' }), /banque/);
   await db.put('transactions', { id: 't1', accountId: 'ubs' });
   await assert.rejects(R.deleteAccount(db, 'ubs'), /ce compte contient encore 1 opération\./);
   await db.delete('transactions', 't1');
   await assert.rejects(R.deleteAccount(db, 'ubs'), /la facture de Carte UBS de Maman et de Carte UBS de Papa/);
+  await assert.rejects(R.deleteAccount(db, 'bcvs'), /la facture de Mastercard \(Swisscard\) est payée depuis ce compte/);
+  await R.deleteAccount(db, 'mastercard');
   await R.deleteAccount(db, 'bcvs');
-  assert.deepEqual((await R.listAccounts(db)).map((x) => x.id), ['ubs', 'carte-ubs-maman', 'carte-ubs-papa', 'mastercard', 'ubs-carte']);
+  assert.deepEqual((await R.listAccounts(db)).map((x) => x.id), ['ubs', 'carte-ubs-maman', 'carte-ubs-papa', 'ubs-carte']);
 });
 
 test('cartes : titulaire et compte qui paie la facture', async () => {
@@ -93,7 +96,7 @@ test('cartes : titulaire et compte qui paie la facture', async () => {
   await assert.rejects(R.saveAccount(db, { ...maman, personId: 'inconnu' }), /personne n’existe plus/);
   await assert.rejects(R.saveAccount(db, { ...maman, billPaidFrom: 'mastercard' }), /compte sur lequel la facture/);
   // Un compte (pas une carte) n'a ni titulaire ni facture.
-  const c = await R.saveAccount(db, { name: 'Épargne', kind: 'compte', importFormat: 'camt053', personId: 'papa', billPaidFrom: 'ubs' });
+  const c = await R.saveAccount(db, { name: 'Épargne', kind: 'compte', importFormat: 'bcvs-csv', personId: 'papa', billPaidFrom: 'ubs' });
   assert.equal(c.personId, null);
   assert.equal(c.billPaidFrom, null);
   // Numéros reconnus : une référence n'appartient qu'à un compte.

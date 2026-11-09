@@ -837,3 +837,6 @@ button.stat.detail-link { padding: 18px 20px; border-radius: var(--rayon); box-s
   display: flex; flex-direction: column; gap: 12px; font-size: 20px; }
 .save-question-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
 .save-question-buttons .btn { flex: 1 1 160px; }
+/* 0.7.0 : « Une autre carte : l'ajouter » */
+.pick-new { display: flex; align-items: center; gap: 12px; border-style: dashed; }
+.pick-new svg { width: 26px; height: 26px; }

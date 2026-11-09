@@ -137,6 +137,6 @@ test('variante carte : numéro complet ramené à ****1234, règlement reçu sur
 });
 
 test('un CSV qui ne vient pas d’UBS est refusé en mots simples', async () => {
-  await assert.rejects(I.readBankFile(enc('Transaction date,Amount,Currency,Description\n2026-10-03,-10,CHF,Test')), /pas reconnu.*Excel ou en CSV/);
+  await assert.rejects(I.readBankFile(enc('Transaction date,Amount,Currency,Description\n2026-10-03,-10,CHF,Test')), /pas reconnu.*Excel ou CSV/);
   await assert.rejects(I.readBankFile(enc('')), /pas reconnu/);
 });
