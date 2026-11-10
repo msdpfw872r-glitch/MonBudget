@@ -84,7 +84,7 @@ export async function removeDevicePasskey(phys) {
 /** Déverrouille avec le secret PRF (Face ID). */
 export async function unlockWithPrf(phys, prfSecret) {
   const dev = await readDevice(phys);
-  if (!dev?.passkey) throw new K.ChiffrementError('Face ID n’est pas activé sur cet appareil. Utilisez la phrase de secours.');
+  if (!dev?.passkey) throw new K.ChiffrementError('Face ID ou Touch ID n’est pas activé sur cet appareil. Utilisez la phrase de secours.');
   return K.openDek(await K.unwrapWithPrf(dev.passkey.env, prfSecret));
 }
 

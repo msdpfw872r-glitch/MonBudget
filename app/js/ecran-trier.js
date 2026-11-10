@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.7.0
+ * Version : 0.14.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,6 +20,8 @@
  *   0.4.6  FRE (Fidag)  iPad : titre et ordre en haut de la colonne de gauche, formulaire tout en haut à droite.
  *                       iPhone : « Précédente » / « Suivante » et « Liste » (fenêtre avec loupe et ordre).
  *   0.7.0  FRE (Fidag)  Textes génériques (« Crédit », « Ordre e-Bill », TWINT) : « Toujours classer » décoché d'office.
+ *   0.14.2 FRE (Fidag)  iPad : choisir une opération dans la liste ne fait plus disparaître celles d'avant
+ *                       (liste par blocs fixes de 100).
  */
 
 import { icon, esc } from './ui.js';
@@ -34,7 +36,7 @@ import { chooseCategory, choosePerson, choose, savedOrder } from './choix.js';
 const PEOPLE_BUTTONS_MAX = 6;
 
 /** Nombre d'opérations montrées dans la liste de gauche (iPad). */
-const LIST_MAX = 50;
+const LIST_MAX = 100;
 
 // État de l'écran (gardé entre deux affichages).
 /** Ordres de la liste des opérations (retenu d'une fois à l'autre). */
@@ -131,18 +133,28 @@ function detail(tx, data) {
     </section>`;
 }
 
-/** Liste de gauche (iPad) : l'opération en cours et les suivantes, au plus LIST_MAX. */
+/**
+ * Liste de gauche (iPad) : un bloc fixe de LIST_MAX opérations contenant l'opération en cours.
+ * Choisir une ligne ne change pas la liste (les autres opérations restent visibles).
+ */
 function listPane(data, current) {
   const i = Math.max(0, data.pending.indexOf(current));
-  const shown = data.pending.slice(i, i + LIST_MAX);
-  const rest = data.pending.length - shown.length;
+  const start = Math.floor(i / LIST_MAX) * LIST_MAX;
+  const shown = data.pending.slice(start, start + LIST_MAX);
+  const before = start;
+  const rest = data.pending.length - start - shown.length;
   return `<section class="card list sort-list" aria-label="Opérations à trier">
+    ${before > 0 ? `<button type="button" class="sort-item sort-more" data-select="${esc(data.pending[start - 1].id)}">
+        <span class="row-text"><span class="row-title">${before} opération${before > 1 ? 's' : ''} avant</span>
+        <span class="row-sub">Toucher pour les voir</span></span></button>` : ''}
     ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
         <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
         <span class="row-sub">${esc(formatDateShort(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
         <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
-    ${rest > 0 ? `<p class="note pad">et ${rest} autre${rest > 1 ? 's' : ''}…</p>` : ''}
+    ${rest > 0 ? `<button type="button" class="sort-item sort-more" data-select="${esc(data.pending[start + shown.length].id)}">
+        <span class="row-text"><span class="row-title">et ${rest} autre${rest > 1 ? 's' : ''}</span>
+        <span class="row-sub">Toucher pour les voir</span></span></button>` : ''}
   </section>`;
 }
 

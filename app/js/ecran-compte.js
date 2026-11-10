@@ -70,19 +70,19 @@ export function compteView() {
             <button type="submit" class="btn btn-primary btn-wide">Se reconnecter</button>
           </form>`}
         <section class="card form">
-          <h2>Face ID</h2>
+          <h2>Face ID ou Touch ID</h2>
           ${dev?.passkey
-            ? `<p>Face ID ouvre l’app sur cet appareil (${esc(dev.passkey.label)}).</p>
-               <button type="button" class="btn btn-secondary btn-wide" data-faceid-off>Ne plus utiliser Face ID</button>`
+            ? `<p>Face ID ou Touch ID ouvre l’app sur cet appareil (${esc(dev.passkey.label)}).</p>
+               <button type="button" class="btn btn-secondary btn-wide" data-faceid-off>Ne plus utiliser Face ID ou Touch ID</button>`
             : canFaceId
               ? `<form class="form" data-faceid-on>
-                  <p class="note">Tapez la phrase de secours pour activer Face ID sur cet appareil.</p>
+                  <p class="note">Tapez la phrase de secours pour activer Face ID ou Touch ID sur cet appareil.</p>
                   <label class="field"><span>Phrase de secours</span>
                     <input type="password" name="p" autocomplete="current-password" required></label>
                   <p class="form-error" data-faceid-error role="alert" tabindex="-1" hidden></p>
-                  <button type="submit" class="btn btn-primary btn-wide">${icon('cadenas')}Activer Face ID</button>
+                  <button type="submit" class="btn btn-primary btn-wide">${icon('cadenas')}Activer Face ID ou Touch ID</button>
                 </form>`
-              : '<p class="note">Cet appareil ne permet pas d’ouvrir l’app avec Face ID : la phrase de secours est utilisée.</p>'}
+              : '<p class="note">Cet appareil ne permet pas d’ouvrir l’app avec Face ID ou Touch ID : la phrase de secours est utilisée.</p>'}
         </section>
         <section class="card">
           <button type="button" class="btn btn-secondary btn-wide" data-lock>${icon('cadenas')}Verrouiller maintenant</button>

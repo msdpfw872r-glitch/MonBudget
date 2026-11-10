@@ -156,7 +156,7 @@ export async function disableFaceId() {
 /** Déverrouille avec Face ID (à appeler dans le geste « toucher le bouton »). */
 export async function unlockWithFaceId() {
   const dev = await device();
-  if (!dev?.passkey) throw new pk.PasskeyError('Face ID n’est pas activé sur cet appareil. Utilisez la phrase de secours.');
+  if (!dev?.passkey) throw new pk.PasskeyError('Face ID ou Touch ID n’est pas activé sur cet appareil. Utilisez la phrase de secours.');
   const secret = await pk.getPrfSecret(dev.passkey.credentialId, dev.passkey.prfSalt);
   try {
     await opened(await V.unlockWithPrf(await physicalDb(), secret));

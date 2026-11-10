@@ -22,8 +22,8 @@ const root = () => document.getElementById('verrou');
 const shell = () => document.querySelector('.shell');
 
 let step = 'login';        // connexion : 'login' | 'creer' | 'rejoindre'
-let offerFaceId = null;    // { p, label } juste après création / arrivée : proposer Face ID
-let autoTried = false;     // Face ID déjà proposé tout seul pour ce verrouillage
+let offerFaceId = null;    // { p, label } juste après création / arrivée : proposer Face ID ou Touch ID
+let autoTried = false;     // Face ID ou Touch ID déjà proposé tout seul pour ce verrouillage
 let onOpenCb = null;       // l'app réapparaît : redessiner l'écran courant
 const errorBox = '<p class="form-error" role="alert" tabindex="-1" hidden></p>';
 
@@ -63,9 +63,9 @@ const loginHtml = () => frame(`<form class="card form" data-login>
 
 const createHtml = () => frame(`<section class="danger-zone" aria-labelledby="coffre-titre">
     <div class="danger-head">${icon('attention')}<h2 id="coffre-titre">Choisissez votre phrase de secours</h2></div>
-    <p>Elle sert de <strong>clé</strong> à vos données. Elle ouvre l’app quand Face ID n’est pas disponible
-    (nouvel appareil, Face ID qui ne reconnaît pas).</p>
-    <p><strong>Personne ne peut la retrouver ni la remettre à zéro. Si vous perdez la phrase de secours ET Face ID,
+    <p>Elle sert de <strong>clé</strong> à vos données. Elle ouvre l’app quand Face ID ou Touch ID n’est pas disponible
+    (nouvel appareil, Face ID ou Touch ID qui ne reconnaît pas).</p>
+    <p><strong>Personne ne peut la retrouver ni la remettre à zéro. Si vous perdez la phrase de secours ET Face ID ou Touch ID,
     les données sont perdues pour toujours.</strong></p>
     <p>Écrivez-la sur papier et rangez-la en lieu sûr.</p>
   </section>
@@ -78,7 +78,7 @@ const createHtml = () => frame(`<section class="danger-zone" aria-labelledby="co
       <input type="text" name="label" value="${esc(defaultLabel())}" maxlength="40" required></label>
     <label class="choice choice-check danger-check">
       <input type="checkbox" name="compris" required>
-      <span>J’ai compris : <strong>sans la phrase de secours ni Face ID, mes données sont irrécupérables.</strong>
+      <span>J’ai compris : <strong>sans la phrase de secours ni Face ID ou Touch ID, mes données sont irrécupérables.</strong>
       Je l’ai écrite sur papier.</span>
     </label>
     ${errorBox}
@@ -99,18 +99,18 @@ const joinHtml = () => frame(`<form class="card form" data-join>
   </form>`);
 
 const faceIdHtml = () => frame(`<section class="card form">
-    <h1>Ouvrir l’app avec Face ID ?</h1>
+    <h1>Ouvrir l’app avec Face ID ou Touch ID ?</h1>
     <p>Ensuite, un simple regard suffit pour ouvrir Mon Budget. La phrase de secours reste la clé de secours.</p>
     <p class="note">L’app se verrouille toute seule une minute après l’avoir quittée.</p>
     ${errorBox}
-    <button type="button" class="btn btn-primary btn-wide btn-big" data-enable-faceid>${icon('cadenas')}Activer Face ID</button>
+    <button type="button" class="btn btn-primary btn-wide btn-big" data-enable-faceid>${icon('cadenas')}Activer Face ID ou Touch ID</button>
     <button type="button" class="btn btn-secondary btn-wide" data-skip-faceid>Plus tard</button>
   </section>`);
 
 const lockedHtml = (dev) => frame(`<section class="card form lock-card">
     <span class="round-icon">${icon('cadenas')}</span>
     <h1>Mon Budget est verrouillé</h1>
-    ${dev?.passkey ? `<button type="button" class="btn btn-primary btn-wide btn-big" data-faceid>${icon('cadenas')}Ouvrir avec Face ID</button>` : ''}
+    ${dev?.passkey ? `<button type="button" class="btn btn-primary btn-wide btn-big" data-faceid>${icon('cadenas')}Ouvrir avec Face ID ou Touch ID</button>` : ''}
     ${errorBox}
     <form class="form" data-unlock ${dev?.passkey ? 'hidden' : ''}>
       <label class="field"><span>Phrase de secours</span>
@@ -186,7 +186,7 @@ function paintCreate() {
     if (problem) return showError(problem);
     const ok = await confirmer({
       titre: 'Avez-vous écrit la phrase de secours ?',
-      message: 'Sans elle (et sans Face ID), vos données ne pourront jamais être ouvertes.',
+      message: 'Sans elle (et sans Face ID ou Touch ID), vos données ne pourront jamais être ouvertes.',
       ok: 'Oui, elle est écrite', non: 'Non, attendre',
     });
     if (!ok) return;
@@ -227,7 +227,7 @@ function paintFaceIdOffer() {
   r.querySelector('[data-skip-faceid]').addEventListener('click', () => { offerFaceId = null; paint(); });
   r.querySelector('[data-enable-faceid]').addEventListener('click', async (e) => {
     try {
-      await busy(e.currentTarget, 'Face ID…', () => session.enableFaceId(offerFaceId.p, offerFaceId.label));
+      await busy(e.currentTarget, 'Face ID ou Touch ID…', () => session.enableFaceId(offerFaceId.p, offerFaceId.label));
       offerFaceId = null;
       paint();
     } catch (ex) { showError(ex); }
@@ -242,7 +242,7 @@ async function paintLocked() {
   const faceBtn = r.querySelector('[data-faceid]');
   const tryFaceId = async (silent) => {
     try {
-      await busy(faceBtn, 'Face ID…', () => session.unlockWithFaceId());
+      await busy(faceBtn, 'Face ID ou Touch ID…', () => session.unlockWithFaceId());
     } catch (ex) { if (!silent) showError(ex); }
   };
   faceBtn?.addEventListener('click', () => tryFaceId(false));

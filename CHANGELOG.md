@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.14.2 — 2026-11-10 — FRE (Fidag)
+- À trier (iPad) : choisir une opération dans la liste de gauche **ne fait plus disparaître celles d'avant** (la liste reste la même ; au-delà de 100, « N opérations avant » / « et N autres »).
+- Face ID : l'activation ne refuse plus quand l'iPad ne confirme pas tout de suite que la clé sait ouvrir les données ; l'app fait un vrai essai (un second regard). Si l'appareil ne le permet vraiment pas, le message le dit simplement et la phrase de secours reste possible.
+- **Touch ID** : fonctionne de la même façon (passkey de l'appareil) ; les textes disent « Face ID ou Touch ID ».
+
 ## 0.14.1 — 2026-11-09 — FRE (Fidag)
 - Écran **Bienvenue** (connexion) : la phrase sur Google est retirée ; il reste « Connectez-vous avec le compte Mon Budget. »
 

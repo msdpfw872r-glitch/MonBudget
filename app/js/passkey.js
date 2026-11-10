@@ -1,7 +1,7 @@
 /**
  * passkey.js — Face ID / Touch ID par passkey (WebAuthn) avec l'extension PRF.
  *
- * Version : 0.10.2
+ * Version : 0.14.2
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,8 @@
  * Historique :
  *   0.8.6  FRE (Fidag)  Première version.
  *   0.10.2 FRE (Fidag)  Messages : « phrase de secours ».
+ *   0.14.2 FRE (Fidag)  Création : ne plus refuser quand l'appareil ne dit pas « enabled » ; essai réel du secret
+ *                       (second Face ID / Touch ID). Messages « Face ID ou Touch ID ».
  */
 
 import { RP_ID, RP_NAME } from './firebase-config.js';
@@ -21,7 +23,11 @@ import { randomBytes, fromB64 } from '../src/core/chiffrement.js';
 /** Erreur à montrer telle quelle. */
 export class PasskeyError extends Error {}
 
-const bytes = (buf) => (buf ? new Uint8Array(buf instanceof ArrayBuffer ? buf : buf.buffer) : null);
+const bytes = (buf) => {
+  if (!buf) return null;
+  if (ArrayBuffer.isView(buf)) return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength).slice();
+  return new Uint8Array(buf).slice();
+};
 
 /** L'appareil peut-il avoir une passkey de plateforme (Face ID / Touch ID) ? */
 export async function passkeyAvailable() {
@@ -38,10 +44,10 @@ export async function passkeyAvailable() {
 
 function webauthnError(e) {
   if (e instanceof PasskeyError) return e;
-  if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return new PasskeyError('Face ID a été annulé. Réessayez, ou utilisez la phrase de secours.');
-  if (e?.name === 'InvalidStateError') return new PasskeyError('Cet iPad a déjà une clé Face ID pour Mon Budget.');
-  if (e?.name === 'SecurityError') return new PasskeyError('Face ID ne fonctionne que depuis l’adresse officielle de l’app.');
-  return new PasskeyError('Face ID n’a pas marché. Utilisez la phrase de secours.');
+  if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return new PasskeyError('Face ID ou Touch ID a été annulé. Réessayez, ou utilisez la phrase de secours.');
+  if (e?.name === 'InvalidStateError') return new PasskeyError('Cet appareil a déjà une clé Face ID ou Touch ID pour Mon Budget.');
+  if (e?.name === 'SecurityError') return new PasskeyError('Face ID ou Touch ID ne fonctionne que depuis l’adresse officielle de l’app.');
+  return new PasskeyError('Face ID ou Touch ID n’a pas marché. Utilisez la phrase de secours.');
 }
 
 /**
@@ -69,7 +75,7 @@ export async function getPrfSecret(credentialId, prfSalt) {
     throw webauthnError(e);
   }
   const first = bytes(cred?.getClientExtensionResults?.().prf?.results?.first);
-  if (!first) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données. Utilisez la phrase de secours.');
+  if (!first) throw new PasskeyError('Cet appareil ne permet pas d’utiliser Face ID ou Touch ID pour ouvrir les données. Utilisez la phrase de secours.');
   return first;
 }
 
@@ -98,9 +104,18 @@ export async function createPasskey(label) {
     throw webauthnError(e);
   }
   const ext = cred.getClientExtensionResults?.().prf;
-  if (!ext?.enabled) throw new PasskeyError('Cet iPad ne permet pas d’utiliser Face ID pour ouvrir les données (mise à jour d’iPadOS nécessaire). La phrase de secours reste possible.');
   const credentialId = new Uint8Array(cred.rawId);
-  // Certains appareils donnent le secret dès la création ; sinon, un second Face ID le lit.
-  const prfSecret = bytes(ext.results?.first) ?? await getPrfSecret(credentialId, prfSalt);
+  // Certains appareils donnent le secret dès la création. Sinon (et même si l'appareil ne dit pas
+  // « enabled »), on essaie vraiment : un second Face ID / Touch ID lit le secret.
+  let prfSecret = bytes(ext?.results?.first);
+  if (!prfSecret) {
+    try {
+      prfSecret = await getPrfSecret(credentialId, prfSalt);
+    } catch (e) {
+      if (e instanceof PasskeyError && /annulé/.test(e.message)) throw e;
+      throw new PasskeyError('La clé « Mon Budget » a été créée, mais cet appareil ne permet pas de l’utiliser pour ouvrir les données. '
+        + 'La phrase de secours reste possible. (Vous pouvez supprimer cette clé dans Réglages de l’iPad › Mots de passe.)');
+    }
+  }
   return { credentialId, prfSalt, prfSecret };
 }

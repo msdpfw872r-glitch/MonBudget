@@ -206,6 +206,6 @@ export async function unwrapWithPrf(env, prfSecret) {
   try {
     return await unseal(key, env, AAD_PASSKEY);
   } catch {
-    throw new ChiffrementError('Face ID n’a pas pu ouvrir les données. Utilisez la phrase de secours.');
+    throw new ChiffrementError('Face ID ou Touch ID n’a pas pu ouvrir les données. Utilisez la phrase de secours.');
   }
 }
