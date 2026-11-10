@@ -2,7 +2,7 @@
  * ecran-verrou.js — Écrans plein écran avant l'app : connexion, création de l'espace chiffré,
  * arrivée d'un nouvel appareil, activation de Face ID, écran « Mon Budget est verrouillé ».
  *
- * Version : 0.14.1
+ * Version : 0.14.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -12,6 +12,7 @@
  * Historique :
  *   0.10.2 FRE (Fidag)  Première version.
  *   0.14.1 FRE (Fidag)  Écran Bienvenue : phrase sur Google retirée.
+ *   0.14.3 FRE (Fidag)  Activer Face ID : conseil « choisissez Mots de passe (Apple) ».
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -101,6 +102,7 @@ const joinHtml = () => frame(`<form class="card form" data-join>
 const faceIdHtml = () => frame(`<section class="card form">
     <h1>Ouvrir l’app avec Face ID ou Touch ID ?</h1>
     <p>Ensuite, un simple regard suffit pour ouvrir Mon Budget. La phrase de secours reste la clé de secours.</p>
+    <p class="note">Si l’iPad demande où enregistrer la clé, choisissez <strong>Mots de passe</strong> (Apple) : les apps de mots de passe externes ne permettent souvent pas d’ouvrir les données.</p>
     <p class="note">L’app se verrouille toute seule une minute après l’avoir quittée.</p>
     ${errorBox}
     <button type="button" class="btn btn-primary btn-wide btn-big" data-enable-faceid>${icon('cadenas')}Activer Face ID ou Touch ID</button>

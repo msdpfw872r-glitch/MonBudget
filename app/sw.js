@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.14.2
+ * Version : 0.14.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -44,9 +44,10 @@
  *   0.14.0 FRE (Fidag)  Version 0.14.0.
  *   0.14.1 FRE (Fidag)  Version 0.14.1.
  *   0.14.2 FRE (Fidag)  Version 0.14.2.
+ *   0.14.3 FRE (Fidag)  Version 0.14.3.
  */
 
-const VERSION = '0.14.2';
+const VERSION = '0.14.3';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */

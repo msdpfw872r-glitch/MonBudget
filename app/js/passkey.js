@@ -1,7 +1,7 @@
 /**
  * passkey.js — Face ID / Touch ID par passkey (WebAuthn) avec l'extension PRF.
  *
- * Version : 0.14.2
+ * Version : 0.14.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,6 +15,7 @@
  *   0.10.2 FRE (Fidag)  Messages : « phrase de secours ».
  *   0.14.2 FRE (Fidag)  Création : ne plus refuser quand l'appareil ne dit pas « enabled » ; essai réel du secret
  *                       (second Face ID / Touch ID). Messages « Face ID ou Touch ID ».
+ *   0.14.3 FRE (Fidag)  Message clair quand la clé est dans une app de mots de passe externe (pas de secret PRF).
  */
 
 import { RP_ID, RP_NAME } from './firebase-config.js';
@@ -22,6 +23,11 @@ import { randomBytes, fromB64 } from '../src/core/chiffrement.js';
 
 /** Erreur à montrer telle quelle. */
 export class PasskeyError extends Error {}
+
+/** La clé existe mais ne donne pas son secret : le plus souvent, elle est dans une app de mots de passe externe. */
+const NO_PRF = 'La clé « Mon Budget » a bien été enregistrée, mais l’endroit où elle est gardée ne permet pas d’ouvrir les données. '
+  + 'C’est le cas de la plupart des apps de mots de passe autres que celle d’Apple (Proton Pass, 1Password, Bitwarden…). '
+  + 'Supprimez cette clé dans cette app, puis réessayez en choisissant « Mots de passe » (Apple) pour l’enregistrer. La phrase de secours reste possible.';
 
 const bytes = (buf) => {
   if (!buf) return null;
@@ -75,7 +81,7 @@ export async function getPrfSecret(credentialId, prfSalt) {
     throw webauthnError(e);
   }
   const first = bytes(cred?.getClientExtensionResults?.().prf?.results?.first);
-  if (!first) throw new PasskeyError('Cet appareil ne permet pas d’utiliser Face ID ou Touch ID pour ouvrir les données. Utilisez la phrase de secours.');
+  if (!first) throw new PasskeyError(NO_PRF);
   return first;
 }
 
@@ -113,8 +119,7 @@ export async function createPasskey(label) {
       prfSecret = await getPrfSecret(credentialId, prfSalt);
     } catch (e) {
       if (e instanceof PasskeyError && /annulé/.test(e.message)) throw e;
-      throw new PasskeyError('La clé « Mon Budget » a été créée, mais cet appareil ne permet pas de l’utiliser pour ouvrir les données. '
-        + 'La phrase de secours reste possible. (Vous pouvez supprimer cette clé dans Réglages de l’iPad › Mots de passe.)');
+      throw new PasskeyError(NO_PRF);
     }
   }
   return { credentialId, prfSalt, prfSecret };

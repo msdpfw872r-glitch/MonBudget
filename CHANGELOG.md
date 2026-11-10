@@ -1,5 +1,8 @@
 # Historique des versions
 
+## 0.14.3 — 2026-11-10 — FRE (Fidag)
+- Face ID / Touch ID : quand la clé est enregistrée dans une **app de mots de passe externe** (Proton Pass, 1Password, Bitwarden…), elle ne permet pas d'ouvrir les données. Le message le dit maintenant et explique quoi faire ; les écrans d'activation conseillent de choisir **Mots de passe** (Apple).
+
 ## 0.14.2 — 2026-11-10 — FRE (Fidag)
 - À trier (iPad) : choisir une opération dans la liste de gauche **ne fait plus disparaître celles d'avant** (la liste reste la même ; au-delà de 100, « N opérations avant » / « et N autres »).
 - Face ID : l'activation ne refuse plus quand l'iPad ne confirme pas tout de suite que la clé sait ouvrir les données ; l'app fait un vrai essai (un second regard). Si l'appareil ne le permet vraiment pas, le message le dit simplement et la phrase de secours reste possible.

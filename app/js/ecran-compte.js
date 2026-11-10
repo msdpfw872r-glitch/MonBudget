@@ -2,7 +2,7 @@
  * ecran-compte.js — Réglages › Compte et synchronisation : état de la synchronisation, Face ID,
  * verrouiller, se reconnecter, se déconnecter (efface l'appareil).
  *
- * Version : 0.10.2
+ * Version : 0.14.3
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -10,6 +10,7 @@
  *
  * Historique :
  *   0.10.2 FRE (Fidag)  Première version (remplace ecran-synchro.js).
+ *   0.14.3 FRE (Fidag)  Activer Face ID : conseil « choisissez Mots de passe (Apple) ».
  */
 
 import { icon, esc } from './ui.js';
@@ -77,6 +78,7 @@ export function compteView() {
             : canFaceId
               ? `<form class="form" data-faceid-on>
                   <p class="note">Tapez la phrase de secours pour activer Face ID ou Touch ID sur cet appareil.</p>
+                  <p class="note">Si l’iPad demande où enregistrer la clé, choisissez <strong>Mots de passe</strong> (Apple) : les apps de mots de passe externes ne permettent souvent pas d’ouvrir les données.</p>
                   <label class="field"><span>Phrase de secours</span>
                     <input type="password" name="p" autocomplete="current-password" required></label>
                   <p class="form-error" data-faceid-error role="alert" tabindex="-1" hidden></p>
