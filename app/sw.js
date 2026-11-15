@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.16.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -47,9 +47,10 @@
  *   0.14.3 FRE (Fidag)  Version 0.14.3.
  *   0.15.0 FRE (Fidag)  Version 0.15.0.
  *   0.16.0 FRE (Fidag)  Relecture des opérations à trier (entretien.js).
+ *   0.17.0 FRE (Fidag)  Question « Reclasser les opérations ? » commune (reclasser.js).
  */
 
-const VERSION = '0.16.0';
+const VERSION = '0.17.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -89,6 +90,7 @@ const FILES = [
   './js/ecran-verrou.js',
   './js/ecran-compte.js',
   './js/ecran-supprimer.js',
+  './js/reclasser.js',
   './vendor/firebase/13.2.0/firebase-app.js',
   './vendor/firebase/13.2.0/firebase-auth.js',
   './vendor/firebase/13.2.0/firebase-firestore-lite.js',

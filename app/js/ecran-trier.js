@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.14.2
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -22,6 +22,7 @@
  *   0.7.0  FRE (Fidag)  Textes génériques (« Crédit », « Ordre e-Bill », TWINT) : « Toujours classer » décoché d'office.
  *   0.14.2 FRE (Fidag)  iPad : choisir une opération dans la liste ne fait plus disparaître celles d'avant
  *                       (liste par blocs fixes de 100).
+ *   0.17.0 FRE (Fidag)  « Toujours classer » qui change une règle : « Reclasser les opérations … ? ».
  */
 
 import { icon, esc } from './ui.js';
@@ -29,6 +30,7 @@ import { getDb } from './store.js';
 import { formatAmount, formatDateLong, formatDateShort, displayName, opName } from '../src/core/format.js';
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify, isGenericKey } from '../src/core/regles.js';
+import { askReclassify } from './reclasser.js';
 import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
 import { chooseCategory, choosePerson, choose, savedOrder } from './choix.js';
 
@@ -303,6 +305,8 @@ export function trierView() {
           try {
             const i = data.pending.indexOf(tx);
             const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: Boolean(state.remember) });
+            // Règle existante modifiée, ou opérations de ce commerce triées autrement : proposer de reclasser.
+            if (res.rule) await askReclassify(db, res.rule.id, { exceptId: tx.id });
             const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i))
               .find((t) => t.id !== tx.id && !(res.rule && t.merchantKey === tx.merchantKey));
             state.currentId = next?.id ?? null;

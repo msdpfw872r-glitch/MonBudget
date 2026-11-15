@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.13.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -16,9 +16,11 @@
  *   0.4.4  FRE (Fidag)  Date de classement (classifiedAt) pour proposer les catégories récentes.
  *   0.7.0  FRE (Fidag)  isGenericKey : textes qui ne disent pas qui a été payé (« Crédit », « Ordre e-Bill »…).
  *   0.13.0 FRE (Fidag)  Règle modifiée : reclasser (au choix) les opérations déjà classées par elle.
+ *   0.17.0 FRE (Fidag)  reclassifyPreview / reclassifyMatching : aussi les opérations triées à la main (au choix) et
+ *                       celles à trier ; filterRules / sortRules (recherche, pour qui, catégorie, ordre).
  */
 
-import { merchantKey } from './text.js';
+import { merchantKey, fold } from './text.js';
 import { ReglageError } from './reglages.js';
 import { unlinkBill } from './cartes.js';
 
@@ -158,6 +160,74 @@ export async function reclassifyByRule(db, ruleId) {
   const list = await outdatedByRule(db, rule);
   for (const t of list) await db.put('transactions', { ...t, personId: rule.personId, categoryId: rule.categoryId });
   return list.length;
+}
+
+/**
+ * Opérations concernées par une règle (même commerce) dont le classement diffère de la règle :
+ *   byRule : classées par cette règle ; manual : triées à la main ; pending : encore à trier.
+ * Le prélèvement d'une facture de carte n'est jamais concerné.
+ */
+export async function reclassifyPreview(db, rule, { exceptId = null } = {}) {
+  const rules = await db.getAll('rules');
+  const out = { byRule: [], manual: [], pending: [] };
+  for (const t of await db.getAll('transactions')) {
+    if (t.id === exceptId || t.isCardBillPayment) continue;
+    const mine = t.ruleId === rule.id || findRule(rules, t.merchantKey)?.id === rule.id;
+    if (!mine) continue;
+    if (t.status !== 'classee') out.pending.push(t);
+    else if (t.personId === rule.personId && t.categoryId === rule.categoryId) continue;
+    else if (t.ruleId === rule.id) out.byRule.push(t);
+    else out.manual.push(t);
+  }
+  return out;
+}
+
+/**
+ * Reclasse selon la règle : celles classées par elle et celles à trier ; avec `includeManual`,
+ * aussi celles triées à la main.
+ * @returns {Promise<number>}
+ */
+export async function reclassifyMatching(db, ruleId, { includeManual = false, exceptId = null } = {}) {
+  const rule = await db.get('rules', ruleId);
+  if (!rule) throw new ReglageError('Cette règle n’existe plus.');
+  const p = await reclassifyPreview(db, rule, { exceptId });
+  const list = [...p.byRule, ...p.pending, ...(includeManual ? p.manual : [])];
+  for (const t of list) await db.put('transactions', applyRule(t, rule));
+  if (p.pending.length) await db.put('rules', { ...rule, hits: (rule.hits ?? 0) + p.pending.length, lastUsedAt: new Date().toISOString() });
+  return list.length;
+}
+
+/** Ordres de la liste des règles. */
+export const RULE_ORDERS = [
+  { id: 'alpha', label: 'Commerce, de A à Z', short: 'A à Z' },
+  { id: 'hits', label: 'Les plus utilisées d’abord', short: 'Plus utilisées' },
+  { id: 'recent', label: 'Utilisées récemment d’abord', short: 'Récentes' },
+];
+
+/**
+ * Filtre les règles : texte (commerce, catégorie, personne), personne, catégorie.
+ * @param {{query?: string, personId?: string|null, categoryId?: string|null}} f
+ * @param {{categoriesById?: Map, peopleById?: Map}} ctx
+ */
+export function filterRules(rules, { query = '', personId = null, categoryId = null } = {}, ctx = {}) {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  return rules.filter((r) => {
+    if (personId && r.personId !== personId) return false;
+    if (categoryId && r.categoryId !== categoryId) return false;
+    if (!words.length) return true;
+    const hay = fold([r.merchantKey, ctx.categoriesById?.get(r.categoryId)?.name, ctx.peopleById?.get(r.personId)?.name].filter(Boolean).join(' | '));
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+export function sortRules(rules, order = 'alpha') {
+  const az = (a, b) => a.merchantKey.localeCompare(b.merchantKey, 'fr');
+  const cmp = {
+    alpha: az,
+    hits: (a, b) => (b.hits ?? 0) - (a.hits ?? 0) || az(a, b),
+    recent: (a, b) => String(b.lastUsedAt ?? b.createdAt ?? '').localeCompare(String(a.lastUsedAt ?? a.createdAt ?? '')) || az(a, b),
+  }[order] ?? az;
+  return [...rules].sort(cmp);
 }
 
 /**

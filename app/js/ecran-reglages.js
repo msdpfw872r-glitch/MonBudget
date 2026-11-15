@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.13.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -24,13 +24,18 @@
  *   0.12.0 FRE (Fidag)  Mes catégories : « Remettre les catégories d'exemple » s'il en manque.
  *   0.13.0 FRE (Fidag)  Mes catégories de A à Z, groupes qu'on peut fermer ; règle modifiée : « Reclasser les
  *                       anciennes opérations ? » (Reclasser / Laisser comme ça).
+ *   0.17.0 FRE (Fidag)  Règles retenues : recherche, filtres Pour qui / Catégorie, ordre ; question « Reclasser … ? »
+ *                       commune (aussi les opérations triées à la main, au choix).
  */
 
 import { APP_VERSION } from './version.js';
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
-import { saveRule, deleteRule, outdatedByRule, reclassifyByRule } from '../src/core/regles.js';
+import { saveRule, deleteRule, filterRules, sortRules, RULE_ORDERS } from '../src/core/regles.js';
+import { askReclassify } from './reclasser.js';
+import { chooseOption } from './choix.js';
+import { filterChip } from './mois.js';
 import { shortRef } from '../src/core/import.js';
 import { restaurerView, raccourciView } from './ecran-sauvegarde.js';
 import { compteView, compteRow } from './ecran-compte.js';
@@ -126,6 +131,9 @@ function accueilReglages() {
   };
 }
 
+// Filtres de la liste des règles (gardés tant que l'app est ouverte).
+const ruleFilters = { query: '', personId: null, categoryId: null, order: 'alpha' };
+
 function regles() {
   return {
     title: 'Règles retenues',
@@ -135,17 +143,71 @@ function regles() {
       const [rules, people, cats] = await Promise.all([db.getAll('rules'), db.getAll('people'), db.getAll('categories')]);
       const P = new Map(people.map((p) => [p.id, p]));
       const C = new Map(cats.map((c) => [c.id, c]));
-      rules.sort((a, b) => a.merchantKey.localeCompare(b.merchantKey, 'fr'));
-      root.innerHTML = rules.length
-        ? `<p class="note">Quand une opération contient ces mots, l’app la classe toute seule.</p>
-           <section class="card list">${rules.map((r) => {
-             const p = P.get(r.personId);
-             return row({ href: `#/reglages/regles/${encodeURIComponent(r.id)}`, title: esc(r.merchantKey),
-               sub: `${esc(C.get(r.categoryId)?.name ?? 'Catégorie supprimée')} · ${p ? personTag(p) : 'Personne supprimée'}` });
-           }).join('')}</section>`
-        : `<section class="card"><p class="note">Quand vous trierez une opération, l’app retiendra votre choix pour ce commerce.
+      if (!rules.length) {
+        root.innerHTML = `<section class="card"><p class="note">Quand vous trierez une opération, l’app retiendra votre choix pour ce commerce.
             Les règles apparaîtront ici, et vous pourrez les modifier ou les supprimer.</p></section>`;
-      paintTags(root);
+        return;
+      }
+      const active = () => Boolean(ruleFilters.query.trim() || ruleFilters.personId || ruleFilters.categoryId);
+      const drawList = () => {
+        const list = sortRules(filterRules(rules, ruleFilters, { categoriesById: C, peopleById: P }), ruleFilters.order);
+        root.querySelector('[data-regles]').innerHTML = `<p class="note">${list.length === rules.length
+            ? `${rules.length} règle${rules.length > 1 ? 's' : ''}. Quand une opération contient ces mots, l’app la classe toute seule.`
+            : `${list.length} règle${list.length > 1 ? 's' : ''} sur ${rules.length}.`}</p>
+          ${list.length ? `<section class="card list">${list.map((r) => {
+            const p = P.get(r.personId);
+            return row({ href: `#/reglages/regles/${encodeURIComponent(r.id)}`, title: esc(r.merchantKey),
+              sub: `${esc(C.get(r.categoryId)?.name ?? 'Catégorie supprimée')} · ${p ? personTag(p) : 'Personne supprimée'} · utilisée ${r.hits ?? 0} fois` });
+          }).join('')}</section>` : '<section class="card"><p class="note">Aucune règle ne correspond. Essayez un autre mot ou touchez « Effacer les filtres ».</p></section>'}`;
+        paintTags(root);
+      };
+      const draw = () => {
+        const who = P.get(ruleFilters.personId);
+        const cat = C.get(ruleFilters.categoryId);
+        root.innerHTML = `<div class="filter-bar">
+            <div class="filter-search">
+              <label class="search">${icon('loupe')}<span class="visually-hidden">Chercher une règle</span>
+                <input type="search" data-chercher-regle value="${esc(ruleFilters.query)}" placeholder="Chercher un commerce, une catégorie…" autocomplete="off" enterkeyhint="search"></label>
+              ${active() ? '<button type="button" class="btn btn-secondary btn-small" data-effacer>Effacer les filtres</button>' : ''}
+            </div>
+            <div class="fchips fchips-3">
+              ${filterChip({ attr: 'data-filtre-qui', label: 'Pour qui', value: who ? who.name : 'Tout le monde', active: Boolean(who) })}
+              ${filterChip({ attr: 'data-filtre-categorie', label: 'Catégorie', value: cat ? cat.name : 'Toutes', active: Boolean(cat) })}
+              ${filterChip({ attr: 'data-filtre-ordre', label: 'Ordre', value: RULE_ORDERS.find((o) => o.id === ruleFilters.order).short })}
+            </div>
+          </div>
+          <div class="stack" data-regles></div>`;
+        drawList();
+        const input = root.querySelector('[data-chercher-regle]');
+        input.addEventListener('input', () => {
+          const had = active();
+          ruleFilters.query = input.value;
+          if (had !== active()) { draw(); root.querySelector('[data-chercher-regle]').focus(); } else drawList();
+        });
+      };
+      draw();
+      root.onclick = async (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if ('filtreQui' in b.dataset) {
+          const id = await chooseOption({ title: 'Pour qui ?', selected: ruleFilters.personId ?? '__tous',
+            options: [{ id: '__tous', name: 'Tout le monde' }, ...people.map((p) => ({ id: p.id, name: p.name, color: p.color }))] });
+          if (id) { ruleFilters.personId = id === '__tous' ? null : id; draw(); }
+        } else if ('filtreCategorie' in b.dataset) {
+          const used = cats.filter((c) => rules.some((r) => r.categoryId === c.id));
+          const id = await chooseOption({ title: 'Quelle catégorie ?', selected: ruleFilters.categoryId ?? '__toutes',
+            options: [{ id: '__toutes', name: 'Toutes les catégories' },
+              ...used.sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((c) => ({ id: c.id, name: c.name,
+                sub: `${rules.filter((r) => r.categoryId === c.id).length} règle(s)` }))] });
+          if (id) { ruleFilters.categoryId = id === '__toutes' ? null : id; draw(); }
+        } else if ('filtreOrdre' in b.dataset) {
+          const id = await chooseOption({ title: 'Dans quel ordre ?', selected: ruleFilters.order, options: RULE_ORDERS.map((o) => ({ id: o.id, name: o.label })) });
+          if (id) { ruleFilters.order = id; draw(); }
+        } else if ('effacer' in b.dataset) {
+          Object.assign(ruleFilters, { query: '', personId: null, categoryId: null });
+          draw();
+        }
+      };
     },
   };
 }
@@ -184,19 +246,8 @@ function regle(id) {
         back: '#/reglages/regles',
         onSave: async (f) => {
           const updated = await saveRule(db, id, { merchantKey: f.get('merchantKey'), personId: f.get('personId'), categoryId: f.get('categoryId') });
-          const old = await outdatedByRule(db, updated);
-          if (!old.length) return;
-          const cat = await db.get('categories', updated.categoryId);
-          const who = await db.get('people', updated.personId);
-          const yes = await confirmer({
-            titre: 'Reclasser aussi les anciennes opérations ?',
-            message: `${old.length} opération${old.length > 1 ? 's' : ''} déjà classée${old.length > 1 ? 's' : ''} par cette règle ${old.length > 1 ? 'passeraient' : 'passerait'} en « ${cat?.name ?? ''} » pour ${who?.name ?? ''}. Les opérations triées à la main ne changent pas.`,
-            ok: 'Reclasser', non: 'Laisser comme ça',
-          });
-          if (yes) {
-            await reclassifyByRule(db, updated.id);
-            document.dispatchEvent(new CustomEvent('donnees-modifiees'));
-          }
+          // « Reclasser les opérations existantes ? » (classées par la règle, à trier, ou toutes).
+          await askReclassify(db, updated.id);
         },
       });
       root.querySelector('[data-supprimer]').addEventListener('click', async () => {

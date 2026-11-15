@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.16.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -33,6 +33,7 @@
  *   0.13.0 FRE (Fidag)  Groupes de catégories qu'on peut fermer.
  *   0.14.0 FRE (Fidag)  Bloc « Tout remettre à zéro ».
  *   0.16.0 FRE (Fidag)  Barre de filtres compacte (Journal, Résumé) : période, boutons de filtre, recherche.
+ *   0.17.0 FRE (Fidag)  Filtres des règles (3 boutons).
  */
 
 @font-face {
@@ -972,6 +973,8 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
 .filter-search .search { flex: 1 1 auto; margin: 0; }
 .filter-search .btn { flex: 0 0 auto; }
 .picker-tools[hidden] { display: none !important; }
+/* 0.17.0 : trois boutons (règles) */
+.fchips-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 700px) {
   .fchips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .period-row { flex-wrap: wrap; }

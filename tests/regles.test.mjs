@@ -2,12 +2,13 @@
  * regles.test.mjs — Tests : règle modifiée, reclasser (au choix) les opérations déjà classées par elle.
  * Lancer : npm test
  *
- * Version : 0.13.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
  * Historique :
  *   0.13.0 FRE (Fidag)  Première version.
+ *   0.17.0 FRE (Fidag)  Reclasser avec ou sans les tris à la main ; filtrer et ordonner les règles.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -49,4 +50,36 @@ test('reclasser : seulement les opérations classées par cette règle', async (
   assert.equal((await db.get('transactions', 'c')).personId, 'maman', 'le choix fait à la main n’est pas touché');
   assert.equal(await G.reclassifyByRule(db, rule.id), 0, 'rien de plus la 2e fois');
   await assert.rejects(G.reclassifyByRule(db, 'inconnue'), /n’existe plus/);
+});
+
+test('reclasser : aperçu (par la règle / à la main / à trier) puis au choix avec ou sans les tris à la main', async () => {
+  const { db, rule } = await base();
+  await db.put('transactions', { id: 'd', date: '2026-10-04', description: 'MIGROS', merchantKey: 'MIGROS', amount: -40, status: 'a-trier' });
+  await G.saveRule(db, rule.id, { merchantKey: 'MIGROS', personId: 'papa', categoryId: 'alimentation-et-courses' });
+  const updated = await db.get('rules', rule.id);
+  const p = await G.reclassifyPreview(db, updated);
+  assert.deepEqual([p.byRule.map((t) => t.id).sort(), p.manual.map((t) => t.id), p.pending.map((t) => t.id)], [['a', 'b'], ['c'], ['d']]);
+  assert.equal(await G.reclassifyMatching(db, rule.id), 3, 'a, b et d');
+  assert.equal((await db.get('transactions', 'c')).personId, 'maman', 'à la main : pas touchée');
+  assert.equal((await db.get('transactions', 'd')).status, 'classee');
+  assert.equal(await G.reclassifyMatching(db, rule.id, { includeManual: true }), 1, 'c aussi quand on le demande');
+  assert.deepEqual([(await db.get('transactions', 'c')).personId, (await db.get('transactions', 'c')).ruleId], ['papa', rule.id]);
+});
+
+test('règles : filtrer (texte, pour qui, catégorie) et ordonner', () => {
+  const rules = [
+    { id: '1', merchantKey: 'MIGROS', personId: 'menage', categoryId: 'a', hits: 5, lastUsedAt: '2026-10-01' },
+    { id: '2', merchantKey: 'COOP', personId: 'maman', categoryId: 'a', hits: 9, lastUsedAt: '2026-09-01' },
+    { id: '3', merchantKey: 'GARAGE DU CENTRE', personId: 'papa', categoryId: 'v', hits: 1, lastUsedAt: '2026-11-01' },
+  ];
+  const ctx = { categoriesById: new Map([['a', { name: 'Alimentation' }], ['v', { name: 'Voiture' }]]), peopleById: new Map([['maman', { name: 'Maman' }]]) };
+  const ids = (l) => l.map((r) => r.id);
+  assert.deepEqual(ids(G.filterRules(rules, { query: 'garage' }, ctx)), ['3']);
+  assert.deepEqual(ids(G.filterRules(rules, { query: 'aliment' }, ctx)), ['1', '2'], 'cherche aussi dans la catégorie');
+  assert.deepEqual(ids(G.filterRules(rules, { query: 'maman' }, ctx)), ['2']);
+  assert.deepEqual(ids(G.filterRules(rules, { categoryId: 'v' })), ['3']);
+  assert.deepEqual(ids(G.filterRules(rules, { personId: 'menage' })), ['1']);
+  assert.deepEqual(ids(G.sortRules(rules, 'alpha')), ['2', '3', '1']);
+  assert.deepEqual(ids(G.sortRules(rules, 'hits')), ['2', '1', '3']);
+  assert.deepEqual(ids(G.sortRules(rules, 'recent')), ['3', '1', '2']);
 });

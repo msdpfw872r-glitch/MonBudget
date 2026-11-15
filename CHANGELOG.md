@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.17.0 — 2026-11-15 — FRE (Fidag)
+- **Quand une règle change, l'app propose de reclasser l'existant** — partout : dans Réglages › Règles retenues, depuis une opération (« Changer aussi la règle ? ») et dans À trier (« Toujours classer… » qui modifie une règle existante). Trois choix : **reclasser celles classées par cette règle** (et celles encore à trier), **reclasser toutes les opérations de ce commerce, même triées à la main**, ou **laisser comme ça**. Rien n'est demandé s'il n'y a rien à changer.
+- **Règles retenues : recherche et filtres.** Loupe (commerce, catégorie, personne), boutons **Pour qui**, **Catégorie** (seulement celles qui ont des règles) et **Ordre** (A à Z, les plus utilisées, utilisées récemment), « Effacer les filtres ». Chaque règle indique combien de fois elle a servi.
+- 147 tests automatiques.
+
 ## 0.16.0 — 2026-11-15 — FRE (Fidag)
 - **À chaque mise à jour de l'app, les opérations encore « à trier » sont relues** : la lecture améliorée des relevés s'applique (ex. le vrai commerçant des paiements par carte BCVs, retraits au bancomat, « NOTPROVIDED »), puis vos règles retenues les classent si elles le peuvent. Un message sur l'accueil dit combien ont été relues et classées. Les opérations triées à la main ne sont jamais touchées.
 - **Journal : filtres refaits, plus discrets.** Une seule barre : période « ‹ Octobre · Novembre 2026 (Mois · changer) · Décembre › », puis quatre boutons — **Pour qui**, **Afficher** (toutes / seulement les triées / seulement celles à trier), **Catégorie**, **Ordre** (date récente ou ancienne, grosses dépenses, grosses rentrées, nom A–Z, catégorie A–Z) — et la recherche. « Effacer les filtres » quand un filtre est choisi. L'ordre choisi est retenu.

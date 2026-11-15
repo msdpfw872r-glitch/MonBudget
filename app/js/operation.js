@@ -1,7 +1,7 @@
 /**
  * operation.js — Fenêtre « Modifier l'opération » (depuis le Journal).
  *
- * Version : 0.7.0
+ * Version : 0.17.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,12 +11,14 @@
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version.
  *   0.7.0  FRE (Fidag)  « Toujours classer » décoché d'office pour un texte générique.
+ *   0.17.0 FRE (Fidag)  Règle créée ou changée : « Reclasser les opérations … ? » (reclasser.js).
  */
 
 import { icon, esc, confirmer } from './ui.js';
 import { chooseCategory, choosePerson } from './choix.js';
 import { formatAmount, formatDateLong, displayName, opName } from '../src/core/format.js';
 import { classify, isGenericKey } from '../src/core/regles.js';
+import { askReclassify } from './reclasser.js';
 import { ReglageError } from '../src/core/reglages.js';
 
 const PEOPLE_BUTTONS_MAX = 6;
@@ -94,6 +96,7 @@ export function editOperation(db, tx, ctx) {
 
   return new Promise((resolve) => {
     let saved = false;
+    let askAfter = null; // règle à proposer pour reclasser les autres opérations
     d.onclick = async (e) => {
       if (e.target === d) { d.close(); return; }
       const b = e.target.closest('button');
@@ -120,8 +123,10 @@ export function editOperation(db, tx, ctx) {
             });
           }
           if (changed || tx.status !== 'classee' || (!rule && st.remember)) {
-            await classify(db, tx.id, { personId: st.personId, categoryId: st.categoryId, remember: !rule && st.remember, updateRule });
+            const res = await classify(db, tx.id, { personId: st.personId, categoryId: st.categoryId, remember: !rule && st.remember, updateRule });
             saved = true;
+            // Règle créée ou changée : proposer de reclasser les autres opérations (après la fermeture).
+            if (res.rule && (updateRule || st.remember)) askAfter = res.rule.id;
           }
           d.close();
         } catch (ex) {
@@ -131,6 +136,9 @@ export function editOperation(db, tx, ctx) {
         }
       }
     };
-    d.addEventListener('close', () => resolve(saved), { once: true });
+    d.addEventListener('close', async () => {
+      if (askAfter) await askReclassify(db, askAfter, { exceptId: tx.id });
+      resolve(saved);
+    }, { once: true });
   });
 }
