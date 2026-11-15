@@ -1,7 +1,7 @@
 /**
  * cartes.js — Factures de carte : rattacher les achats des cartes à la facture prélevée sur le compte.
  *
- * Version : 0.18.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -19,6 +19,7 @@
  *   0.4.0  FRE (Fidag)  Première version.
  *   0.18.0 FRE (Fidag)  Un fichier de carte = une facture (importGroups, findImportGroup) ; le paiement de la
  *                       facture reçu sur la carte n'est jamais un achat à rattacher.
+ *   0.18.1 FRE (Fidag)  autoLinkAll : toutes les correspondances par fichier d'abord, les suites d'achats ensuite.
  */
 
 import { toCents } from './text.js';
@@ -151,13 +152,16 @@ export async function unlinkBill(db, billId) {
 export async function autoLinkAll(db) {
   const bills = (await listBills(db)).reverse();
   let n = 0;
-  for (const bill of bills) {
-    if (await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
-    const list = await candidates(db, bill);
-    const run = findImportGroup(bill, list) ?? findExactRun(bill, list);
-    if (run) {
-      await linkBill(db, bill.id, run.map((t) => t.id));
-      n++;
+  // 1) D'abord les fichiers de carte qui correspondent exactement (un fichier = une facture) ;
+  // 2) ensuite seulement les suites d'achats, pour ne pas prendre les achats d'un fichier qui va avec une autre facture.
+  for (const find of [findImportGroup, findExactRun]) {
+    for (const bill of bills) {
+      if (await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
+      const run = find(bill, await candidates(db, bill));
+      if (run) {
+        await linkBill(db, bill.id, run.map((t) => t.id));
+        n++;
+      }
     }
   }
   return n;

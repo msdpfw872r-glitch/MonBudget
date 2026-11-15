@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.18.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -35,6 +35,7 @@
  *   0.16.0 FRE (Fidag)  Barre de filtres compacte (Journal, Résumé) : période, boutons de filtre, recherche.
  *   0.17.0 FRE (Fidag)  Filtres des règles (3 boutons).
  *   0.18.0 FRE (Fidag)  « Cocher le fichier » (factures de carte).
+ *   0.18.1 FRE (Fidag)  Barre « Enregistrer » collée en bas (factures de carte).
  */
 
 @font-face {
@@ -991,3 +992,16 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
 .file-pick + .file-pick { border-top: 1px solid var(--trait-doux); }
 .file-pick .row-text { align-items: flex-start; }
 .file-pick svg { color: var(--accent); }
+
+/* ---------- 0.18.1 Barre « Enregistrer » toujours visible ---------- */
+
+.save-bar {
+  position: sticky; bottom: 0; z-index: 2; margin-top: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  background: var(--surface); border: 2px solid var(--trait); border-radius: var(--rayon-petit);
+  padding: 10px 12px; box-shadow: 0 -4px 16px rgba(28, 40, 38, 0.10);
+}
+.save-bar .form-error { flex-basis: 100%; margin: 0; }
+.save-bar-text { flex: 1 1 200px; font-size: 19px; }
+.save-bar .btn { flex: 0 0 auto; min-width: 180px; }
+@media (max-width: 899px) { .save-bar { bottom: calc(var(--onglets) + 8px); } }

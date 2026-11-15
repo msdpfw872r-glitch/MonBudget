@@ -2,7 +2,7 @@
  * ecran-factures.js — Écran « Factures de carte » : rattacher les achats des cartes au prélèvement
  * de la facture (LSV) sur le compte, pour ne pas les compter deux fois.
  *
- * Version : 0.18.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,13 +11,15 @@
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
  *   0.18.0 FRE (Fidag)  « Cocher le fichier du … au … » : un fichier de carte importé = une facture.
+ *   0.18.1 FRE (Fidag)  Correspondance exacte → enregistrée toute seule (à l'ouverture, en cochant un fichier ou des
+ *                       achats) ; barre « Enregistrer » toujours visible en bas avec le total et l'écart.
  */
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
 import { formatCHF, formatAmount, formatDateLong, displayName, opName, formatDateShort } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
-import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups } from '../src/core/cartes.js';
+import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll } from '../src/core/cartes.js';
 import { toCents } from '../src/core/text.js';
 
 function statusText(st) {
@@ -26,12 +28,17 @@ function statusText(st) {
   return `À vérifier : écart de ${formatCHF(Math.abs(st.difference))}`;
 }
 
+let flash = ''; // message à afficher une fois sur la liste (« Facture juste : enregistrée »)
+
 function liste() {
   return {
     title: 'Factures de carte',
     parent: null,
     async render(root) {
       const db = await getDb();
+      // Correspondance exacte (fichier de carte ou suite d'achats) : rattachée toute seule.
+      const auto = await autoLinkAll(db);
+      if (auto) document.dispatchEvent(new CustomEvent('donnees-modifiees'));
       const bills = await listBills(db);
       const accounts = new Map((await db.getAll('accounts')).map((a) => [a.id, a]));
       const rows = [];
@@ -42,7 +49,10 @@ function liste() {
           <span class="row-sub ${st.complete ? '' : 'warn'}">${st.complete ? '' : icon('attention')}${esc(statusText(st))} · ${esc(accounts.get(b.accountId)?.name ?? '')}</span></span>
           ${icon('suite')}</a>`);
       }
-      root.innerHTML = `<p class="note">Le prélèvement de la facture de carte n’est pas compté dans les totaux :
+      const msg = [flash, auto ? `${auto} facture${auto > 1 ? 's rattachées' : ' rattachée'} toute${auto > 1 ? 's' : ''} seule${auto > 1 ? 's' : ''} : le montant correspond exactement.` : '']
+        .filter(Boolean).map((m) => `<p class="flash" role="status">${icon('ok')}${esc(m)}</p>`).join('');
+      flash = '';
+      root.innerHTML = `${msg}<p class="note">Le prélèvement de la facture de carte n’est pas compté dans les totaux :
           ce sont les achats faits avec les cartes qui le sont, chacun pour sa personne.
           Ici, vous vérifiez que les achats correspondent bien à chaque facture.</p>
         ${rows.length ? `<section class="card list">${rows.join('')}</section>`
@@ -107,13 +117,34 @@ function facture(id) {
               ${icon('ok')}</button>`).join('')}</section>` : ''}
         <p class="note">Ou cochez vous-même les achats payés par cette facture.</p>
         ${cards.map(group).join('') || '<p class="note">Aucune carte n’est payée depuis ce compte. Réglez-le dans Réglages, « Mes comptes ».</p>'}
-        <p class="form-error" role="alert" tabindex="-1" hidden></p>
-        <button type="button" class="btn btn-primary btn-wide" data-enregistrer>Enregistrer</button>`;
+        <div class="save-bar">
+          <p class="form-error" role="alert" tabindex="-1" hidden></p>
+          <span class="save-bar-text">${checked.size} coché${checked.size > 1 ? 's' : ''} · ${formatCHF(Math.abs(sum) / 100)}
+            ${diff === 0 ? '<strong>· juste</strong>' : `· écart ${formatCHF(Math.abs(diff) / 100)}`}</span>
+          <button type="button" class="btn btn-primary" data-enregistrer>Enregistrer</button>
+        </div>`;
 
+      // Total coché = montant de la facture ?
+      const exact = () => checked.size > 0 && list.filter((t) => checked.has(t.id)).reduce((x, t) => x + toCents(t.amount), 0) === toCents(bill.amount);
+      const save = async () => {
+        const err = root.querySelector('.form-error');
+        try {
+          const wasExact = exact();
+          await linkBill(db, bill.id, [...checked]);
+          document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+          flash = wasExact ? `Facture du ${formatDateLong(bill.date)} : juste, enregistrée.` : `Facture du ${formatDateLong(bill.date)} : enregistrée.`;
+          location.hash = '#/factures';
+        } catch (ex) {
+          err.textContent = ex instanceof ReglageError ? ex.message : 'L’enregistrement n’a pas marché. Réessayez.';
+          err.hidden = false;
+          err.focus();
+        }
+      };
       root.onchange = (e) => {
         const box = e.target.closest('[data-achat]');
         if (!box) return;
         if (box.checked) checked.add(box.dataset.achat); else checked.delete(box.dataset.achat);
+        if (exact()) { save(); return; }
         const y = root.closest('dialog')?.scrollTop ?? window.scrollY;
         this.render(root).then(() => {
           const d = root.closest('dialog');
@@ -125,20 +156,11 @@ function facture(id) {
         const f = e.target.closest('[data-fichier]');
         if (f) {
           checked = new Set(files[Number(f.dataset.fichier)].items.map((t) => t.id));
+          if (exact()) { save(); return; }
           await this.render(root);
           return;
         }
-        if (!e.target.closest('[data-enregistrer]')) return;
-        const err = root.querySelector('.form-error');
-        try {
-          await linkBill(db, bill.id, [...checked]);
-          document.dispatchEvent(new CustomEvent('donnees-modifiees'));
-          location.hash = '#/factures';
-        } catch (ex) {
-          err.textContent = ex instanceof ReglageError ? ex.message : 'L’enregistrement n’a pas marché. Réessayez.';
-          err.hidden = false;
-          err.focus();
-        }
+        if (e.target.closest('[data-enregistrer]')) save();
       };
     },
   };

@@ -2,12 +2,13 @@
  * factures.test.mjs — Tests : un fichier de carte importé = une facture (rattachement par fichier).
  * Lancer : npm test
  *
- * Version : 0.18.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-15
  *
  * Historique :
  *   0.18.0 FRE (Fidag)  Première version.
+ *   0.18.1 FRE (Fidag)  Le secours « suite d'achats » ne prend pas les achats d'un fichier qui va avec une autre facture.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -59,4 +60,16 @@ test('fichier trop ancien ou total différent : pas rattaché par fichier', asyn
   assert.equal(C.findImportGroup(b, await C.candidates(db, b)), null);
   const groups = C.importGroups(await C.candidates(db, b));
   assert.deepEqual(groups.map((g) => [g.importId, g.cents, g.from, g.to]), [['imp-mars', -5000, '2026-02-20', '2026-03-10'], ['imp-fev', -10000, '2026-02-02', '2026-02-15']]);
+});
+
+test('le secours « suite d’achats » ne vole pas les achats d’un fichier qui correspond à une autre facture', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  const items = [];
+  for (let i = 0; i < 14; i++) items.push(buy(`f${i}`, 'i1', `2026-02-${String(2 + i).padStart(2, '0')}`, -10)); // 140.– : pas la facture de février (145.–)
+  items.push(buy('m1', 'i2', '2026-02-20', -25), buy('m2', 'i2', '2026-03-10', -27.5)); // 52.50 = facture de mars
+  await db.putMany('transactions', [...items, bill('lsv-fev', '2026-02-23', -145), bill('lsv-mars', '2026-03-23', -52.5)]);
+  await C.autoLinkAll(db);
+  assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-mars')).map((t) => t.id).sort(), ['m1', 'm2']);
+  assert.equal(await db.countWhere('transactions', 'cardBillId', 'lsv-fev'), 0, 'février reste à vérifier (écart de 5.–)');
 });

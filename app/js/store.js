@@ -1,7 +1,7 @@
 /**
  * store.js — Base de l'app : disponible seulement quand l'app est déverrouillée.
  *
- * Version : 0.16.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,12 +15,14 @@
  *   0.10.0 FRE (Fidag)  Base physique de schéma 4 (transition vers le coffre chiffré).
  *   0.10.2 FRE (Fidag)  Base chiffrée ouverte au déverrouillage, oubliée au verrouillage.
  *   0.16.0 FRE (Fidag)  Nouvelle version de l'app : les opérations à trier sont relues (entretien.js).
+ *   0.18.1 FRE (Fidag)  … et les factures de carte qui correspondent exactement sont rattachées.
  */
 
 import { openPhysicalDb } from '../src/data/db.js';
 import { openVaultDb, migratePlain } from '../src/data/coffre.js';
 import { installSeed, upgradeSeed } from '../src/core/reglages.js';
 import { refreshPending } from '../src/core/entretien.js';
+import { autoLinkAll } from '../src/core/cartes.js';
 import { APP_VERSION } from './version.js';
 
 let phys = null;
@@ -66,7 +68,8 @@ export async function openWithKeys(keys) {
   if (app && app.appVersion !== APP_VERSION) {
     try {
       const r = await refreshPending(db);
-      if (r.corrigees || r.classees) updateNote = { version: APP_VERSION, ...r };
+      r.factures = await autoLinkAll(db); // factures de carte qui correspondent exactement
+      if (r.corrigees || r.classees || r.factures) updateNote = { version: APP_VERSION, ...r };
     } catch { /* sans gravité : réessayé à la prochaine ouverture */ }
     await db.put('settings', { ...(await db.get('settings', 'app')), appVersion: APP_VERSION });
   }

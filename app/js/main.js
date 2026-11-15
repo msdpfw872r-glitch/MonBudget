@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.16.0
+ * Version : 0.18.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -26,6 +26,7 @@
  *                       au verrouillage, l'écran est vidé.
  *   0.11.0 FRE (Fidag)  Plus de bandeau « Pensez à sauvegarder » (données synchronisées).
  *   0.16.0 FRE (Fidag)  Accueil : message après une mise à jour (opérations à trier relues / classées).
+ *   0.18.1 FRE (Fidag)  … et factures de carte rattachées.
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
@@ -98,7 +99,7 @@ function accueilView() {
         </div>
         <p class="flash" data-message-sauvegarde role="status" hidden></p>
         ${note ? `<p class="flash" role="status">${icon('ok')}Mon Budget a été mis à jour (version ${esc(note.version)}) :
-          ${note.corrigees ? `${note.corrigees} opération${note.corrigees > 1 ? 's' : ''} à trier relue${note.corrigees > 1 ? 's' : ''}` : ''}${note.corrigees && note.classees ? ', ' : ''}${note.classees ? `${note.classees} classée${note.classees > 1 ? 's' : ''} par vos règles` : ''}.</p>` : ''}
+          ${note.corrigees ? `${note.corrigees} opération${note.corrigees > 1 ? 's' : ''} à trier relue${note.corrigees > 1 ? 's' : ''}` : ''}${note.corrigees && note.classees ? ', ' : ''}${note.classees ? `${note.classees} classée${note.classees > 1 ? 's' : ''} par vos règles` : ''}${(note.corrigees || note.classees) && note.factures ? ', ' : ''}${note.factures ? `${note.factures} facture${note.factures > 1 ? 's' : ''} de carte rattachée${note.factures > 1 ? 's' : ''}` : ''}.</p>` : ''}
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
         ${pending ? `<a class="todo" href="#/trier">
             <span class="todo-count">${pending > 999 ? '999+' : pending}</span>
