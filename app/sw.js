@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.15.0
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -46,9 +46,10 @@
  *   0.14.2 FRE (Fidag)  Version 0.14.2.
  *   0.14.3 FRE (Fidag)  Version 0.14.3.
  *   0.15.0 FRE (Fidag)  Version 0.15.0.
+ *   0.16.0 FRE (Fidag)  Relecture des opérations à trier (entretien.js).
  */
 
-const VERSION = '0.15.0';
+const VERSION = '0.16.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -81,6 +82,7 @@ const FILES = [
   './src/core/verrou.js',
   './src/core/suppression.js',
   './src/core/copies.js',
+  './src/core/entretien.js',
   './js/cloud.js',
   './js/passkey.js',
   './js/session.js',

@@ -1,5 +1,11 @@
 # Historique des versions
 
+## 0.16.0 — 2026-11-15 — FRE (Fidag)
+- **À chaque mise à jour de l'app, les opérations encore « à trier » sont relues** : la lecture améliorée des relevés s'applique (ex. le vrai commerçant des paiements par carte BCVs, retraits au bancomat, « NOTPROVIDED »), puis vos règles retenues les classent si elles le peuvent. Un message sur l'accueil dit combien ont été relues et classées. Les opérations triées à la main ne sont jamais touchées.
+- **Journal : filtres refaits, plus discrets.** Une seule barre : période « ‹ Octobre · Novembre 2026 (Mois · changer) · Décembre › », puis quatre boutons — **Pour qui**, **Afficher** (toutes / seulement les triées / seulement celles à trier), **Catégorie**, **Ordre** (date récente ou ancienne, grosses dépenses, grosses rentrées, nom A–Z, catégorie A–Z) — et la recherche. « Effacer les filtres » quand un filtre est choisi. L'ordre choisi est retenu.
+- Résumé : même présentation compacte (période et Pour qui).
+- 145 tests automatiques.
+
 ## 0.15.0 — 2026-11-15 — FRE (Fidag)
 - **Relevé BCVs (camt.053) : paiements par carte corrigés.** Pour un paiement avec la carte de débit, la BCVs indique la titulaire du compte comme « bénéficiaire » : toutes ces opérations portaient le même nom et une seule règle les classait toutes pareil. L'app lit maintenant le **vrai commerçant** dans le texte de la banque (« Paiement 31.12.2025 14:50 Chocolat … Numéro de carte… » → « Chocolat … »), catégorie bancaire « Paiement par carte ».
 - **Retraits au bancomat** : tous sous le même nom « Retrait au bancomat » (le lieu reste dans la note) ; une seule règle suffit.

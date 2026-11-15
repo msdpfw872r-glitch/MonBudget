@@ -2,7 +2,7 @@
  * ecran-resume.js — Écran « Résumé du mois » : rentrées, dépenses, reste ; où va l'argent ;
  * dépenses pour qui ; export du mois pour Numbers ou Excel.
  *
- * Version : 0.5.2
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -10,6 +10,7 @@
  *   0.5.0  FRE (Fidag)  Première version.
  *   0.5.1  FRE (Fidag)  Période semaine / mois / année / tout / dates ; tableau « Mois par mois ».
  *   0.5.2  FRE (Fidag)  Toucher un montant (chiffres, barres, mois par mois) affiche les opérations qui le composent.
+ *   0.16.0 FRE (Fidag)  Période et « Pour qui » compacts (comme le Journal).
  */
 
 import { icon, esc } from './ui.js';
@@ -17,7 +18,7 @@ import { getDb } from './store.js';
 import { formatCHF } from '../src/core/format.js';
 import { monthSummary, exportMonth, summaryByMonth } from '../src/core/journal.js';
 import { formatMonth } from '../src/core/format.js';
-import { currentPeriod, currentPerson, setPerson, periodControls, handlePeriodClick, handleDateChange, personFilter, paint, periodWords } from './mois.js';
+import { currentPeriod, currentPerson, periodControls, handlePeriodClick, handleDateChange, personFilter, pickPerson, paint, periodWords } from './mois.js';
 import { shareOrDownload } from './partage.js';
 import { loadAll } from './ecran-journal.js';
 import { detailButton, openDetail } from './detail.js';
@@ -95,8 +96,10 @@ export function resumeView() {
         const empty = !s.income && !s.expenses;
         root.innerHTML = `<div class="page-head"><div><h1>Résumé</h1></div>
             <button type="button" class="btn btn-secondary" data-exporter>${icon('exporter')}Exporter</button></div>
-          ${periodControls(p)}
-          ${personFilter(data.people, personId)}
+          <div class="filter-bar">
+            ${periodControls(p)}
+            <div class="fchips">${personFilter(data.people, personId)}</div>
+          </div>
           ${monthCards(s, periodWords(p), p)}
           ${notCountedNote(s, p)}
           ${empty ? `<section class="card empty"><span class="empty-icon">${icon('resume')}</span><h2>Rien à résumer sur cette période</h2>
@@ -137,8 +140,8 @@ export function resumeView() {
             document.dispatchEvent(new CustomEvent('donnees-modifiees'));
             await this.render(root);
           }
-        } else if (handlePeriodClick(b, data.transactions)) draw();
-        else if ('filtrePersonne' in b.dataset) { setPerson(b.dataset.filtrePersonne); draw(); }
+        } else if (await handlePeriodClick(b, data.transactions)) draw();
+        else if ('choisirPersonne' in b.dataset) { if (await pickPerson(data.people)) draw(); }
         else if ('exporter' in b.dataset) {
           const p = currentPeriod(data.transactions);
           const personId = currentPerson();

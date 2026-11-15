@@ -1,7 +1,7 @@
 /**
  * mois.js — Période affichée (commune au Journal et au Résumé), filtre « pour qui », choix de période.
  *
- * Version : 0.5.1
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,9 +11,12 @@
  * Historique :
  *   0.5.0  FRE (Fidag)  Première version : mois, filtre pour qui.
  *   0.5.1  FRE (Fidag)  Périodes semaine / mois / année / tout / dates libres.
+ *   0.16.0 FRE (Fidag)  Présentation compacte : « ‹ Octobre · Novembre 2026 (Mois) · Décembre › », le genre de période
+ *                       et « Pour qui » se choisissent dans une petite fenêtre (filterChip).
  */
 
 import { icon, esc } from './ui.js';
+import { chooseOption } from './choix.js';
 import { monthsWithData } from '../src/core/journal.js';
 import { KINDS, periodFor, shiftPeriod, periodLabel, shiftLabel } from '../src/core/periode.js';
 
@@ -48,41 +51,64 @@ export function currentMonth(transactions) {
 export const currentPerson = () => view.personId;
 export const setPerson = (id) => { view.personId = id || null; };
 
-/** Choix de période : « Semaine | Mois | Année | Tout | Dates », puis « ‹ … · période · … › » ou « Du … au … ». */
+/** Bouton de filtre compact : petit titre + valeur, ouvre une fenêtre de choix. */
+export function filterChip({ attr, label, value, active = false }) {
+  return `<button type="button" class="fchip${active ? ' fchip-on' : ''}" ${attr}>
+      <span class="fchip-label">${esc(label)}</span>
+      <span class="fchip-value">${esc(value)}${icon('suite')}</span>
+    </button>`;
+}
+
+const KIND_SUB = {
+  semaine: 'Du lundi au dimanche', mois: 'Un mois entier', annee: 'Une année entière',
+  tout: 'Toutes les opérations', libre: 'Choisir les dates « du … au … »',
+};
+
+/** Période : « ‹ Octobre | Novembre 2026 · Mois | Décembre › » (et « Du … au … » pour des dates). */
 export function periodControls(p) {
-  const kinds = `<div class="period-kinds" role="group" aria-label="Période">
-      ${KINDS.map((k) => `<button type="button" class="pick" data-periode="${k.id}" aria-pressed="${p.kind === k.id}">${k.label}</button>`).join('')}
-    </div>`;
-  if (p.kind === 'tout') return `${kinds}<p class="month-current period-alone">${esc(periodLabel(p))}</p>`;
+  const kind = KINDS.find((k) => k.id === p.kind)?.label ?? '';
+  const pick = `<button type="button" class="period-pick" data-choisir-periode aria-label="Changer de période : ${esc(periodLabel(p))}">
+      <span class="period-title">${esc(periodLabel(p))}</span>
+      <span class="period-kind">${esc(kind)} · changer${icon('suite')}</span>
+    </button>`;
   const dates = p.kind === 'libre' ? `<div class="period-dates">
       <label class="field"><span>Du</span><input type="date" data-date="from" value="${esc(p.from)}" required></label>
       <label class="field"><span>Au</span><input type="date" data-date="to" value="${esc(p.to)}" required></label>
     </div>` : '';
-  return `${kinds}${dates}
-    <div class="month-switch" role="group" aria-label="Changer de période">
-      <button type="button" class="btn btn-secondary" data-decaler="-1">${icon('retour')}${esc(shiftLabel(p, -1))}</button>
-      <span class="month-current" aria-live="polite">${esc(periodLabel(p))}</span>
-      <button type="button" class="btn btn-secondary" data-decaler="1">${esc(shiftLabel(p, 1))}${icon('suite')}</button>
-    </div>`;
+  if (p.kind === 'tout') return `<div class="period-row period-row-alone">${pick}</div>`;
+  return `<div class="period-row" role="group" aria-label="Période">
+      <button type="button" class="btn btn-secondary period-step" data-decaler="-1">${icon('retour')}<span>${esc(shiftLabel(p, -1))}</span></button>
+      ${pick}
+      <button type="button" class="btn btn-secondary period-step" data-decaler="1"><span>${esc(shiftLabel(p, 1))}</span>${icon('suite')}</button>
+    </div>${dates}`;
+}
+
+/** Applique un genre de période (semaine, mois…), en gardant une date de la période affichée. */
+function setKind(kind, transactions) {
+  const p = currentPeriod(transactions);
+  const t = today();
+  const anchor = t >= p.from && t <= p.to ? t : p.to;
+  view.kind = kind;
+  view.anchor = anchor;
+  if (view.kind === 'libre') {
+    view.range = p.kind === 'tout' || p.kind === 'annee' ? { from: `${anchor.slice(0, 7)}-01`, to: anchor } : { from: p.from, to: p.to };
+  }
 }
 
 /**
- * Gère les boutons et les dates du choix de période.
- * @returns {boolean} vrai si l'action concernait la période (il faut redessiner)
+ * Gère les boutons de période.
+ * @returns {Promise<boolean>} vrai si la période a changé (il faut redessiner)
  */
-export function handlePeriodClick(b, transactions) {
-  if (b.dataset.periode) {
-    // On garde une date située dans la période affichée : aujourd'hui si elle y est, sinon son dernier jour.
+export async function handlePeriodClick(b, transactions) {
+  if ('choisirPeriode' in b.dataset) {
     const p = currentPeriod(transactions);
-    const t = today();
-    const anchor = t >= p.from && t <= p.to ? t : p.to;
-    view.kind = b.dataset.periode;
-    view.anchor = anchor;
-    if (view.kind === 'libre') {
-      view.range = p.kind === 'tout' || p.kind === 'annee' ? { from: `${anchor.slice(0, 7)}-01`, to: anchor } : { from: p.from, to: p.to };
-    }
+    const id = await chooseOption({ title: 'Quelle période ?', selected: p.kind,
+      options: KINDS.map((k) => ({ id: k.id, name: k.label, sub: KIND_SUB[k.id] })) });
+    if (!id || id === p.kind) return false;
+    setKind(id, transactions);
     return true;
   }
+  if (b.dataset.periode) { setKind(b.dataset.periode, transactions); return true; }
   if (b.dataset.decaler) {
     const q = shiftPeriod(currentPeriod(transactions), Number(b.dataset.decaler));
     view.anchor = q.from;
@@ -101,13 +127,22 @@ export function handleDateChange(input, transactions) {
   return true;
 }
 
-/** Filtre « Tout le monde / Maman / Papa / … ». */
+/** Filtre « Pour qui » (bouton compact). */
 export function personFilter(people, selected) {
-  const chip = (id, label, color) => `<button type="button" class="pick chip${color ? ' chip-person' : ''}" data-filtre-personne="${esc(id)}"
-      ${color ? `data-color="${esc(color)}"` : ''} aria-pressed="${(selected ?? '') === id}">${esc(label)}</button>`;
-  return `<div class="chips" role="group" aria-label="Pour qui">
-      ${chip('', 'Tout le monde')}${people.map((p) => chip(p.id, p.name, p.color)).join('')}
-    </div>`;
+  const p = people.find((x) => x.id === selected);
+  return filterChip({ attr: 'data-choisir-personne', label: 'Pour qui', value: p ? p.name : 'Tout le monde', active: Boolean(p) });
+}
+
+/** Ouvre le choix « Pour qui » ; vrai si le choix a changé. */
+export async function pickPerson(people) {
+  const ALL = '__tous';
+  const id = await chooseOption({ title: 'Pour qui ?', selected: view.personId ?? ALL,
+    options: [{ id: ALL, name: 'Tout le monde' }, ...people.map((p) => ({ id: p.id, name: p.name, color: p.color }))] });
+  if (!id) return false;
+  const next = id === ALL ? null : id;
+  if (next === view.personId) return false;
+  view.personId = next;
+  return true;
 }
 
 /** « ce mois-ci », « cette semaine »… pour « Il reste … ». */

@@ -1,7 +1,7 @@
 /**
  * choix.js — Fenêtre de choix avec loupe : « C'est quoi ? » (catégories) et « Pour qui ? » (personnes).
  *
- * Version : 0.4.6
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -13,6 +13,7 @@
  *   0.4.4  FRE (Fidag)  Première version (choix-categorie.js) : catégories.
  *   0.4.5  FRE (Fidag)  Fenêtre générique (choix.js) ; choix d'une personne quand il y en a plus de 6.
  *   0.4.6  FRE (Fidag)  Ordres au choix, ligne secondaire et montant ; liste des opérations à trier (iPhone).
+ *   0.16.0 FRE (Fidag)  chooseOption : petite liste sans loupe ni ordre (filtres du Journal, période).
  */
 
 import { icon, esc } from './ui.js';
@@ -72,8 +73,12 @@ function dialogEl() {
  * Chaque élément peut avoir `sub` (ligne secondaire) et `aside` (montant à droite).
  * @returns {Promise<string|null>}
  */
-export function choose({ title, searchLabel, orderKey, items, lastUsed = new Map(), groups, selected, emptyText, orders = DEFAULT_ORDERS, sortItems }) {
+export function choose({ title, searchLabel, orderKey, items, lastUsed = new Map(), groups, selected, emptyText, orders = DEFAULT_ORDERS, sortItems, simple = false }) {
   const d = dialogEl();
+  // Petite liste : ni loupe ni ordre.
+  d.querySelector('.picker-tools').hidden = simple;
+  if (simple) orders = [{ id: 'tel-quel', label: '' }];
+  if (simple) sortItems = (xs) => xs;
   const input = d.querySelector('[data-chercher]');
   const list = d.querySelector('[data-liste]');
   d.querySelector('#fenetre-choix-titre').textContent = title;
@@ -171,4 +176,13 @@ export function choosePerson({ people, lastUsed, selected }) {
     selected,
     emptyText: 'Personne ne correspond. Essayez un autre nom, ou ajoutez la personne dans Réglages, « Pour qui ».',
   });
+}
+
+/**
+ * Petite liste de choix (sans loupe ni ordre).
+ * @param {{title: string, options: {id: string, name: string, sub?: string, color?: string}[], selected: string}} o
+ * @returns {Promise<string|null>}
+ */
+export function chooseOption({ title, options, selected }) {
+  return choose({ title, searchLabel: '', orderKey: 'mon-budget.sans-ordre', items: options, selected, emptyText: '', simple: true });
 }

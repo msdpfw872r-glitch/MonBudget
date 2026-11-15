@@ -1,7 +1,7 @@
 /**
  * journal.js — Journal et résumé du mois : filtres, totaux, export pour Numbers / Excel.
  *
- * Version : 0.5.2
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -15,6 +15,7 @@
  *   0.5.0  FRE (Fidag)  Première version.
  *   0.5.1  FRE (Fidag)  Périodes quelconques (from / to), recherche d'opérations, mois par mois, export d'une période.
  *   0.5.2  FRE (Fidag)  detailOperations : les opérations qui composent un montant affiché.
+ *   0.16.0 FRE (Fidag)  filterOperations (triées / à trier, catégorie) et sortOperations (date, montant, nom, catégorie).
  */
 
 import { toCents, fold } from './text.js';
@@ -46,6 +47,52 @@ export function journal(transactions, { month = null, from = null, to = null, pe
   return transactions
     .filter((t) => inside(t) && (!personId || t.personId === personId))
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+}
+
+/** Filtres « Afficher » du Journal. */
+export const STATUS_FILTERS = [
+  { id: 'tout', label: 'Toutes les opérations' },
+  { id: 'classee', label: 'Seulement les triées' },
+  { id: 'a-trier', label: 'Seulement celles à trier' },
+];
+
+/** Ordres du Journal. */
+export const SORT_ORDERS = [
+  { id: 'date-desc', label: 'Date, les plus récentes d’abord', short: 'Date récente' },
+  { id: 'date-asc', label: 'Date, les plus anciennes d’abord', short: 'Date ancienne' },
+  { id: 'montant-desc', label: 'Montant, les plus grosses dépenses d’abord', short: 'Grosses dépenses' },
+  { id: 'montant-asc', label: 'Montant, les plus grosses rentrées d’abord', short: 'Grosses rentrées' },
+  { id: 'nom', label: 'Nom de l’opération, de A à Z', short: 'Nom A–Z' },
+  { id: 'categorie', label: 'Catégorie, de A à Z', short: 'Catégorie A–Z' },
+];
+
+/**
+ * Filtre par état (« classee » / « a-trier » / « tout ») et par catégorie (null = toutes).
+ */
+export function filterOperations(list, { status = 'tout', categoryId = null } = {}) {
+  return list.filter((t) => (status === 'tout' || (status === 'classee' ? t.status === 'classee' : t.status !== 'classee'))
+    && (!categoryId || t.categoryId === categoryId));
+}
+
+/**
+ * Trie les opérations. `ctx.nameOf(t)` donne le nom affiché, `ctx.categoriesById` les catégories.
+ * À égalité : la date la plus récente d'abord.
+ */
+export function sortOperations(list, order = 'date-desc', ctx = {}) {
+  const byDate = (a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
+  const fr = (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' });
+  const name = (t) => ctx.nameOf?.(t) ?? t.description ?? '';
+  // Les opérations à trier n'ont pas de catégorie : elles vont à la fin.
+  const cat = (t) => (t.status === 'classee' ? ctx.categoriesById?.get(t.categoryId)?.name ?? '' : '\uffff');
+  const cmp = {
+    'date-desc': byDate,
+    'date-asc': (a, b) => -byDate(a, b),
+    'montant-desc': (a, b) => toCents(a.amount) - toCents(b.amount) || byDate(a, b),
+    'montant-asc': (a, b) => toCents(b.amount) - toCents(a.amount) || byDate(a, b),
+    nom: (a, b) => fr(name(a), name(b)) || byDate(a, b),
+    categorie: (a, b) => fr(cat(a), cat(b)) || byDate(a, b),
+  }[order] ?? byDate;
+  return [...list].sort(cmp);
 }
 
 /**

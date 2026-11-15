@@ -1,7 +1,7 @@
 /**
  * main.js — Démarrage de Mon Budget : navigation, écrans, mise à jour hors ligne.
  *
- * Version : 0.11.0
+ * Version : 0.16.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -25,10 +25,11 @@
  *   0.10.2 FRE (Fidag)  L'app ne s'affiche qu'une fois connectée et déverrouillée (écrans de ecran-verrou.js) ;
  *                       au verrouillage, l'écran est vidé.
  *   0.11.0 FRE (Fidag)  Plus de bandeau « Pensez à sauvegarder » (données synchronisées).
+ *   0.16.0 FRE (Fidag)  Accueil : message après une mise à jour (opérations à trier relues / classées).
  */
 
 import { formatDateLong, formatMonth } from '../src/core/format.js';
-import { icon } from './ui.js';
+import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
 import { reglagesView } from './ecran-reglages.js';
 import { trierView } from './ecran-trier.js';
@@ -44,7 +45,7 @@ import { openDetail } from './detail.js';
 import { saveNow, showSaveResult } from './ecran-sauvegarde.js';
 import { initLockScreens, lockScreenShown } from './ecran-verrou.js';
 import * as session from './session.js';
-import { isUnlocked } from './store.js';
+import { isUnlocked, takeUpdateNote } from './store.js';
 
 const WIDE = window.matchMedia('(min-width: 900px)');
 
@@ -77,6 +78,7 @@ function accueilView() {
       const today = new Date();
       const db = await getDb();
       const [data, bills] = await Promise.all([loadAll(db), billsToCheck(db)]);
+      const note = takeUpdateNote();
       const pending = data.transactions.filter((t) => t.status === 'a-trier').length;
       const total = data.transactions.length;
       const month = currentMonth(data.transactions);
@@ -95,6 +97,8 @@ function accueilView() {
           <a class="btn btn-secondary home-settings" href="#/reglages">${icon('reglages')}Réglages</a>
         </div>
         <p class="flash" data-message-sauvegarde role="status" hidden></p>
+        ${note ? `<p class="flash" role="status">${icon('ok')}Mon Budget a été mis à jour (version ${esc(note.version)}) :
+          ${note.corrigees ? `${note.corrigees} opération${note.corrigees > 1 ? 's' : ''} à trier relue${note.corrigees > 1 ? 's' : ''}` : ''}${note.corrigees && note.classees ? ', ' : ''}${note.classees ? `${note.classees} classée${note.classees > 1 ? 's' : ''} par vos règles` : ''}.</p>` : ''}
         ${total ? monthCards(s, 'ce mois-ci', mf) : ''}
         ${pending ? `<a class="todo" href="#/trier">
             <span class="todo-count">${pending > 999 ? '999+' : pending}</span>
