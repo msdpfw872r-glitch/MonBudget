@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.9.0
+- Version du brief : 1.10.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -15,6 +15,7 @@ Historique du brief :
 - 1.7.0 — FRE (Fidag) — Synchronisation livrée (v0.9.0) : Réglages › Synchronisation, Face ID par passkey PRF, phrase de passe de secours ; mise en service et checklist iPad dans `docs/synchro-mise-en-service.md`.
 - 1.8.0 — FRE (Fidag) — Décision de l'utilisateur (v0.10) : « vraie app ». Connexion au premier lancement, l'espace chiffré est créé en même temps (phrase de secours choisie) ; **données de l'appareil chiffrées** elles aussi (lisibles seulement app ouverte) ; **verrouillage une minute après avoir quitté l'app**, réouverture par Face ID ou phrase de secours ; se déconnecter efface l'appareil. Voir `docs/specs/synchro.md` § 8.
 - 1.9.0 — FRE (Fidag) — Vrai relevé camt.053 BCVs reçu (v0.15.0, utilisé hors dépôt) : pour un paiement par carte de débit, la BCVs met la **titulaire du compte** comme créancier ; le commerçant est lu dans le texte (« Paiement JJ.MM.AAAA HH:MM Commerce Numéro de carte… »). Retraits bancomat regroupés, « NOTPROVIDED » ignoré. Réimporter corrige les opérations déjà importées.
+- 1.10.0 — FRE (Fidag) — Décision de l'utilisateur (v0.18.0) : **chaque fichier de carte importé (CSV Swisscard) correspond à une facture.** Vérifié sur ses vrais fichiers : 45 achats du 17.02 au 16.03 = LSV du 23.03 (CHF 3’469.55).
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -93,7 +94,7 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 - Chaque carte est un compte `carte` avec `personId` (titulaire, proposé d'avance dans « À trier ») et `billPaidFrom` (compte sur lequel la facture est prélevée). Seed : `carte-ubs-maman`, `carte-ubs-papa`, facture payée par `ubs`.
 - `accounts.bankRefs` : références lues dans les fichiers (IBAN, `****1234`). Inconnues → une question par référence à l'import, puis retenues. Les vrais numéros ne sont jamais dans le dépôt.
 - Le prélèvement (`isCardBillPayment`) va dans la catégorie `paiement-facture-carte` (`isCardBill`, `excludeFromTotals`).
-- Les achats des cartes portent `cardBillId` = id du prélèvement. Rattachement automatique si une suite continue d'achats (par date, non rattachés, avant le prélèvement) a exactement le même total ; sinon l'écran « Factures de carte » permet de cocher, avec l'écart affiché.
+- Les achats des cartes portent `cardBillId` = id du prélèvement. **Un fichier de carte importé = une facture** : rattachement automatique au prélèvement de même montant exact, au plus 45 jours après le dernier achat du fichier (dans les deux ordres d'import). Sinon, suite continue d'achats de même total ; sinon l'écran « Factures de carte » permet de cocher un fichier entier ou des achats, avec l'écart affiché. Le paiement de la facture reçu sur la carte n'est jamais un achat.
 - Totaux : les achats comptent (chacun pour sa personne), jamais le prélèvement.
 
 ### Sauvegarde

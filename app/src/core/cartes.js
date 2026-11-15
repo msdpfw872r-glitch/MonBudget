@@ -1,7 +1,7 @@
 /**
  * cartes.js — Factures de carte : rattacher les achats des cartes à la facture prélevée sur le compte.
  *
- * Version : 0.4.0
+ * Version : 0.18.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -10,12 +10,15 @@
  * les achats des deux cartes sont comptés une seule fois, chacun pour sa personne.
  * Chaque achat rattaché porte `cardBillId` = id du prélèvement.
  *
- * Rattachement automatique : on cherche, parmi les achats pas encore rattachés et datés avant le
- * prélèvement, une suite continue (par date) dont le total est exactement celui de la facture.
+ * Rattachement automatique (0.18.0) : chaque fichier de carte importé correspond à UNE facture. On cherche
+ * d'abord le fichier (import) dont les achats non rattachés font exactement le montant du prélèvement, le
+ * dernier achat étant au plus 45 jours avant. Sinon, une suite continue d'achats (par date) de même total.
  * Sinon, la personne coche elle-même les achats ; l'écart éventuel est affiché (frais, etc.).
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
+ *   0.18.0 FRE (Fidag)  Un fichier de carte = une facture (importGroups, findImportGroup) ; le paiement de la
+ *                       facture reçu sur la carte n'est jamais un achat à rattacher.
  */
 
 import { toCents } from './text.js';
@@ -41,9 +44,12 @@ export async function listBills(db) {
  */
 export async function candidates(db, bill) {
   const cards = await cardsPaidFrom(db, bill.accountId);
+  // Le paiement de la facture reçu sur la carte (catégorie « facture de carte ») n'est pas un achat.
+  const billCats = new Set((await db.getAll('categories')).filter((c) => c.isCardBill).map((c) => c.id));
   const out = [];
   for (const c of cards) {
     for (const t of await db.getAllWhere('transactions', 'accountId', c.id)) {
+      if (billCats.has(t.categoryId)) continue;
       if (t.date <= bill.date && (!t.cardBillId || t.cardBillId === bill.id)) out.push(t);
     }
   }
@@ -82,6 +88,36 @@ export function findExactRun(bill, list) {
   return null;
 }
 
+const DAY = 86400000;
+const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / DAY);
+export const MAX_DAYS_BEFORE_BILL = 45;
+
+/**
+ * Achats regroupés par fichier importé (un fichier de carte = une facture).
+ * @returns {{importId: string, items: object[], cents: number, from: string, to: string, free: boolean}[]}
+ */
+export function importGroups(list) {
+  const m = new Map();
+  for (const t of list) {
+    if (!t.importId) continue;
+    const g = m.get(t.importId) ?? { importId: t.importId, items: [], cents: 0, from: t.date, to: t.date, free: true };
+    g.items.push(t);
+    g.cents += cents(t);
+    if (t.date < g.from) g.from = t.date;
+    if (t.date > g.to) g.to = t.date;
+    if (t.cardBillId) g.free = false;
+    m.set(t.importId, g);
+  }
+  return [...m.values()].sort((a, b) => b.to.localeCompare(a.to));
+}
+
+/** Le fichier importé qui correspond exactement à cette facture, ou null. */
+export function findImportGroup(bill, list) {
+  const target = cents(bill);
+  return importGroups(list.filter((t) => !t.cardBillId))
+    .find((g) => g.cents === target && g.to <= bill.date && daysBetween(g.to, bill.date) <= MAX_DAYS_BEFORE_BILL)?.items ?? null;
+}
+
 /** Rattache exactement ces achats à la facture (remplace les rattachements précédents). */
 export async function linkBill(db, billId, txIds) {
   const bill = await db.get('transactions', billId);
@@ -117,7 +153,8 @@ export async function autoLinkAll(db) {
   let n = 0;
   for (const bill of bills) {
     if (await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
-    const run = findExactRun(bill, await candidates(db, bill));
+    const list = await candidates(db, bill);
+    const run = findImportGroup(bill, list) ?? findExactRun(bill, list);
     if (run) {
       await linkBill(db, bill.id, run.map((t) => t.id));
       n++;

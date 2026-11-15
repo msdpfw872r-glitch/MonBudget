@@ -2,7 +2,7 @@
  * ecran-factures.js — Écran « Factures de carte » : rattacher les achats des cartes au prélèvement
  * de la facture (LSV) sur le compte, pour ne pas les compter deux fois.
  *
- * Version : 0.4.0
+ * Version : 0.18.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -10,13 +10,14 @@
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
+ *   0.18.0 FRE (Fidag)  « Cocher le fichier du … au … » : un fichier de carte importé = une facture.
  */
 
 import { icon, esc } from './ui.js';
 import { getDb } from './store.js';
-import { formatCHF, formatAmount, formatDateLong, displayName, opName } from '../src/core/format.js';
+import { formatCHF, formatAmount, formatDateLong, displayName, opName, formatDateShort } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
-import { listBills, billStatus, candidates, linkBill, cardsPaidFrom } from '../src/core/cartes.js';
+import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups } from '../src/core/cartes.js';
 import { toCents } from '../src/core/text.js';
 
 function statusText(st) {
@@ -65,6 +66,8 @@ function facture(id) {
       const people = new Map((await db.getAll('people')).map((p) => [p.id, p]));
       if (!checked) checked = new Set(list.filter((t) => t.cardBillId === bill.id).map((t) => t.id));
 
+      // Les fichiers importés dont les achats sont encore libres (ou déjà rattachés à cette facture).
+      const files = importGroups(list).filter((g) => g.items.every((t) => !t.cardBillId || t.cardBillId === bill.id));
       const sum = list.filter((t) => checked.has(t.id)).reduce((s, t) => s + toCents(t.amount), 0);
       const diff = toCents(bill.amount) - sum;
       const diffText = diff === 0
@@ -97,7 +100,12 @@ function facture(id) {
           </div>
           ${diffText}
         </section>
-        <p class="note">Cochez les achats payés par cette facture.</p>
+        ${files.length ? `<h2 class="group-title">Un fichier de carte = une facture</h2>
+          <section class="card list">${files.map((g, i) => `<button type="button" class="row file-pick" data-fichier="${i}">
+              <span class="row-text"><span class="row-title">Cocher le fichier du ${esc(formatDateShort(g.from))} au ${esc(formatDateShort(g.to))}</span>
+              <span class="row-sub">${g.items.length} achat${g.items.length > 1 ? 's' : ''} · ${formatCHF(Math.abs(g.cents) / 100)}${g.cents === toCents(bill.amount) ? ' · exactement le montant de la facture' : ''}</span></span>
+              ${icon('ok')}</button>`).join('')}</section>` : ''}
+        <p class="note">Ou cochez vous-même les achats payés par cette facture.</p>
         ${cards.map(group).join('') || '<p class="note">Aucune carte n’est payée depuis ce compte. Réglez-le dans Réglages, « Mes comptes ».</p>'}
         <p class="form-error" role="alert" tabindex="-1" hidden></p>
         <button type="button" class="btn btn-primary btn-wide" data-enregistrer>Enregistrer</button>`;
@@ -114,6 +122,12 @@ function facture(id) {
         });
       };
       root.onclick = async (e) => {
+        const f = e.target.closest('[data-fichier]');
+        if (f) {
+          checked = new Set(files[Number(f.dataset.fichier)].items.map((t) => t.id));
+          await this.render(root);
+          return;
+        }
         if (!e.target.closest('[data-enregistrer]')) return;
         const err = root.querySelector('.form-error');
         try {

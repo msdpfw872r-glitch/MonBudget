@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.17.0
+ * Version : 0.18.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -34,6 +34,7 @@
  *   0.14.0 FRE (Fidag)  Bloc « Tout remettre à zéro ».
  *   0.16.0 FRE (Fidag)  Barre de filtres compacte (Journal, Résumé) : période, boutons de filtre, recherche.
  *   0.17.0 FRE (Fidag)  Filtres des règles (3 boutons).
+ *   0.18.0 FRE (Fidag)  « Cocher le fichier » (factures de carte).
  */
 
 @font-face {
@@ -983,3 +984,10 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
   .filter-search { flex-wrap: wrap; }
   .filter-search .btn { flex-basis: 100%; }
 }
+
+/* ---------- 0.18.0 Factures de carte : cocher un fichier ---------- */
+
+.file-pick { width: 100%; text-align: left; background: var(--surface); border: 0; font: inherit; color: inherit; cursor: pointer; }
+.file-pick + .file-pick { border-top: 1px solid var(--trait-doux); }
+.file-pick .row-text { align-items: flex-start; }
+.file-pick svg { color: var(--accent); }

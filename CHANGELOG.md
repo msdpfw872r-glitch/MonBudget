@@ -1,5 +1,11 @@
 # Historique des versions
 
+## 0.18.0 — 2026-11-15 — FRE (Fidag)
+- **Un fichier de carte importé = une facture.** Les achats d'un fichier Swisscard (les deux cartes ensemble) sont rattachés automatiquement au prélèvement LSV **du même montant exact**, au plus 45 jours après le dernier achat — que le relevé de la banque soit importé avant ou après. Vérifié sur les vrais fichiers : 45 achats du 17 février au 16 mars = LSV du 23 mars, CHF 3’469.55. (Avant, l'app cherchait une suite d'achats de même total et pouvait se tromper de mois.)
+- Le paiement de la facture reçu sur la carte (« Votre paiement (LSV) – merci ») n'est plus jamais pris pour un achat.
+- Factures de carte : boutons **« Cocher le fichier du … au … »** (avec « exactement le montant de la facture » quand c'est le cas), en plus des cases une par une.
+- Brief 1.10.0. 150 tests automatiques.
+
 ## 0.17.0 — 2026-11-15 — FRE (Fidag)
 - **Quand une règle change, l'app propose de reclasser l'existant** — partout : dans Réglages › Règles retenues, depuis une opération (« Changer aussi la règle ? ») et dans À trier (« Toujours classer… » qui modifie une règle existante). Trois choix : **reclasser celles classées par cette règle** (et celles encore à trier), **reclasser toutes les opérations de ce commerce, même triées à la main**, ou **laisser comme ça**. Rien n'est demandé s'il n'y a rien à changer.
 - **Règles retenues : recherche et filtres.** Loupe (commerce, catégorie, personne), boutons **Pour qui**, **Catégorie** (seulement celles qui ont des règles) et **Ordre** (A à Z, les plus utilisées, utilisées récemment), « Effacer les filtres ». Chaque règle indique combien de fois elle a servi.
