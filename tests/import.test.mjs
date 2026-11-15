@@ -2,7 +2,7 @@
  * import.test.mjs — Tests de l'import de bout en bout, des règles retenues et des factures de carte.
  * Lancer : npm test
  *
- * Version : 0.4.0
+ * Version : 0.15.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,6 +11,7 @@
  *
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
+ *   0.15.0 FRE (Fidag)  Compteur « corrigees » (noms corrigés au réimport).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -83,7 +84,7 @@ test('cartes inconnues : une question par carte, le compte est reconnu seul', as
 test('import : compteurs, facture classée seule, achats rattachés à la facture commune', async () => {
   const db = await freshDb();
   const { plan, record } = await importRows(db, OCTOBRE);
-  assert.deepEqual(plan.counts, { trouvees: 8, nouvelles: 8, autoClassees: 1, aTrier: 7, doublons: 0, enSuspens: 0 });
+  assert.deepEqual(plan.counts, { trouvees: 8, nouvelles: 8, autoClassees: 1, aTrier: 7, doublons: 0, corrigees: 0, enSuspens: 0 });
   assert.equal(record.counts.facturesRattachees, 1);
 
   const [bill] = await C.listBills(db);
@@ -118,7 +119,7 @@ test('une règle créée en triant classe seule au 2ᵉ import (et les opératio
 
   const NOVEMBRE = [HEAD, line('04.11.2026', '****2222', 'MIGROS M SION 04.11.2026', -42.1, 'Achats')];
   const { plan } = await importRows(db, NOVEMBRE);
-  assert.deepEqual(plan.counts, { trouvees: 1, nouvelles: 1, autoClassees: 1, aTrier: 0, doublons: 0, enSuspens: 0 });
+  assert.deepEqual(plan.counts, { trouvees: 1, nouvelles: 1, autoClassees: 1, aTrier: 0, doublons: 0, corrigees: 0, enSuspens: 0 });
   const nov = plan.transactions[0];
   assert.equal(nov.personId, 'menage');
   assert.equal(nov.categoryId, 'alimentation-et-courses');

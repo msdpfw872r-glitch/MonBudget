@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.15.0 — 2026-11-15 — FRE (Fidag)
+- **Relevé BCVs (camt.053) : paiements par carte corrigés.** Pour un paiement avec la carte de débit, la BCVs indique la titulaire du compte comme « bénéficiaire » : toutes ces opérations portaient le même nom et une seule règle les classait toutes pareil. L'app lit maintenant le **vrai commerçant** dans le texte de la banque (« Paiement 31.12.2025 14:50 Chocolat … Numéro de carte… » → « Chocolat … »), catégorie bancaire « Paiement par carte ».
+- **Retraits au bancomat** : tous sous le même nom « Retrait au bancomat » (le lieu reste dans la note) ; une seule règle suffit.
+- « NOTPROVIDED » n'est plus pris pour un nom (frais, location de safe : le libellé de la banque est utilisé). Salaire / rente sans nom de payeur : « Salaire ou rente ».
+- **Réimporter un relevé corrige les opérations déjà importées** (nouveau compteur « nom du commerçant corrigé », bouton « Corriger N opérations ») : celles classées par une règle sur l'ancien nom reviennent dans « À trier » (ou sont classées par une règle sur le bon nom) ; celles triées à la main gardent leur classement.
+- Vérifié sur un vrai relevé BCVs et un vrai fichier Swisscard (utilisés seulement pour l'essai, jamais mis dans le dépôt) ; test sur un relevé inventé du même style. 143 tests automatiques.
+
 ## 0.14.3 — 2026-11-10 — FRE (Fidag)
 - Face ID / Touch ID : quand la clé est enregistrée dans une **app de mots de passe externe** (Proton Pass, 1Password, Bitwarden…), elle ne permet pas d'ouvrir les données. Le message le dit maintenant et explique quoi faire ; les écrans d'activation conseillent de choisir **Mots de passe** (Apple).
 

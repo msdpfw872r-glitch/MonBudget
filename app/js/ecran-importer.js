@@ -2,7 +2,7 @@
  * ecran-importer.js — Écran « Importer un relevé » : choisir le fichier, répondre aux questions
  * (à qui est cette carte ?), voir le résumé, importer ; liste des imports avec annulation.
  *
- * Version : 0.8.0
+ * Version : 0.15.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -12,6 +12,7 @@
  *   0.8.0  FRE (Fidag)  Relevés standard camt.053 (fichiers .xml) ; contrôles affichés (soldes vérifiés…).
  *   0.7.0  FRE (Fidag)  BCVs et Swisscard ; « Une autre carte : l'ajouter » puis « À qui est cette carte ? » ;
  *                       opérations « en suspens » indiquées.
+ *   0.15.0 FRE (Fidag)  Réimport : « nom du commerçant corrigé » et bouton « Corriger N opérations ».
  */
 
 import { icon, esc, confirmer } from './ui.js';
@@ -32,6 +33,7 @@ function countsTable(c) {
     ${line('Classées toutes seules', c.autoClassees)}
     ${line('À trier par vous', c.aTrier)}
     ${line('Déjà importées (ignorées)', c.doublons, false)}
+    ${c.corrigees ? line('Déjà importées, nom du commerçant corrigé', c.corrigees) : ''}
     ${c.enSuspens ? line('En suspens chez la banque (viendront au prochain import)', c.enSuspens, false) : ''}
   </div>`;
 }
@@ -99,7 +101,7 @@ function whoseCard(q, people) {
 
 function preview(plan) {
   const c = plan.counts;
-  const nothing = c.nouvelles === 0;
+  const nothing = c.nouvelles === 0 && !c.corrigees;
   return `<section class="card">
       <div class="card-line"><span class="round-icon ok">${icon('ok')}</span>
         <span class="row-text"><span class="row-title">Relevé bien lu</span>
@@ -112,7 +114,9 @@ function preview(plan) {
     ${nothing
       ? `<p class="flash">${c.enSuspens && !c.trouvees ? 'Toutes les opérations de ce fichier sont encore en suspens chez la banque : elles viendront au prochain import.' : 'Toutes ces opérations sont déjà dans l’app. Il n’y a rien de nouveau à importer.'}</p>
          <button type="button" class="btn btn-secondary btn-wide" data-recommencer>Choisir un autre fichier</button>`
-      : `<button type="button" class="btn btn-primary btn-wide btn-import" data-importer>Importer ${plural(c.nouvelles, 'opération', 'opérations')}</button>
+      : `<button type="button" class="btn btn-primary btn-wide btn-import" data-importer>${c.nouvelles
+          ? `Importer ${plural(c.nouvelles, 'opération', 'opérations')}${c.corrigees ? ` et corriger ${c.corrigees}` : ''}`
+          : `Corriger ${plural(c.corrigees, 'opération', 'opérations')}`}</button>
          <button type="button" class="btn btn-secondary btn-wide" data-recommencer>Annuler</button>`}`;
 }
 

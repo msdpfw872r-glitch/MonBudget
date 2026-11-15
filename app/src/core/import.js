@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.8.0
+ * Version : 0.15.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,8 @@
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
  *   0.8.0  FRE (Fidag)  camt.053 (toutes banques) : importable dans n'importe quel compte bancaire (IBAN),
  *                       contrepartie, référence, contrôles affichés (notes) ; détection des fichiers XML.
+ *   0.15.0 FRE (Fidag)  Réimporter corrige le nom des opérations déjà importées quand la lecture du fichier
+ *                       s'est améliorée (ex. paiement par carte BCVs) ; celles classées par une règle sont reclassées.
  *   0.7.0  FRE (Fidag)  BCVs (relevé CSV) et Swisscard ; opérations « en suspens » comptées à part ;
  *                       clé des règles d'après le commerçant si la banque le donne ; plusieurs cartes inconnues → question.
  */
@@ -139,13 +141,32 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
   const rules = await db.getAll('rules');
   const billCategory = (await db.getAll('categories')).find((c) => c.isCardBill && !c.archived);
   const importId = `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const counts = { trouvees: parsed.transactions.length, nouvelles: 0, autoClassees: 0, aTrier: 0, doublons: 0, enSuspens: parsed.pendingCount ?? 0 };
+  const counts = { trouvees: parsed.transactions.length, nouvelles: 0, autoClassees: 0, aTrier: 0, doublons: 0, corrigees: 0, enSuspens: parsed.pendingCount ?? 0 };
   const transactions = [];
+  const corrections = [];
   const ruleHits = new Map();
 
   for (const t of parsed.transactions) {
     const acc = byRef.get(normRef(t.accountRef));
-    if (await db.get('transactions', t.id)) { counts.doublons++; continue; }
+    const old = await db.get('transactions', t.id);
+    if (old) {
+      counts.doublons++;
+      // Déjà importée, mais le fichier est maintenant mieux lu (autre nom de commerçant) : on corrige.
+      const key = merchantKey(t.merchant || t.description);
+      if (t.merchant && (old.merchant ?? null) !== t.merchant && old.merchantKey !== key) {
+        let fixed = { ...old, description: t.description, merchant: t.merchant, merchantKey: key, bankCategory: t.bankCategory ?? old.bankCategory,
+          ...(t.counterparty ? { counterparty: t.counterparty, note: t.note ?? old.note, alert: t.alert || null } : {}) };
+        // Classée par une règle sur l'ancien nom : le classement ne tient plus, on refait avec les règles.
+        if (fixed.status === 'a-trier' || fixed.ruleId) {
+          fixed = { ...fixed, status: 'a-trier', personId: null, categoryId: null, ruleId: null };
+          const rule = findRule(rules, key);
+          if (rule) fixed = applyRule(fixed, rule);
+        }
+        corrections.push(fixed);
+        counts.corrigees++;
+      }
+      continue;
+    }
     let tx = {
       id: t.id,
       accountId: acc.id,
@@ -198,6 +219,7 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     report: parsed.report ?? null,
     counts,
     transactions,
+    corrections,
     ruleHits: [...ruleHits.entries()],
     newRefs,
   };
@@ -217,12 +239,14 @@ export async function commitImport(db, plan, now = new Date()) {
   };
   for (const { ref, accountId } of plan.newRefs ?? []) await assignBankRef(db, accountId, ref);
   if (plan.transactions.length) await db.putMany('transactions', plan.transactions);
+  if (plan.corrections?.length) await db.putMany('transactions', plan.corrections);
   for (const [ruleId, n] of plan.ruleHits) {
     const r = await db.get('rules', ruleId);
     if (r) await db.put('rules', { ...r, hits: (r.hits ?? 0) + n, lastUsedAt: now.toISOString() });
   }
   record.counts.facturesRattachees = await autoLinkAll(db);
-  await db.put('imports', record);
+  // Seulement des corrections : pas de nouvel import dans la liste.
+  if (plan.transactions.length) await db.put('imports', record);
   const settings = await db.get('settings', 'app');
   await db.put('settings', { ...(settings ?? { id: 'app' }), lastImportAt: now.toISOString() });
   return record;

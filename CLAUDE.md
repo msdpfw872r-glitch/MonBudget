@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.8.0
+- Version du brief : 1.9.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-08
 
@@ -14,6 +14,7 @@ Historique du brief :
 - 1.6.0 — FRE (Fidag) — **Synchronisation chiffrée de bout en bout** vers Firebase (option A : un compte, deux iPad) : voir `docs/specs/synchro.md`. Le réseau est autorisé vers Firebase seulement ; les données n'y sont jamais en clair. SDK Firebase copié dans le dépôt (pas de CDN). La règle « aucune requête réseau » du § 4 est remplacée par celle-ci.
 - 1.7.0 — FRE (Fidag) — Synchronisation livrée (v0.9.0) : Réglages › Synchronisation, Face ID par passkey PRF, phrase de passe de secours ; mise en service et checklist iPad dans `docs/synchro-mise-en-service.md`.
 - 1.8.0 — FRE (Fidag) — Décision de l'utilisateur (v0.10) : « vraie app ». Connexion au premier lancement, l'espace chiffré est créé en même temps (phrase de secours choisie) ; **données de l'appareil chiffrées** elles aussi (lisibles seulement app ouverte) ; **verrouillage une minute après avoir quitté l'app**, réouverture par Face ID ou phrase de secours ; se déconnecter efface l'appareil. Voir `docs/specs/synchro.md` § 8.
+- 1.9.0 — FRE (Fidag) — Vrai relevé camt.053 BCVs reçu (v0.15.0, utilisé hors dépôt) : pour un paiement par carte de débit, la BCVs met la **titulaire du compte** comme créancier ; le commerçant est lu dans le texte (« Paiement JJ.MM.AAAA HH:MM Commerce Numéro de carte… »). Retraits bancomat regroupés, « NOTPROVIDED » ignoré. Réimporter corrige les opérations déjà importées.
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -127,7 +128,7 @@ Couleurs : fond `#F3F6F4`, surfaces `#FFFFFF`, texte `#1C2826`, texte secondaire
 |---|---|---|
 | UBS | Export « Transactions » Excel (.xlsx), en-têtes français : Date de transaction, Numéro de compte ou de carte, Description, Revenu ou dépense, Montant, Monnaie, Catégorie | **Fait** (v0.1.0). Le fichier peut mélanger le compte et une carte UBS (`****1234`). |
 | BCVs | Relevé de compte **CSV** : en-tête (« Relevé de compte jusqu'au », « N° de compte », nom, adresse), puis `Date;Libellé;Montant;Valeur` ; « ; », Windows-1252, dates JJ.MM.AA. La facture Swisscard y est prélevée par « Débit LSV SWISSCARD ». | **Fait** (v0.7.0, `importers/bcvs.js`). |
-| camt.053 (toutes banques) | XML ISO 20022, versions .04 et .08 — voir `docs/specs/camt053.md`. | **Fait** (v0.8.0, `importers/camt053.js`) sur fichiers construits selon la norme : **à confirmer sur un vrai relevé**. |
+| camt.053 (toutes banques) | XML ISO 20022, versions .04 et .08 — voir `docs/specs/camt053.md`. | **Fait** (v0.8.0, `importers/camt053.js`) ; **confirmé sur un vrai relevé BCVs** (.04) en v0.15.0 : paiements par carte (titulaire comme créancier → commerçant lu dans le texte), bancomat, NOTPROVIDED. |
 | Mastercard (Swisscard) | CSV : `Date transaction, Description, Commerçant, Numéro de carte, Monnaie, Montant, Monnaie étrangère, Montant étranger, Débit/Crédit, Statut, Catégorie de commerçant, Catégorie enregistrée` ; « , », guillemets, montants positifs + Débit/Crédit ; plusieurs cartes. | **Fait** (v0.7.0, `importers/swisscard.js`, alias EN/DE). « En suspens » non importées. |
 
 Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT_LABEL`, `detect(rows|text)`, `parse(...)` → `{ transactions, warnings, period, accounts }`. L'écran d'import détecte le format automatiquement et vérifie qu'il correspond au compte choisi.

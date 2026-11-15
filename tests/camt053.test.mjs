@@ -2,7 +2,7 @@
  * camt053.test.mjs — Tests du lecteur XML et de l'import camt.053 (versions .04 et .08).
  * Lancer : npm test
  *
- * Version : 0.8.0
+ * Version : 0.15.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -11,6 +11,7 @@
  *
  * Historique :
  *   0.8.0  FRE (Fidag)  Première version.
+ *   0.15.0 FRE (Fidag)  Style BCVs réel (inventé) : carte de débit avec la titulaire comme créancier, bancomat, NOTPROVIDED, salaire.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -21,6 +22,7 @@ import { openMemoryDb } from '../app/src/data/db.js';
 import * as R from '../app/src/core/reglages.js';
 import * as I from '../app/src/core/import.js';
 import * as C from '../app/src/core/cartes.js';
+import * as G from '../app/src/core/regles.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
 const V08 = await readFile(new URL('./fixtures/camt053-v08-invente.xml', import.meta.url));
@@ -153,4 +155,58 @@ test('import dans l’app : compte choisi par IBAN, anti-doublon entre fichiers,
   await R.assignBankRef(db, 'ubs', 'CH0000000000000000002');
   const p2 = await I.prepareImport(db, await I.readBankFile(V04));
   assert.deepEqual([p2.counts.doublons, p2.counts.nouvelles], [1, 2]);
+});
+
+test('style BCVs : paiement par carte (titulaire comme « créancier »), bancomat, NOTPROVIDED, salaire sans nom', () => {
+  const ntry = (amt, ind, code, tx, info) => `<Ntry><Amt Ccy="CHF">${amt}</Amt><CdtDbtInd>${ind}</CdtDbtInd><Sts>BOOK</Sts><BookgDt><Dt>2026-01-05</Dt></BookgDt>
+    <AcctSvcrRef>R${amt}</AcctSvcrRef><BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>${code}</Cd><SubFmlyCd>${code === 'RCDT' && amt === '1890' ? 'SALA' : 'OTHR'}</SubFmlyCd></Fmly></Domn></BkTxCd>
+    <NtryDtls><TxDtls><Refs><AcctSvcrRef>R${amt}/1</AcctSvcrRef><EndToEndId>NOTPROVIDED</EndToEndId></Refs><Amt Ccy="CHF">${amt}</Amt><CdtDbtInd>${ind}</CdtDbtInd>
+    ${tx}${info ? `<AddtlTxInf>${info}</AddtlTxInf>` : ''}</TxDtls></NtryDtls>${info ? `<AddtlNtryInf>${info}</AddtlNtryInf>` : ''}</Ntry>`;
+  const xml = `<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04"><BkToCstmrStmt><Stmt><Acct><Id><IBAN>CH0000000000000000003</IBAN></Id>
+    <Ownr><Nm>Anne-Marie Exemple</Nm></Ownr></Acct>
+    ${ntry('36', 'DBIT', 'ICDT', '<RltdPties><Dbtr><Nm>NOTPROVIDED</Nm></Dbtr><Cdtr><Nm>Anne-Marie Exemple</Nm></Cdtr></RltdPties><RmtInf><Ustrd>31.12.2025 14:50 Confiserie Exemple SA Numéro de carte: 000000******0000</Ustrd></RmtInf>',
+      'Paiement 31.12.2025 14:50 Confiserie Exemple SA Numéro de carte: 000000******0000')}
+    ${ntry('300', 'DBIT', 'ICDT', '<RltdPties><Cdtr><Nm>ANNE MARIE EXEMPLE</Nm></Cdtr></RltdPties>', 'Retrait BM 22.01.2026 18:27 BR Exempleville Numéro de carte: 000000******0000')}
+    ${ntry('400', 'DBIT', 'ICDT', '', 'Prélèvement Bancomat CHF, Exempleville-Agence/2, 27.03.2026 11:30, carte: 000000******0000')}
+    ${ntry('6', 'DBIT', 'ICDT', '<RltdPties><Cdtr><Nm>NOTPROVIDED</Nm></Cdtr></RltdPties>', 'Frais Conto Pack')}
+    ${ntry('1890', 'CRDT', 'RCDT', '', 'Crédit')}
+    ${ntry('4500', 'CRDT', 'RCDT', '<RltdPties><Dbtr><Nm>EXEMPLE ANNE MARIE</Nm></Dbtr></RltdPties>', 'Crédit')}
+    </Stmt></BkToCstmrStmt></Document>`;
+  const res = camt.parse(xml);
+  const [pay, bm, bm2, fees, sal, transfer] = res.transactions;
+  assert.deepEqual([pay.merchant, pay.bankCategory, pay.counterparty.source, pay.alert], ['Confiserie Exemple SA', 'Paiement par carte', 'carte', ''],
+    'le commerçant, pas la titulaire du compte');
+  assert.deepEqual([bm.merchant, bm.bankCategory, bm.counterparty.place], ['Retrait au bancomat', 'Retrait au bancomat', 'BR Exempleville']);
+  assert.deepEqual([bm2.merchant, bm2.counterparty.place], ['Retrait au bancomat', 'Exempleville-Agence/2'], 'tous les retraits sous le même nom');
+  assert.equal(fees.merchant, 'Frais Conto Pack', '« NOTPROVIDED » n’est pas un nom');
+  assert.equal(sal.merchant, 'Salaire ou rente');
+  assert.equal(transfer.merchant, 'EXEMPLE ANNE MARIE', 'un virement reçu d’un autre compte garde son nom');
+  assert.deepEqual(camt.cardText('Paiement 15.01.2026 15:40 PHARMACIE EXEMPLE Numéro de carte: 0000 Montant: EUR 18.90'), { name: 'PHARMACIE EXEMPLE', category: 'Paiement par carte', place: '' });
+  assert.equal(camt.cardText('Ordre e-Bill'), null);
+});
+
+test('réimporter après une meilleure lecture : noms corrigés, classement par règle refait, tri à la main gardé', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  await R.assignBankRef(db, 'bcvs', 'CH0000000000000000001');
+  const res = await I.readBankFile(V08);
+  const plan = await I.prepareImport(db, res);
+  // Simule l'ancienne lecture : la contrepartie était la titulaire du compte.
+  const pos = plan.transactions.find((t) => t.endToEndId === 'E2E-POS');
+  const cm = plan.transactions.find((t) => t.endToEndId === 'E2E-CM-10');
+  for (const t of [pos, cm]) { t.merchant = 'Titulaire Exemple'; t.merchantKey = 'TITULAIRE EXEMPLE'; }
+  await I.commitImport(db, plan);
+  await G.classify(db, pos.id, { personId: 'menage', categoryId: 'alimentation-et-courses', remember: true }); // règle « TITULAIRE EXEMPLE »
+  await G.classify(db, cm.id, { personId: 'maman', categoryId: 'alimentation-et-courses', remember: false }); // à la main
+  // cm a été classée par la règle aussi (même nom) puis à la main : on vérifie surtout pos.
+  const again = await I.prepareImport(db, await I.readBankFile(V08));
+  assert.equal(again.counts.nouvelles, 0);
+  assert.equal(again.counts.corrigees, 2);
+  await I.commitImport(db, again);
+  const p2 = await db.get('transactions', pos.id);
+  assert.deepEqual([p2.merchant, p2.status, p2.ruleId], ['Boulangerie Exemple Ville', 'a-trier', null], 'classée par une règle sur l’ancien nom : à retrier');
+  const c2 = await db.get('transactions', cm.id);
+  assert.deepEqual([c2.merchant, c2.status, c2.personId], ['Caisse Maladie Exemple SA', 'classee', 'maman'], 'triée à la main : gardée');
+  assert.equal((await I.listImports(db)).length, 1, 'pas de nouvel import vide');
+  assert.equal((await I.prepareImport(db, await I.readBankFile(V08))).counts.corrigees, 0, 'une seule fois');
 });

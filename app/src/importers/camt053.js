@@ -1,7 +1,7 @@
 /**
  * camt053.js — Import des relevés de compte camt.053 (ISO 20022, Swiss Payment Standards / SIX).
  *
- * Version : 0.8.0
+ * Version : 0.15.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-09
  *
@@ -18,6 +18,9 @@
  *
  * Historique :
  *   0.8.0  FRE (Fidag)  Première version.
+ *   0.15.0 FRE (Fidag)  Vrai relevé BCVs : paiement par carte où la banque met la titulaire du compte comme
+ *                       créancier → commerçant lu dans le texte (« Paiement 31.12.2025 14:50 Commerce Numéro de carte… ») ;
+ *                       retraits bancomat regroupés sous un même nom ; « NOTPROVIDED » = pas de nom ; salaire / rente sans nom.
  */
 
 import { fold, toCents, fingerprint, parseDateCH } from '../core/text.js';
@@ -72,6 +75,28 @@ function partyPlace(el) {
 }
 /** Normalise un nom pour regrouper un même créancier (espaces, majuscules). */
 export const normalizeName = (s) => fold(s).replace(/\s+/g, ' ').trim();
+/** Même personne ? (sans accents, tirets ni espaces : « Marie-Claude Reuse » = « MARIE CLAUDE REUSE »). */
+const samePerson = (a, b) => Boolean(a && b) && fold(a).replace(/[^A-Z0-9]/g, '') === fold(b).replace(/[^A-Z0-9]/g, '');
+/** Noms qui n'en sont pas. */
+const NO_NAME = /^(NOT ?PROVIDED|N\/?A|NONE|-)$/i;
+
+/**
+ * Texte d'une opération par carte de débit (BCVs et autres) :
+ *   « Paiement 31.12.2025 14:50 Chocolat Raffin SA Numéro de carte: 5354… »  → paiement chez « Chocolat Raffin SA »
+ *   « Retrait BM 22.01.2026 18:27 BR Bovernier Numéro de carte: … »          → retrait au bancomat
+ *   « Prélèvement Bancomat CHF, Martigny-Agence/2, 27.03.2026 11:30, carte… » → retrait au bancomat
+ * @returns {{name: string, category: string, place: string}|null}
+ */
+export function cardText(s) {
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim();
+  let m = t.match(/^(?:Paiement|Achat|Payment|Zahlung)\s+\d{1,2}\.\d{1,2}\.\d{2,4}\s+\d{1,2}:\d{2}\s+(.+?)\s+(?:Num[ée]ro de carte|N° de carte|Kartennummer|Card number)\s*:/i);
+  if (m) return { name: m[1].trim(), category: 'Paiement par carte', place: '' };
+  m = t.match(/^Retrait(?: BM| bancomat)?\s+\d{1,2}\.\d{1,2}\.\d{2,4}\s+\d{1,2}:\d{2}\s+(.+?)\s+(?:Num[ée]ro de carte|N° de carte)\s*:/i);
+  if (m) return { name: 'Retrait au bancomat', category: 'Retrait au bancomat', place: m[1].trim() };
+  m = t.match(/^Pr[ée]l[èe]vement Bancomat\s+[A-Z]{3}\s*,\s*([^,]+),/i);
+  if (m) return { name: 'Retrait au bancomat', category: 'Retrait au bancomat', place: m[1].trim() };
+  return null;
+}
 
 function bankCode(ntry, tx) {
   const b = child(tx, 'BkTxCd') ?? child(ntry, 'BkTxCd');
@@ -112,6 +137,7 @@ export function parse(text) {
     const acct = child(stmt, 'Acct');
     const iban = txt(path(acct, 'Id/IBAN')) || txt(path(acct, 'Id/Othr/Id')) || 'COMPTE';
     const acctCcy = txt(child(acct, 'Ccy')) || 'CHF';
+    const owner = txt(path(acct, 'Ownr/Nm'));
     let bookedSum = 0;
 
     childrenOf(stmt, 'Ntry').forEach((ntry, ni) => {
@@ -157,11 +183,21 @@ export function parse(text) {
         // 4.3 : je paie → le créancier ; je reçois → le débiteur ; le bénéficiaire final d'abord.
         // Le sens d'ORIGINE compte : une extourne d'un paiement garde le créancier du paiement.
         const [ult, main, acctTag] = ind === 'CRDT' ? ['UltmtDbtr', 'Dbtr', 'DbtrAcct'] : ['UltmtCdtr', 'Cdtr', 'CdtrAcct'];
-        let name = partyName(child(parties, ult)) || partyName(child(parties, main));
+        const clean = (n) => (NO_NAME.test(n.trim()) ? '' : n);
+        let name = clean(partyName(child(parties, ult))) || clean(partyName(child(parties, main)));
         let source = 'xml';
         const txInfo = tx ? txt(child(tx, 'AddtlTxInf')) : '';
         const code = bankCode(ntry, tx);
         const grouped = !details.length && batchCount > 1;
+        // Paiement / retrait par carte : certaines banques (BCVs) mettent la titulaire du compte comme
+        // « créancier ». Le vrai commerçant est dans le texte.
+        let card = null;
+        if (!name || (!credit && samePerson(name, owner))) {
+          card = cardText(txInfo) || cardText(ntryLabel) || cardText(tx ? communication(tx) : '');
+          if (card) { name = card.name; source = 'carte'; }
+          else if (name && samePerson(name, owner)) name = '';
+        }
+        if (!name && /\/SALA\b/.test(code)) { name = 'Salaire ou rente'; source = 'code'; }
         if (!name) {
           if (txInfo || (!/CHRG|FEES|INTR|CWDL|^ACMT/.test(code) && ntryLabel)) {
             name = txInfo || ntryLabel;
@@ -173,12 +209,13 @@ export function parse(text) {
           }
         }
         const cpIban = txt(path(child(parties, acctTag) ?? { children: [] }, 'Id/IBAN'));
-        const place = partyPlace(child(parties, ult)) || partyPlace(child(parties, main));
+        const place = card ? card.place : (partyPlace(child(parties, ult)) || partyPlace(child(parties, main)));
         const comm = tx ? communication(tx) : '';
         const ref = tx ? reference(tx) : '';
         const e2e = tx ? txt(path(tx, 'Refs/EndToEndId')) : '';
         const bankRef = (tx && txt(path(tx, 'Refs/AcctSvcrRef'))) || ntryRef;
-        const description = [ntryLabel, source !== 'banque' && name !== ntryLabel ? name : '', comm].filter(Boolean).join(' · ') || name;
+        const description = card ? (txInfo || ntryLabel || comm || name)
+          : [ntryLabel, source !== 'banque' && name !== ntryLabel ? name : '', comm].filter(Boolean).join(' · ') || name;
         const isCardBillPayment = !credit && CARD_BILL_WORDS.test(fold(`${name} ${ntryLabel} ${comm}`));
         // 6.4 : identifiant stable par référence banque + EndToEndId (fichiers qui se chevauchent).
         const refKey = bankRef && e2e && e2e !== 'NOTPROVIDED' ? `${bankRef}|${e2e}` : bankRef ? `${bankRef}|${ti}` : '';
@@ -198,13 +235,13 @@ export function parse(text) {
           counterparty: { name, iban: cpIban || null, place: place || null, source },
           amount: amount / 100,
           currency: ccyOf(aEl) || acctCcy,
-          bankCategory: operationLabel(code) ?? (code || null),
+          bankCategory: card?.category ?? operationLabel(code) ?? (code || null),
           operationCode: code || null,
           reference: ref || null,
           communication: comm || null,
           bankRef: bankRef || null,
           endToEndId: e2e || null,
-          note: [ref ? `Référence : ${ref}` : '', comm ? `Communication : ${comm}` : '', place ? `Lieu : ${place}` : ''].filter(Boolean).join(' · '),
+          note: [ref ? `Référence : ${ref}` : '', comm && !card ? `Communication : ${comm}` : '', place ? `Lieu : ${place}` : ''].filter(Boolean).join(' · '),
           alert: reversal ? 'EXTOURNE' : grouped ? 'GROUPE_SANS_DETAIL' : source === 'texte' ? 'NOM_MANQUANT' : '',
           isCardBillPayment,
         });
