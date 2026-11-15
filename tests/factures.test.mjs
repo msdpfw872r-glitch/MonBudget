@@ -86,3 +86,40 @@ test('facture vérifiée sans le détail : plus signalée, réversible', async (
   assert.equal((await C.billsToCheck(db)).length, 1);
   await assert.rejects(C.markBillChecked(db, 'inconnue'), /n’existe plus/);
 });
+
+test('recherche intelligente : un achat en euros passé sur la facture suivante', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  // Facture de février (23.02) ; facture de mars (23.03, clôture ~16.03).
+  // Le 12.03 un achat en euros (19.55) n'est comptabilisé qu'après la clôture : il est sur la facture d'avril.
+  await db.putMany('transactions', [
+    buy('a1', 'i1', '2026-02-20', -40), buy('a2', 'i1', '2026-03-01', -60), buy('a3', 'i1', '2026-03-08', -30),
+    { ...buy('eur', 'i1', '2026-03-12', -19.55), note: 'Montant d’origine : EUR 18.90' },
+    buy('a4', 'i1', '2026-03-15', -20),
+    buy('a5', 'i1', '2026-03-20', -11), // après la clôture : facture d'avril
+    bill('lsv-fev', '2026-02-23', -500), bill('lsv-mars', '2026-03-23', -150),
+  ]);
+  await C.markBillChecked(db, 'lsv-fev'); // pas de détail pour février
+  const b = await db.get('transactions', 'lsv-mars');
+  const m = C.findSmartMatch(b, await C.candidates(db, b), { prevBillDate: '2026-02-23' });
+  assert.deepEqual(m.items.map((t) => t.id).sort(), ['a1', 'a2', 'a3', 'a4']);
+  assert.deepEqual(m.removed.map((t) => t.id), ['eur'], 'l’achat en euros passe sur la facture suivante');
+  assert.equal(m.ambiguous, false);
+  assert.equal(await C.autoLinkAll(db), 1);
+  assert.equal((await C.billStatus(db, b)).complete, true);
+  assert.equal((await db.get('transactions', 'eur')).cardBillId ?? null, null, 'reste ouvert pour la facture suivante');
+});
+
+test('recherche intelligente : plusieurs combinaisons aussi probables → proposition, pas de rattachement seul', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  await db.putMany('transactions', [
+    buy('x1', 'i1', '2026-03-01', -10), buy('x2', 'i1', '2026-03-05', -10), buy('x3', 'i1', '2026-03-09', -10),
+    bill('lsv', '2026-03-23', -20),
+  ]);
+  const b = await db.get('transactions', 'lsv');
+  const m = C.findSmartMatch(b, await C.candidates(db, b), { prevBillDate: '2026-02-23' });
+  assert.equal(m.ambiguous, true);
+  assert.equal(m.items.length, 2);
+  // L'ancienne recherche (suite continue) trouve x1 + x2 : elle passe avant ; ici on vérifie que la recherche intelligente seule ne décide pas.
+});

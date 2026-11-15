@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.20.0 — 2026-11-15 — FRE (Fidag)
+- Factures de carte : **recherche intelligente** quand ni un fichier entier ni une suite d'achats ne tombe juste. L'app part des achats de la période de la facture (de la clôture précédente à la clôture, environ une semaine avant le prélèvement), puis essaie jusqu'à 3 ajustements : **retirer** des achats passés sur la facture suivante (d'abord ceux **en monnaie étrangère**, comptabilisés plus tard) et/ou **reprendre** des achats restés ouverts. Combinaison exacte au centime.
+  - Une seule combinaison la plus probable : rattachée **toute seule**.
+  - Plusieurs aussi probables : **« Proposition de l'app »** dans l'écran de la facture, avec les achats qui passent sur la facture suivante ou qui sont repris (monnaie étrangère signalée) et le bouton « Utiliser cette proposition ».
+- Les factures « vérifiées sans le détail » ne sont plus touchées par le rattachement automatique.
+- 154 tests automatiques.
+
 ## 0.19.0 — 2026-11-15 — FRE (Fidag)
 - Factures de carte : **« Sans le détail des achats ? »** pour une facture dont on n'importe pas le fichier de la carte :
   - **La marquer comme vérifiée** : elle n'est plus signalée (ni sur l'accueil, ni dans la liste : « Vérifiée sans le détail des achats ») ; elle reste hors des totaux. Réversible.

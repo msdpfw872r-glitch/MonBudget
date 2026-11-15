@@ -1,7 +1,7 @@
 /**
  * cartes.js — Factures de carte : rattacher les achats des cartes à la facture prélevée sur le compte.
  *
- * Version : 0.19.0
+ * Version : 0.20.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -21,6 +21,8 @@
  *                       facture reçu sur la carte n'est jamais un achat à rattacher.
  *   0.18.1 FRE (Fidag)  autoLinkAll : toutes les correspondances par fichier d'abord, les suites d'achats ensuite.
  *   0.19.0 FRE (Fidag)  Facture « vérifiée sans le détail » (billChecked) : plus signalée, sans importer les achats.
+ *   0.20.0 FRE (Fidag)  findSmartMatch : achats de la période, moins quelques achats passés sur la facture suivante
+ *                       (surtout en monnaie étrangère), plus quelques achats restés ouverts des factures précédentes.
  */
 
 import { toCents } from './text.js';
@@ -121,6 +123,80 @@ export function findImportGroup(bill, list) {
     .find((g) => g.cents === target && g.to <= bill.date && daysBetween(g.to, bill.date) <= MAX_DAYS_BEFORE_BILL)?.items ?? null;
 }
 
+/** Achat en monnaie étrangère (souvent comptabilisé plus tard : peut passer sur la facture suivante). */
+export const isForeign = (t) => (t.currency && t.currency !== 'CHF') || /Montant d’origine|Montant\s*:\s*[A-Z]{3}\b/.test(`${t.note ?? ''} ${t.description ?? ''}`);
+
+export const SMART_MAX_CHANGES = 3;
+const SMART_POOL = 25;
+
+/**
+ * Recherche « intelligente » quand ni un fichier entier ni une suite d'achats ne tombe juste.
+ * Base : les achats ouverts de la période de la facture (depuis peu avant la facture précédente).
+ * Ajustements (au plus SMART_MAX_CHANGES) : retirer des achats récents (passés sur la facture suivante,
+ * surtout en monnaie étrangère) et/ou ajouter des achats plus anciens restés ouverts.
+ * @param {object} bill
+ * @param {object[]} list  candidates(db, bill)
+ * @param {{prevBillDate?: string|null}} [opts]
+ * @returns {{items: object[], removed: object[], added: object[], ambiguous: boolean}|null}
+ */
+export function findSmartMatch(bill, list, { prevBillDate = null } = {}) {
+  const open = list.filter((t) => !t.cardBillId && t.date <= bill.date);
+  if (!open.length) return null;
+  const shift = (d, days) => new Date(Date.parse(d) + days * DAY).toISOString().slice(0, 10);
+  const target = cents(bill);
+  // Clôture du relevé : en général environ une semaine avant le prélèvement (on essaie plusieurs écarts).
+  const CLOSE_GAPS = [7, 5, 3, 10, 0, 14];
+  const startOf = (gap) => (prevBillDate ? shift(prevBillDate, -gap) : shift(bill.date, -(gap + 31)));
+  const score = (combo, gap) => combo.reduce((s, m) => s + (m.out ? (isForeign(m.t) ? 0 : 2) : 3), 0) + CLOSE_GAPS.indexOf(gap) * 0.1;
+  for (let k = 0; k <= SMART_MAX_CHANGES; k++) {
+    const sols = []; // { combo, gap, core }
+    for (const gap of CLOSE_GAPS) {
+      const end = shift(bill.date, -gap);
+      const start = startOf(gap);
+      const core = open.filter((t) => t.date > start && t.date <= end);
+      const late = open.filter((t) => t.date > end); // passés sur la facture suivante (peuvent revenir)
+      const older = open.filter((t) => t.date <= start);
+      const diff = core.reduce((x, t) => x + cents(t), 0) - target;
+      // Retirer : des achats de la période (étrangers et récents d'abord). Ajouter : des anciens restés ouverts ou des « tardifs ».
+      const removable = [...core].sort((a, b) => Number(isForeign(b)) - Number(isForeign(a)) || b.date.localeCompare(a.date)).slice(0, SMART_POOL);
+      const addable = [...late, ...[...older].sort((a, b) => b.date.localeCompare(a.date))].slice(0, SMART_POOL);
+      const moves = [...removable.map((t) => ({ t, out: true, v: cents(t) })), ...addable.map((t) => ({ t, out: false, v: -cents(t) }))];
+      const walk = (from, combo, sum) => {
+        if (combo.length === k) { if (sum === diff) sols.push({ combo: [...combo], gap, core }); return; }
+        for (let i = from; i < moves.length && sols.length < 100; i++) { combo.push(moves[i]); walk(i + 1, combo, sum + moves[i].v); combo.pop(); }
+      };
+      walk(0, [], 0);
+    }
+    if (!sols.length) continue;
+    const build = (sol) => {
+      const removed = sol.combo.filter((m) => m.out).map((m) => m.t);
+      const added = sol.combo.filter((m) => !m.out).map((m) => m.t);
+      const gone = new Set(removed.map((t) => t.id));
+      return { items: [...sol.core.filter((t) => !gone.has(t.id)), ...added], removed, added, s: score(sol.combo, sol.gap) };
+    };
+    // Plusieurs écarts de clôture peuvent donner le même ensemble d'achats : on les regroupe.
+    const uniq = new Map();
+    for (const r of sols.map(build)) {
+      if (!r.items.length) continue;
+      const key = r.items.map((t) => t.id).sort().join('|');
+      if (!uniq.has(key) || uniq.get(key).s > r.s) uniq.set(key, r);
+    }
+    const all = [...uniq.values()].sort((a, b) => a.s - b.s);
+    if (!all.length) continue;
+    const best = all[0];
+    // Sûre seulement si aucune autre combinaison n'est aussi probable (scores entiers égaux).
+    const ambiguous = all.length > 1 && Math.floor(all[1].s) === Math.floor(best.s);
+    return { items: best.items, removed: best.removed, added: best.added, ambiguous };
+  }
+  return null;
+}
+
+/** Date de la facture précédente sur le même compte (pour la période de la facture). */
+export async function previousBillDate(db, bill) {
+  const prev = (await listBills(db)).filter((b) => b.accountId === bill.accountId && b.date < bill.date);
+  return prev.length ? prev[0].date : null;
+}
+
 /** Rattache exactement ces achats à la facture (remplace les rattachements précédents). */
 export async function linkBill(db, billId, txIds) {
   const bill = await db.get('transactions', billId);
@@ -156,10 +232,15 @@ export async function autoLinkAll(db) {
   let n = 0;
   // 1) D'abord les fichiers de carte qui correspondent exactement (un fichier = une facture) ;
   // 2) ensuite seulement les suites d'achats, pour ne pas prendre les achats d'un fichier qui va avec une autre facture.
-  for (const find of [findImportGroup, findExactRun]) {
+  // 3) enfin la recherche « intelligente », seulement quand une seule combinaison est la plus probable.
+  const smart = async (bill, list) => {
+    const m = findSmartMatch(bill, list, { prevBillDate: await previousBillDate(db, bill) });
+    return m && !m.ambiguous ? m.items : null;
+  };
+  for (const find of [findImportGroup, findExactRun, smart]) {
     for (const bill of bills) {
-      if (await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
-      const run = find(bill, await candidates(db, bill));
+      if (bill.billChecked || await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
+      const run = await find(bill, await candidates(db, bill));
       if (run) {
         await linkBill(db, bill.id, run.map((t) => t.id));
         n++;

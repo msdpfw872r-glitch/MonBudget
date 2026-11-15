@@ -2,7 +2,7 @@
  * ecran-factures.js — Écran « Factures de carte » : rattacher les achats des cartes au prélèvement
  * de la facture (LSV) sur le compte, pour ne pas les compter deux fois.
  *
- * Version : 0.19.0
+ * Version : 0.20.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -15,13 +15,14 @@
  *                       achats) ; barre « Enregistrer » toujours visible en bas avec le total et l'écart.
  *   0.19.0 FRE (Fidag)  « Sans le détail des achats ? » : marquer comme vérifiée ou compter comme une dépense ;
  *                       écart de chaque fichier ; achats du plus récent au plus ancien ; explication des achats proposés.
+ *   0.20.0 FRE (Fidag)  « Proposition de l'app » (findSmartMatch) : achats passés sur la facture suivante / repris.
  */
 
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import { formatCHF, formatAmount, formatDateLong, displayName, opName, formatDateShort } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
-import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll, markBillChecked } from '../src/core/cartes.js';
+import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll, markBillChecked, findSmartMatch, previousBillDate, isForeign } from '../src/core/cartes.js';
 import { editOperation } from './operation.js';
 import { loadAll } from './ecran-journal.js';
 import { toCents } from '../src/core/text.js';
@@ -90,6 +91,19 @@ function facture(id) {
         : `<p class="warn-box">${icon('attention')}${diff < 0 ? 'Il manque' : 'Il y a trop de'} ${formatCHF(Math.abs(diff) / 100)} par rapport à la facture.
            ${diff < 0 ? 'Il peut s’agir de frais de la carte ou d’achats pas encore importés.' : 'Décochez les achats qui appartiennent à la facture suivante.'}</p>`;
 
+      // Proposition de l'app (combinaison exacte la plus probable), si la facture n'est pas encore juste.
+      const linkedNow = list.filter((t) => t.cardBillId === bill.id).reduce((x, t) => x + toCents(t.amount), 0);
+      const smart = linkedNow === toCents(bill.amount) ? null
+        : findSmartMatch(bill, list.map((t) => (t.cardBillId === bill.id ? { ...t, cardBillId: null } : t)), { prevBillDate: await previousBillDate(db, bill) });
+      const line = (t) => `<li>${esc(opName(t))} · ${esc(formatDateShort(t.date))} · ${formatCHF(Math.abs(t.amount))}${isForeign(t) ? ' · <strong>monnaie étrangère</strong>' : ''}</li>`;
+      const smartHtml = smart ? `<section class="card smart-card">
+          <h2>${icon('ok')}Proposition de l’app</h2>
+          <p><strong>${smart.items.length} achats font exactement ${formatCHF(Math.abs(bill.amount))}.</strong>
+            ${smart.ambiguous ? 'D’autres combinaisons sont possibles : vérifiez avant de l’utiliser.' : ''}</p>
+          ${smart.removed.length ? `<p class="note">Passent sur la facture suivante (comptabilisés après la clôture) :</p><ul class="smart-list">${smart.removed.map(line).join('')}</ul>` : ''}
+          ${smart.added.length ? `<p class="note">Repris (restés ouverts ou comptabilisés plus tard) :</p><ul class="smart-list">${smart.added.map(line).join('')}</ul>` : ''}
+          <button type="button" class="btn btn-primary btn-wide" data-proposition>Utiliser cette proposition</button>
+        </section>` : '';
       // Les plus récents en haut.
       const newestFirst = (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
       const group = (card) => {
@@ -107,7 +121,7 @@ function facture(id) {
           </section>`;
       };
 
-      root.innerHTML = `<section class="card">
+      root.innerHTML = `${smartHtml}<section class="card">
           <div class="card-line"><span class="round-icon">${icon('carte')}</span>
             <span class="row-text"><span class="row-title">Prélevée le ${esc(formatDateLong(bill.date))}</span>
             <span class="row-sub">${esc(bill.description)}</span></span></div>
@@ -175,6 +189,11 @@ function facture(id) {
         });
       };
       root.onclick = async (e) => {
+        if (e.target.closest('[data-proposition]') && smart) {
+          checked = new Set(smart.items.map((t) => t.id));
+          save();
+          return;
+        }
         const f = e.target.closest('[data-fichier]');
         if (f) {
           checked = new Set(files[Number(f.dataset.fichier)].items.map((t) => t.id));
