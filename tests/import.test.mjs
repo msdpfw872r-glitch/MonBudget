@@ -91,7 +91,7 @@ test('import : compteurs, facture classée seule, achats rattachés à la factur
   assert.equal(bill.categoryId, 'paiement-facture-carte');
   assert.equal(bill.status, 'classee');
   const st = await C.billStatus(db, bill);
-  assert.deepEqual(st, { count: 4, linkedTotal: -238.5, billAmount: -238.5, difference: 0, complete: true });
+  assert.deepEqual(st, { count: 4, linkedTotal: -238.5, billAmount: -238.5, difference: 0, complete: true, checked: false });
   // L'achat du 28 octobre (après le prélèvement) attend la facture suivante.
   const late = (await db.getAllWhere('transactions', 'accountId', 'carte-ubs-maman')).find((t) => t.date === '2026-10-28');
   assert.equal(late.cardBillId, null);

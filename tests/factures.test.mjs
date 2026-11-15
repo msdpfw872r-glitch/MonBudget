@@ -2,13 +2,14 @@
  * factures.test.mjs — Tests : un fichier de carte importé = une facture (rattachement par fichier).
  * Lancer : npm test
  *
- * Version : 0.18.1
+ * Version : 0.19.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-15
  *
  * Historique :
  *   0.18.0 FRE (Fidag)  Première version.
  *   0.18.1 FRE (Fidag)  Le secours « suite d'achats » ne prend pas les achats d'un fichier qui va avec une autre facture.
+ *   0.19.0 FRE (Fidag)  Facture vérifiée sans le détail.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -72,4 +73,16 @@ test('le secours « suite d’achats » ne vole pas les achats d’un fichier qu
   await C.autoLinkAll(db);
   assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-mars')).map((t) => t.id).sort(), ['m1', 'm2']);
   assert.equal(await db.countWhere('transactions', 'cardBillId', 'lsv-fev'), 0, 'février reste à vérifier (écart de 5.–)');
+});
+
+test('facture vérifiée sans le détail : plus signalée, réversible', async () => {
+  const db = await base();
+  await db.put('transactions', bill('lsv-avril', '2026-04-22', -333.3)); // aucun fichier de carte importé pour avril
+  assert.deepEqual((await C.billsToCheck(db)).map((b) => b.id), ['lsv-avril']);
+  await C.markBillChecked(db, 'lsv-avril');
+  assert.deepEqual(await C.billsToCheck(db), []);
+  assert.equal((await C.billStatus(db, await db.get('transactions', 'lsv-avril'))).checked, true);
+  await C.markBillChecked(db, 'lsv-avril', false);
+  assert.equal((await C.billsToCheck(db)).length, 1);
+  await assert.rejects(C.markBillChecked(db, 'inconnue'), /n’existe plus/);
 });

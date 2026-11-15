@@ -1,5 +1,13 @@
 # Historique des versions
 
+## 0.19.0 — 2026-11-15 — FRE (Fidag)
+- Factures de carte : **« Sans le détail des achats ? »** pour une facture dont on n'importe pas le fichier de la carte :
+  - **La marquer comme vérifiée** : elle n'est plus signalée (ni sur l'accueil, ni dans la liste : « Vérifiée sans le détail des achats ») ; elle reste hors des totaux. Réversible.
+  - **La compter comme une dépense** : on choisit pour qui et la catégorie ; elle compte alors dans les totaux comme une seule dépense.
+- Pour comprendre une facture qui ne tombe pas juste : chaque fichier de carte affiche son **écart avec la facture**, et l'écran explique quels achats sont proposés (cartes payées depuis ce compte, datés au plus tard le jour du prélèvement, pas encore rattachés ailleurs).
+- Achats listés **du plus récent au plus ancien**.
+- 152 tests automatiques.
+
 ## 0.18.1 — 2026-11-15 — FRE (Fidag)
 - Factures de carte : **une correspondance exacte est enregistrée toute seule** — en ouvrant « Factures de carte », après une mise à jour de l'app, en touchant « Cocher le fichier » quand il a exactement le montant, ou dès que les achats cochés font exactement la facture. Message « Facture … : juste, enregistrée ».
 - Le bouton **Enregistrer** reste toujours visible en bas de l'écran, avec le nombre d'achats cochés, le total et l'écart (ou « juste »).

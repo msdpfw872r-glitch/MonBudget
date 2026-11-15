@@ -1,7 +1,7 @@
 /**
  * cartes.js — Factures de carte : rattacher les achats des cartes à la facture prélevée sur le compte.
  *
- * Version : 0.18.1
+ * Version : 0.19.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,6 +20,7 @@
  *   0.18.0 FRE (Fidag)  Un fichier de carte = une facture (importGroups, findImportGroup) ; le paiement de la
  *                       facture reçu sur la carte n'est jamais un achat à rattacher.
  *   0.18.1 FRE (Fidag)  autoLinkAll : toutes les correspondances par fichier d'abord, les suites d'achats ensuite.
+ *   0.19.0 FRE (Fidag)  Facture « vérifiée sans le détail » (billChecked) : plus signalée, sans importer les achats.
  */
 
 import { toCents } from './text.js';
@@ -68,6 +69,7 @@ export async function billStatus(db, bill) {
     billAmount: bill.amount,
     difference: diff / 100, // < 0 : la facture est plus élevée que les achats rattachés
     complete: linked.length > 0 && diff === 0,
+    checked: Boolean(bill.billChecked), // vérifiée à la main, sans le détail des achats
   };
 }
 
@@ -167,11 +169,19 @@ export async function autoLinkAll(db) {
   return n;
 }
 
+/** Marque une facture comme vérifiée sans le détail des achats (ou annule). */
+export async function markBillChecked(db, billId, checked = true) {
+  const bill = await db.get('transactions', billId);
+  if (!bill?.isCardBillPayment) throw new ReglageError('Cette facture n’existe plus.');
+  await db.put('transactions', { ...bill, billChecked: checked ? new Date().toISOString() : null });
+}
+
 /** Factures pas encore justes (rien rattaché ou écart) : à vérifier. */
 export async function billsToCheck(db) {
   const out = [];
   for (const bill of await listBills(db)) {
-    if (!(await billStatus(db, bill)).complete) out.push(bill);
+    const st = await billStatus(db, bill);
+    if (!st.complete && !st.checked) out.push(bill);
   }
   return out;
 }

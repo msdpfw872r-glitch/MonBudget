@@ -2,7 +2,7 @@
  * ecran-factures.js — Écran « Factures de carte » : rattacher les achats des cartes au prélèvement
  * de la facture (LSV) sur le compte, pour ne pas les compter deux fois.
  *
- * Version : 0.18.1
+ * Version : 0.19.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -13,16 +13,21 @@
  *   0.18.0 FRE (Fidag)  « Cocher le fichier du … au … » : un fichier de carte importé = une facture.
  *   0.18.1 FRE (Fidag)  Correspondance exacte → enregistrée toute seule (à l'ouverture, en cochant un fichier ou des
  *                       achats) ; barre « Enregistrer » toujours visible en bas avec le total et l'écart.
+ *   0.19.0 FRE (Fidag)  « Sans le détail des achats ? » : marquer comme vérifiée ou compter comme une dépense ;
+ *                       écart de chaque fichier ; achats du plus récent au plus ancien ; explication des achats proposés.
  */
 
-import { icon, esc } from './ui.js';
+import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import { formatCHF, formatAmount, formatDateLong, displayName, opName, formatDateShort } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
-import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll } from '../src/core/cartes.js';
+import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll, markBillChecked } from '../src/core/cartes.js';
+import { editOperation } from './operation.js';
+import { loadAll } from './ecran-journal.js';
 import { toCents } from '../src/core/text.js';
 
 function statusText(st) {
+  if (st.checked && !st.complete) return 'Vérifiée sans le détail des achats';
   if (st.complete) return `Juste : ${st.count} achat${st.count > 1 ? 's' : ''} rattaché${st.count > 1 ? 's' : ''}`;
   if (!st.count) return 'À vérifier : aucun achat rattaché';
   return `À vérifier : écart de ${formatCHF(Math.abs(st.difference))}`;
@@ -46,7 +51,7 @@ function liste() {
         const st = await billStatus(db, b);
         rows.push(`<a class="row" href="#/factures/${encodeURIComponent(b.id)}">
           <span class="row-text"><span class="row-title">${esc(formatDateLong(b.date, { capital: true }))} · ${formatCHF(Math.abs(b.amount))}</span>
-          <span class="row-sub ${st.complete ? '' : 'warn'}">${st.complete ? '' : icon('attention')}${esc(statusText(st))} · ${esc(accounts.get(b.accountId)?.name ?? '')}</span></span>
+          <span class="row-sub ${st.complete || st.checked ? '' : 'warn'}">${st.complete || st.checked ? '' : icon('attention')}${esc(statusText(st))} · ${esc(accounts.get(b.accountId)?.name ?? '')}</span></span>
           ${icon('suite')}</a>`);
       }
       const msg = [flash, auto ? `${auto} facture${auto > 1 ? 's rattachées' : ' rattachée'} toute${auto > 1 ? 's' : ''} seule${auto > 1 ? 's' : ''} : le montant correspond exactement.` : '']
@@ -85,8 +90,10 @@ function facture(id) {
         : `<p class="warn-box">${icon('attention')}${diff < 0 ? 'Il manque' : 'Il y a trop de'} ${formatCHF(Math.abs(diff) / 100)} par rapport à la facture.
            ${diff < 0 ? 'Il peut s’agir de frais de la carte ou d’achats pas encore importés.' : 'Décochez les achats qui appartiennent à la facture suivante.'}</p>`;
 
+      // Les plus récents en haut.
+      const newestFirst = (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
       const group = (card) => {
-        const items = list.filter((t) => t.accountId === card.id);
+        const items = list.filter((t) => t.accountId === card.id).sort(newestFirst);
         if (!items.length) return '';
         const owner = people.get(card.personId);
         return `<h2 class="group-title">${esc(card.name)}${owner ? ` · ${esc(owner.name)}` : ''}</h2>
@@ -113,11 +120,26 @@ function facture(id) {
         ${files.length ? `<h2 class="group-title">Un fichier de carte = une facture</h2>
           <section class="card list">${files.map((g, i) => `<button type="button" class="row file-pick" data-fichier="${i}">
               <span class="row-text"><span class="row-title">Cocher le fichier du ${esc(formatDateShort(g.from))} au ${esc(formatDateShort(g.to))}</span>
-              <span class="row-sub">${g.items.length} achat${g.items.length > 1 ? 's' : ''} · ${formatCHF(Math.abs(g.cents) / 100)}${g.cents === toCents(bill.amount) ? ' · exactement le montant de la facture' : ''}</span></span>
+              <span class="row-sub">${g.items.length} achat${g.items.length > 1 ? 's' : ''} · ${formatCHF(Math.abs(g.cents) / 100)}${g.cents === toCents(bill.amount)
+                ? ' · exactement le montant de la facture' : ` · écart de ${formatCHF(Math.abs(g.cents - toCents(bill.amount)) / 100)} avec la facture`}</span></span>
               ${icon('ok')}</button>`).join('')}</section>` : ''}
-        <p class="note">Ou cochez vous-même les achats payés par cette facture.</p>
-        ${cards.map(group).join('') || '<p class="note">Aucune carte n’est payée depuis ce compte. Réglez-le dans Réglages, « Mes comptes ».</p>'}
-        <div class="save-bar">
+        <p class="note">${files.length ? 'Ou cochez vous-même' : 'Cochez'} les achats payés par cette facture. Sont proposés : les achats des cartes
+          ${esc(cards.map((c) => c.name).join(', ') || '—')}, datés au plus tard le jour du prélèvement et pas encore rattachés à une
+          autre facture — les plus récents en haut.</p>
+        ${list.length ? '' : `<section class="card"><p class="note">Aucun achat de carte importé jusqu’à cette date. Importez le fichier de la carte
+          pour cette période, ou classez la facture sans le détail (ci-dessous).</p></section>`}
+        ${cards.length ? cards.map(group).join('') : '<p class="note">Aucune carte n’est payée depuis ce compte. Réglez-le dans Réglages, « Mes comptes ».</p>'}
+        <section class="card no-detail">
+          <h2>Sans le détail des achats ?</h2>
+          ${bill.billChecked ? `<p class="flash">${icon('ok')}Vérifiée sans le détail le ${esc(formatDateLong(bill.billChecked.slice(0, 10)))}.</p>
+              <button type="button" class="btn btn-secondary btn-wide" data-sans-detail-annuler>Ne plus la marquer comme vérifiée</button>`
+            : `<p class="note">Si vous n’importez pas le fichier de la carte pour cette facture :</p>
+              <button type="button" class="btn btn-secondary btn-wide" data-sans-detail>${icon('ok')}La marquer comme vérifiée</button>
+              <p class="note">Elle ne sera plus signalée. Elle reste hors des totaux : les achats de cette facture n’y figurent pas.</p>
+              <button type="button" class="btn btn-secondary btn-wide" data-comme-depense>Compter la facture comme une dépense</button>
+              <p class="note">Elle est alors classée comme une seule dépense (pour qui, quelle catégorie) et comptée dans les totaux.</p>`}
+        </section>
+        <div class="save-bar"${list.length ? '' : ' hidden'}>
           <p class="form-error" role="alert" tabindex="-1" hidden></p>
           <span class="save-bar-text">${checked.size} coché${checked.size > 1 ? 's' : ''} · ${formatCHF(Math.abs(sum) / 100)}
             ${diff === 0 ? '<strong>· juste</strong>' : `· écart ${formatCHF(Math.abs(diff) / 100)}`}</span>
@@ -160,7 +182,28 @@ function facture(id) {
           await this.render(root);
           return;
         }
-        if (e.target.closest('[data-enregistrer]')) save();
+        if (e.target.closest('[data-enregistrer]')) { save(); return; }
+        if (e.target.closest('[data-sans-detail]')) {
+          const ok = await confirmer({ titre: 'Marquer la facture comme vérifiée ?', ok: 'Oui, vérifiée', non: 'Annuler',
+            message: `Facture du ${formatDateLong(bill.date)} (${formatCHF(Math.abs(bill.amount))}) : elle ne sera plus signalée, sans le détail des achats.` });
+          if (!ok) return;
+          await markBillChecked(db, bill.id, true);
+          document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+          flash = `Facture du ${formatDateLong(bill.date)} : vérifiée sans le détail.`;
+          location.hash = '#/factures';
+        } else if (e.target.closest('[data-sans-detail-annuler]')) {
+          await markBillChecked(db, bill.id, false);
+          document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+          await this.render(root);
+        } else if (e.target.closest('[data-comme-depense]')) {
+          const data = await loadAll(db);
+          if (await editOperation(db, bill, { ...data, categories: data.activeCategories })) {
+            document.dispatchEvent(new CustomEvent('donnees-modifiees'));
+            const now = await db.get('transactions', bill.id);
+            if (!now?.isCardBillPayment) { flash = `Facture du ${formatDateLong(bill.date)} : comptée comme une dépense.`; location.hash = '#/factures'; return; }
+            await this.render(root);
+          }
+        }
       };
     },
   };
