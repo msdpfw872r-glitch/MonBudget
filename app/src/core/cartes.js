@@ -1,9 +1,9 @@
 /**
  * cartes.js — Factures de carte : rattacher les achats des cartes à la facture prélevée sur le compte.
  *
- * Version : 0.20.0
+ * Version : 0.24.0
  * Auteur  : FRE (Fidag)
- * Date    : 2026-11-08
+ * Date    : 2026-11-16
  *
  * Exemple : les cartes UBS de Maman et de Papa ont une facture commune, prélevée par LSV sur
  * le compte UBS. Le prélèvement est une « facture » (catégorie non comptée dans les totaux) ;
@@ -23,6 +23,10 @@
  *   0.19.0 FRE (Fidag)  Facture « vérifiée sans le détail » (billChecked) : plus signalée, sans importer les achats.
  *   0.20.0 FRE (Fidag)  findSmartMatch : achats de la période, moins quelques achats passés sur la facture suivante
  *                       (surtout en monnaie étrangère), plus quelques achats restés ouverts des factures précédentes.
+ *   0.24.0 FRE (Fidag)  Réparation : une facture pas juste (ou vide) reprend le fichier qui fait exactement son
+ *                       montant, même si des achats de ce fichier sont restés sur une autre facture pas juste
+ *                       (rattachements faux d'avant) ; un fichier réimporté en plusieurs fois compte comme un seul
+ *                       fichier (même période) ; candidates/linkBill acceptent les achats des factures pas justes.
  */
 
 import { toCents } from './text.js';
@@ -45,8 +49,9 @@ export async function listBills(db) {
  * Achats qui peuvent être rattachés à cette facture : opérations des cartes payées par ce compte,
  * pas encore rattachées à une autre facture, datées au plus tard le jour du prélèvement.
  * Triés par date (le plus ancien d'abord).
+ * @param {{takeFrom?: Set<string>|'all'|null}} [opts]  aussi les achats rattachés à ces factures (ou à toutes : 'all').
  */
-export async function candidates(db, bill) {
+export async function candidates(db, bill, { takeFrom = null } = {}) {
   const cards = await cardsPaidFrom(db, bill.accountId);
   // Le paiement de la facture reçu sur la carte (catégorie « facture de carte ») n'est pas un achat.
   const billCats = new Set((await db.getAll('categories')).filter((c) => c.isCardBill).map((c) => c.id));
@@ -54,10 +59,38 @@ export async function candidates(db, bill) {
   for (const c of cards) {
     for (const t of await db.getAllWhere('transactions', 'accountId', c.id)) {
       if (billCats.has(t.categoryId)) continue;
-      if (t.date <= bill.date && (!t.cardBillId || t.cardBillId === bill.id)) out.push(t);
+      if (t.date <= bill.date && (!t.cardBillId || t.cardBillId === bill.id || takeFrom === 'all' || takeFrom?.has(t.cardBillId))) out.push(t);
     }
   }
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+}
+
+/**
+ * Factures « pas justes » : des achats rattachés mais un écart, et pas vérifiées à la main.
+ * Leurs achats peuvent être repris par une facture qui tombe juste.
+ * @returns {Promise<Set<string>>}
+ */
+export async function looseBillIds(db) {
+  const out = new Set();
+  for (const b of await listBills(db)) {
+    if (b.billChecked) continue;
+    const st = await billStatus(db, b);
+    if (st.count && !st.complete) out.add(b.id);
+  }
+  return out;
+}
+
+/**
+ * Clé du fichier d'un achat : un même fichier réimporté (même période) compte comme un seul fichier,
+ * même si ses achats sont répartis entre plusieurs importations.
+ * @returns {Promise<(t: object) => string|null>}
+ */
+export async function fileKeyOf(db) {
+  const keys = new Map();
+  for (const imp of await db.getAll('imports')) {
+    if (imp.period?.from && imp.period?.to) keys.set(imp.id, `${imp.period.from}|${imp.period.to}`);
+  }
+  return (t) => (t.importId ? keys.get(t.importId) ?? t.importId : null);
 }
 
 /** État d'une facture : total rattaché, écart, nombre d'achats. Montants en francs. */
@@ -101,26 +134,34 @@ export const MAX_DAYS_BEFORE_BILL = 45;
  * Achats regroupés par fichier importé (un fichier de carte = une facture).
  * @returns {{importId: string, items: object[], cents: number, from: string, to: string, free: boolean}[]}
  */
-export function importGroups(list) {
+export function importGroups(list, keyOf = (t) => t.importId) {
   const m = new Map();
   for (const t of list) {
-    if (!t.importId) continue;
-    const g = m.get(t.importId) ?? { importId: t.importId, items: [], cents: 0, from: t.date, to: t.date, free: true };
+    const key = keyOf(t);
+    if (!key) continue;
+    const g = m.get(key) ?? { importId: key, items: [], cents: 0, from: t.date, to: t.date, free: true };
     g.items.push(t);
     g.cents += cents(t);
     if (t.date < g.from) g.from = t.date;
     if (t.date > g.to) g.to = t.date;
     if (t.cardBillId) g.free = false;
-    m.set(t.importId, g);
+    m.set(key, g);
   }
   return [...m.values()].sort((a, b) => b.to.localeCompare(a.to));
 }
 
-/** Le fichier importé qui correspond exactement à cette facture, ou null. */
-export function findImportGroup(bill, list) {
+/**
+ * Le fichier importé qui correspond exactement à cette facture, ou null.
+ * Sans options : seulement les achats libres. Avec `takeable` : `list` doit contenir TOUS les achats des cartes
+ * (candidates(db, bill, {takeFrom: 'all'})) ; un fichier entier convient si chacun de ses achats est libre, déjà sur
+ * cette facture ou sur une facture de `takeable` (pas juste).
+ * @param {{keyOf?: Function, takeable?: Set<string>|null}} [opts]
+ */
+export function findImportGroup(bill, list, { keyOf, takeable = null } = {}) {
   const target = cents(bill);
-  return importGroups(list.filter((t) => !t.cardBillId))
-    .find((g) => g.cents === target && g.to <= bill.date && daysBetween(g.to, bill.date) <= MAX_DAYS_BEFORE_BILL)?.items ?? null;
+  const ok = (t) => !t.cardBillId || (takeable && (t.cardBillId === bill.id || takeable.has(t.cardBillId)));
+  return importGroups(takeable ? list : list.filter(ok), keyOf)
+    .find((g) => g.items.every(ok) && g.cents === target && g.to <= bill.date && daysBetween(g.to, bill.date) <= MAX_DAYS_BEFORE_BILL)?.items ?? null;
 }
 
 /** Achat en monnaie étrangère (souvent comptabilisé plus tard : peut passer sur la facture suivante). */
@@ -201,7 +242,8 @@ export async function previousBillDate(db, bill) {
 export async function linkBill(db, billId, txIds) {
   const bill = await db.get('transactions', billId);
   if (!bill?.isCardBillPayment) throw new ReglageError('Cette facture n’existe plus.');
-  const allowed = new Map((await candidates(db, bill)).map((t) => [t.id, t]));
+  // Les achats restés sur une facture pas juste peuvent être repris.
+  const allowed = new Map((await candidates(db, bill, { takeFrom: await looseBillIds(db) })).map((t) => [t.id, t]));
   const wanted = new Set(txIds);
   for (const id of wanted) {
     if (!allowed.has(id)) throw new ReglageError('Un des achats choisis est déjà rattaché à une autre facture.');
@@ -230,14 +272,29 @@ export async function unlinkBill(db, billId) {
 export async function autoLinkAll(db) {
   const bills = (await listBills(db)).reverse();
   let n = 0;
-  // 1) D'abord les fichiers de carte qui correspondent exactement (un fichier = une facture) ;
-  // 2) ensuite seulement les suites d'achats, pour ne pas prendre les achats d'un fichier qui va avec une autre facture.
+  // 1) D'abord les fichiers de carte qui correspondent exactement (un fichier = une facture), avec réparation ;
+  // 2) ensuite seulement les suites d'achats (factures encore vides), pour ne pas prendre les achats d'un fichier
+  //    qui va avec une autre facture ;
   // 3) enfin la recherche « intelligente », seulement quand une seule combinaison est la plus probable.
   const smart = async (bill, list) => {
     const m = findSmartMatch(bill, list, { prevBillDate: await previousBillDate(db, bill) });
     return m && !m.ambiguous ? m.items : null;
   };
-  for (const find of [findImportGroup, findExactRun, smart]) {
+  // 0) Réparation : une facture vide ou pas juste reprend le fichier entier qui fait exactement son montant,
+  //    y compris des achats restés sur une autre facture pas juste (jamais sur une facture juste ou vérifiée).
+  const keyOf = await fileKeyOf(db);
+  for (const bill of bills) {
+    if (bill.billChecked) continue;
+    const st = await billStatus(db, bill);
+    if (st.complete) continue;
+    const takeable = await looseBillIds(db);
+    const run = findImportGroup(bill, await candidates(db, bill, { takeFrom: 'all' }), { keyOf, takeable });
+    if (run) {
+      await linkBill(db, bill.id, run.map((t) => t.id));
+      n++;
+    }
+  }
+  for (const find of [findExactRun, smart]) {
     for (const bill of bills) {
       if (bill.billChecked || await db.countWhere('transactions', 'cardBillId', bill.id)) continue;
       const run = await find(bill, await candidates(db, bill));

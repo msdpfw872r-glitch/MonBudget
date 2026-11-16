@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.24.0 — 2026-11-16 — FRE (Fidag)
+- **Factures de carte : réparation automatique des rattachements faux.** Une facture pas juste (ou vide) reprend le fichier de carte qui fait **exactement** son montant, même si des achats de ce fichier étaient restés sur une autre facture pas juste (rattachements d'anciennes versions ou cochés à la main avec un écart). Jamais aux dépens d'une facture juste ou vérifiée. Se fait tout seul à la mise à jour, à l'import et en ouvrant « Factures de carte ».
+- Un fichier de carte **réimporté en plusieurs fois** (même période) compte comme un seul fichier.
+- Écran d'une facture : les achats restés sur une facture pas juste sont proposés (« pour l'instant sur la facture du … (pas juste) ») et peuvent être repris ; « Cocher le fichier » indique combien d'achats sont repris.
+- Vérifié sur les 8 vrais fichiers Swisscard de janvier à septembre : chaque fichier fait exactement son prélèvement BCVs ; un état abîmé (juillet coché avec un écart, août vide, septembre avec 5 achats d'août) est réparé.
+- 163 tests automatiques.
+
 ## 0.23.1 — 2026-11-16 — FRE (Fidag)
 - À trier : les **contrats détectés sont groupés à part** (« Fréquents d'abord » : les 10 paiements d'un contrat Wingo, puis les 10 de l'autre ; « 10 fois » par contrat), et « contrat … » s'affiche aussi dans la **liste des opérations sur iPhone**.
 - « Toujours classer **Wingo · contrat …** comme ça » crée la **règle de ce contrat** : seuls les autres paiements du même contrat sont classés, l'autre contrat reste à trier.

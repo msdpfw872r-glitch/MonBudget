@@ -2,14 +2,15 @@
  * factures.test.mjs — Tests : un fichier de carte importé = une facture (rattachement par fichier).
  * Lancer : npm test
  *
- * Version : 0.19.0
+ * Version : 0.24.0
  * Auteur  : FRE (Fidag)
- * Date    : 2026-11-15
+ * Date    : 2026-11-16
  *
  * Historique :
  *   0.18.0 FRE (Fidag)  Première version.
  *   0.18.1 FRE (Fidag)  Le secours « suite d'achats » ne prend pas les achats d'un fichier qui va avec une autre facture.
  *   0.19.0 FRE (Fidag)  Facture vérifiée sans le détail.
+ *   0.24.0 FRE (Fidag)  Réparation des rattachements faux ; fichier réimporté en plusieurs fois.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -122,4 +123,39 @@ test('recherche intelligente : plusieurs combinaisons aussi probables → propos
   assert.equal(m.ambiguous, true);
   assert.equal(m.items.length, 2);
   // L'ancienne recherche (suite continue) trouve x1 + x2 : elle passe avant ; ici on vérifie que la recherche intelligente seule ne décide pas.
+});
+
+test('réparation : un fichier qui tombe juste reprend ses achats restés sur une facture pas juste', async () => {
+  const db = await base();
+  // Rattachement faux d'avant : la facture de mars a pris un achat du fichier de février (f3) et un des siens.
+  await db.putMany('transactions', [bill('lsv-fev', '2026-02-23', -100), bill('lsv-mars', '2026-03-23', -50)]);
+  await C.linkBill(db, 'lsv-mars', ['f3', 'm1']); // 75.– au lieu de 50.– : pas juste
+  assert.equal((await C.billStatus(db, await db.get('transactions', 'lsv-mars'))).complete, false);
+  assert.equal(await C.autoLinkAll(db), 2);
+  assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-fev')).map((t) => t.id).sort(), ['f1', 'f2', 'f3']);
+  assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-mars')).map((t) => t.id).sort(), ['m1', 'm2']);
+  assert.equal((await C.billsToCheck(db)).length, 0);
+});
+
+test('réparation : jamais aux dépens d’une facture juste ou vérifiée', async () => {
+  const db = await base();
+  // Une facture juste de 50.– (f3) : le fichier de février (100.–) ne peut pas reprendre f3.
+  await db.putMany('transactions', [bill('lsv-autre', '2026-02-20', -50), bill('lsv-fev', '2026-02-23', -100)]);
+  await C.linkBill(db, 'lsv-autre', ['f3']);
+  await C.autoLinkAll(db);
+  assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-autre')).map((t) => t.id), ['f3']);
+  assert.equal(await db.countWhere('transactions', 'cardBillId', 'lsv-fev'), 0);
+});
+
+test('un fichier réimporté en deux fois (même période) compte comme un seul fichier', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  const period = { from: '2026-02-02', to: '2026-02-15' };
+  await db.putMany('imports', [{ id: 'imp-a', period }, { id: 'imp-b', period }, { id: 'imp-x', period: { from: '2026-01-20', to: '2026-01-20' } }]);
+  // Un autre fichier (105.–) dont les deux premiers achats feraient 100.– : la « suite d'achats » les prendrait.
+  await db.putMany('transactions', [buy('x0', 'imp-x', '2026-01-20', -60), buy('x1', 'imp-x', '2026-01-20', -40), buy('x2', 'imp-x', '2026-01-20', -5),
+    buy('a1', 'imp-a', '2026-02-02', -30), buy('a2', 'imp-a', '2026-02-15', -20),
+    buy('b1', 'imp-b', '2026-02-10', -50), bill('lsv-fev', '2026-02-23', -100)]);
+  assert.equal(await C.autoLinkAll(db), 1);
+  assert.deepEqual((await db.getAllWhere('transactions', 'cardBillId', 'lsv-fev')).map((t) => t.id).sort(), ['a1', 'a2', 'b1']);
 });

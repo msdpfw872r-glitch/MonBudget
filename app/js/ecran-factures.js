@@ -2,9 +2,9 @@
  * ecran-factures.js — Écran « Factures de carte » : rattacher les achats des cartes au prélèvement
  * de la facture (LSV) sur le compte, pour ne pas les compter deux fois.
  *
- * Version : 0.20.0
+ * Version : 0.24.0
  * Auteur  : FRE (Fidag)
- * Date    : 2026-11-08
+ * Date    : 2026-11-16
  *
  * Adresses : #/factures (liste), #/factures/<id> (cocher les achats d'une facture).
  *
@@ -16,13 +16,15 @@
  *   0.19.0 FRE (Fidag)  « Sans le détail des achats ? » : marquer comme vérifiée ou compter comme une dépense ;
  *                       écart de chaque fichier ; achats du plus récent au plus ancien ; explication des achats proposés.
  *   0.20.0 FRE (Fidag)  « Proposition de l'app » (findSmartMatch) : achats passés sur la facture suivante / repris.
+ *   0.24.0 FRE (Fidag)  Les achats restés sur une facture pas juste sont proposés (« sur la facture du … ») et
+ *                       peuvent être repris ; fichiers comptés entiers (même réimportés en plusieurs fois).
  */
 
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import { formatCHF, formatAmount, formatDateLong, displayName, opName, formatDateShort } from '../src/core/format.js';
 import { ReglageError } from '../src/core/reglages.js';
-import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll, markBillChecked, findSmartMatch, previousBillDate, isForeign } from '../src/core/cartes.js';
+import { listBills, billStatus, candidates, linkBill, cardsPaidFrom, importGroups, autoLinkAll, markBillChecked, looseBillIds, fileKeyOf, findSmartMatch, previousBillDate, isForeign } from '../src/core/cartes.js';
 import { editOperation } from './operation.js';
 import { loadAll } from './ecran-journal.js';
 import { toCents } from '../src/core/text.js';
@@ -77,13 +79,17 @@ function facture(id) {
       const db = await getDb();
       const bill = await db.get('transactions', id);
       if (!bill?.isCardBillPayment) { location.hash = '#/factures'; return; }
-      const list = await candidates(db, bill);
+      // Achats libres, déjà sur cette facture, ou restés sur une facture pas juste (on peut les reprendre).
+      const list = await candidates(db, bill, { takeFrom: await looseBillIds(db) });
+      const inList = new Set(list.map((t) => t.id));
+      const billDates = new Map((await listBills(db)).map((b) => [b.id, b.date]));
+      const elsewhere = (t) => t.cardBillId && t.cardBillId !== bill.id;
       const cards = await cardsPaidFrom(db, bill.accountId);
       const people = new Map((await db.getAll('people')).map((p) => [p.id, p]));
       if (!checked) checked = new Set(list.filter((t) => t.cardBillId === bill.id).map((t) => t.id));
 
-      // Les fichiers importés dont les achats sont encore libres (ou déjà rattachés à cette facture).
-      const files = importGroups(list).filter((g) => g.items.every((t) => !t.cardBillId || t.cardBillId === bill.id));
+      // Les fichiers importés entiers dont tous les achats peuvent aller sur cette facture.
+      const files = importGroups(await candidates(db, bill, { takeFrom: 'all' }), await fileKeyOf(db)).filter((g) => g.items.every((t) => inList.has(t.id)));
       const sum = list.filter((t) => checked.has(t.id)).reduce((s, t) => s + toCents(t.amount), 0);
       const diff = toCents(bill.amount) - sum;
       const diffText = diff === 0
@@ -115,7 +121,8 @@ function facture(id) {
             ${items.map((t) => `<label class="row check-row">
               <input type="checkbox" data-achat="${esc(t.id)}"${checked.has(t.id) ? ' checked' : ''}>
               <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
-                <span class="row-sub">${esc(formatDateLong(t.date))}</span></span>
+                <span class="row-sub">${esc(formatDateLong(t.date))}${elsewhere(t) && billDates.has(t.cardBillId)
+                  ? ` · pour l’instant sur la facture du ${esc(formatDateShort(billDates.get(t.cardBillId)))} (pas juste)` : ''}</span></span>
               <span class="row-title">${formatAmount(t.amount)}</span>
             </label>`).join('')}
           </section>`;
@@ -135,11 +142,12 @@ function facture(id) {
           <section class="card list">${files.map((g, i) => `<button type="button" class="row file-pick" data-fichier="${i}">
               <span class="row-text"><span class="row-title">Cocher le fichier du ${esc(formatDateShort(g.from))} au ${esc(formatDateShort(g.to))}</span>
               <span class="row-sub">${g.items.length} achat${g.items.length > 1 ? 's' : ''} · ${formatCHF(Math.abs(g.cents) / 100)}${g.cents === toCents(bill.amount)
-                ? ' · exactement le montant de la facture' : ` · écart de ${formatCHF(Math.abs(g.cents - toCents(bill.amount)) / 100)} avec la facture`}</span></span>
+                ? ' · exactement le montant de la facture' : ` · écart de ${formatCHF(Math.abs(g.cents - toCents(bill.amount)) / 100)} avec la facture`}${
+                g.items.some(elsewhere) ? ` · dont ${g.items.filter(elsewhere).length} repris d’une autre facture pas juste` : ''}</span></span>
               ${icon('ok')}</button>`).join('')}</section>` : ''}
         <p class="note">${files.length ? 'Ou cochez vous-même' : 'Cochez'} les achats payés par cette facture. Sont proposés : les achats des cartes
-          ${esc(cards.map((c) => c.name).join(', ') || '—')}, datés au plus tard le jour du prélèvement et pas encore rattachés à une
-          autre facture — les plus récents en haut.</p>
+          ${esc(cards.map((c) => c.name).join(', ') || '—')}, datés au plus tard le jour du prélèvement et pas rattachés à une autre facture
+          juste — les plus récents en haut.</p>
         ${list.length ? '' : `<section class="card"><p class="note">Aucun achat de carte importé jusqu’à cette date. Importez le fichier de la carte
           pour cette période, ou classez la facture sans le détail (ci-dessous).</p></section>`}
         ${cards.length ? cards.map(group).join('') : '<p class="note">Aucune carte n’est payée depuis ce compte. Réglez-le dans Réglages, « Mes comptes ».</p>'}
