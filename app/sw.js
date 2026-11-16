@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.20.0
+ * Version : 0.21.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -52,9 +52,10 @@
  *   0.18.1 FRE (Fidag)  Version 0.18.1.
  *   0.19.0 FRE (Fidag)  Version 0.19.0.
  *   0.20.0 FRE (Fidag)  Version 0.20.0.
+ *   0.21.0 FRE (Fidag)  Relancer le classement (ecran-relancer.js).
  */
 
-const VERSION = '0.20.0';
+const VERSION = '0.21.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */
@@ -95,6 +96,7 @@ const FILES = [
   './js/ecran-compte.js',
   './js/ecran-supprimer.js',
   './js/reclasser.js',
+  './js/ecran-relancer.js',
   './vendor/firebase/13.2.0/firebase-app.js',
   './vendor/firebase/13.2.0/firebase-auth.js',
   './vendor/firebase/13.2.0/firebase-firestore-lite.js',

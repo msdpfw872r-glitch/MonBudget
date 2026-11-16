@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.17.0
+ * Version : 0.21.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -26,6 +26,7 @@
  *                       anciennes opérations ? » (Reclasser / Laisser comme ça).
  *   0.17.0 FRE (Fidag)  Règles retenues : recherche, filtres Pour qui / Catégorie, ordre ; question « Reclasser … ? »
  *                       commune (aussi les opérations triées à la main, au choix).
+ *   0.21.0 FRE (Fidag)  « Relancer le classement » (#/reglages/relancer).
  */
 
 import { APP_VERSION } from './version.js';
@@ -40,6 +41,7 @@ import { shortRef } from '../src/core/import.js';
 import { restaurerView, raccourciView } from './ecran-sauvegarde.js';
 import { compteView, compteRow } from './ecran-compte.js';
 import { supprimerView, importsView, copieView, copieRow } from './ecran-supprimer.js';
+import { relancerView } from './ecran-relancer.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -120,6 +122,7 @@ function accueilReglages() {
           ${row({ href: '#/reglages/comptes', title: 'Mes comptes', sub: esc(o.accounts.map((a) => a.name).join(', ')) || 'Aucun compte' })}
           ${row({ href: '#/factures', title: 'Factures de carte', sub: 'Rattacher les achats des cartes à la facture' })}
           ${row({ href: '#/reglages/imports', title: 'Imports', sub: plural(await db.count('imports'), 'fichier importé', 'fichiers importés') })}
+          ${row({ href: '#/reglages/relancer', title: 'Relancer le classement', sub: 'Bonnes cartes, règles, factures — sans réimporter' })}
         </section>
         <section class="card list">
           ${await copieRow()}
@@ -382,7 +385,7 @@ function compte(id) {
         root.querySelector('[data-carte-champs]').hidden = root.querySelector('input[name="kind"]:checked')?.value !== 'carte';
       }));
       root.querySelectorAll('[data-oublier]').forEach((b) => b.addEventListener('click', async () => {
-        const ok = await confirmer({ titre: `Oublier ${shortRef(b.dataset.oublier)} ?`, message: 'Au prochain import, l’app vous redemandera à quel compte il appartient.', ok: 'Oublier', danger: true });
+        const ok = await confirmer({ titre: `Oublier ${shortRef(b.dataset.oublier)} ?`, message: 'Au prochain import, l’app vous redemandera à quel compte il appartient. Pour remettre tout de suite les opérations déjà importées sur la bonne carte : Réglages › Relancer le classement.', ok: 'Oublier', danger: true });
         if (ok) { await R.removeBankRef(db, id, b.dataset.oublier); this.render(root); }
       }));
       root.querySelector('[data-supprimer]')?.addEventListener('click', async () => {
@@ -497,6 +500,7 @@ export function reglagesView(path) {
     case 'supprimer': return supprimerView(path[1]);
     case 'imports': return importsView();
     case 'copie': return copieView();
+    case 'relancer': return relancerView();
     default: return accueilReglages();
   }
 }

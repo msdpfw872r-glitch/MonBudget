@@ -1,5 +1,13 @@
 # Historique des versions
 
+## 0.21.0 — 2026-11-16 — FRE (Fidag)
+- **Relancer le classement sans réimporter** (Réglages › Relancer le classement) :
+  - **Numéros sans compte** : les numéros de carte ou de compte présents dans les opérations mais portés par aucun compte (par exemple après « Oublier » un numéro attribué à la mauvaise carte) ; « À quel compte ? » pour chacun.
+  - Les opérations sont **remises sur la bonne carte** ; « pour qui » suit la titulaire de la carte (si c'était celle de l'ancienne carte) ; un rattachement à une facture d'un autre compte est retiré.
+  - Les **règles** sont relancées sur les opérations à trier et les **factures de carte** qui tombent juste sont rattachées.
+  - Les opérations triées à la main gardent leur catégorie.
+- Chaque nouvelle opération garde le numéro lu dans le fichier (pour ce traitement). 155 tests automatiques.
+
 ## 0.20.0 — 2026-11-15 — FRE (Fidag)
 - Factures de carte : **recherche intelligente** quand ni un fichier entier ni une suite d'achats ne tombe juste. L'app part des achats de la période de la facture (de la clôture précédente à la clôture, environ une semaine avant le prélèvement), puis essaie jusqu'à 3 ajustements : **retirer** des achats passés sur la facture suivante (d'abord ceux **en monnaie étrangère**, comptabilisés plus tard) et/ou **reprendre** des achats restés ouverts. Combinaison exacte au centime.
   - Une seule combinaison la plus probable : rattachée **toute seule**.

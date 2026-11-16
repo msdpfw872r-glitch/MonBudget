@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.15.0
+ * Version : 0.21.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,7 @@
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
  *   0.8.0  FRE (Fidag)  camt.053 (toutes banques) : importable dans n'importe quel compte bancaire (IBAN),
  *                       contrepartie, référence, contrôles affichés (notes) ; détection des fichiers XML.
+ *   0.21.0 FRE (Fidag)  accountRef gardé sur chaque opération (relancer le classement sans réimporter).
  *   0.15.0 FRE (Fidag)  Réimporter corrige le nom des opérations déjà importées quand la lecture du fichier
  *                       s'est améliorée (ex. paiement par carte BCVs) ; celles classées par une règle sont reclassées.
  *   0.7.0  FRE (Fidag)  BCVs (relevé CSV) et Swisscard ; opérations « en suspens » comptées à part ;
@@ -170,6 +171,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     let tx = {
       id: t.id,
       accountId: acc.id,
+      // Numéro lu dans le fichier : permet de remettre l'opération sur la bonne carte plus tard.
+      accountRef: normRef(t.accountRef),
       date: t.date,
       description: t.description,
       // Commerçant (Swisscard) ou contrepartie (camt.053) : nom affiché de l'opération.
