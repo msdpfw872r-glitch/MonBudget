@@ -2,7 +2,7 @@
  * import.test.mjs — Tests de l'import de bout en bout, des règles retenues et des factures de carte.
  * Lancer : npm test
  *
- * Version : 0.15.0
+ * Version : 0.25.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -12,6 +12,7 @@
  * Historique :
  *   0.4.0  FRE (Fidag)  Première version.
  *   0.15.0 FRE (Fidag)  Compteur « corrigees » (noms corrigés au réimport).
+ *   0.25.0 FRE (Fidag)  Plusieurs fichiers en une fois (dedupeBatch, sumCounts).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -236,4 +237,33 @@ test('mise à jour d’une base 0.3.0 : cartes et catégorie ajoutées sans rien
   assert.equal((await db.get('accounts', 'ubs')).name, 'UBS privé');
   assert.equal((await db.get('accounts', 'carte-ubs-papa')).billPaidFrom, 'ubs');
   assert.deepEqual(await R.upgradeSeed(db, seed), [], 'une seule fois');
+});
+
+test('plusieurs fichiers en une fois : une opération présente dans deux fichiers n’est importée qu’une fois', async () => {
+  const { dedupeBatch, sumCounts, prepareImport, commitImport } = await import('../app/src/core/import.js');
+  const tx = (id, status = 'a-trier', ruleId = null) => ({ id, status, ruleId });
+  const plans = dedupeBatch([
+    { counts: { nouvelles: 2, autoClassees: 1, aTrier: 1, doublons: 0 }, transactions: [tx('a'), tx('b', 'classee', 'r1')], ruleHits: [['r1', 1]] },
+    { counts: { nouvelles: 3, autoClassees: 1, aTrier: 2, doublons: 0 }, transactions: [tx('b', 'classee', 'r1'), tx('c'), tx('a')], ruleHits: [['r1', 1]] },
+  ]);
+  assert.deepEqual(plans[0].counts, { nouvelles: 2, autoClassees: 1, aTrier: 1, doublons: 0 });
+  assert.deepEqual(plans[1].transactions.map((t) => t.id), ['c']);
+  assert.deepEqual(plans[1].counts, { nouvelles: 1, autoClassees: 0, aTrier: 1, doublons: 2 });
+  assert.deepEqual(plans[1].ruleHits, []);
+  assert.deepEqual(sumCounts(plans.map((p) => p.counts)), { nouvelles: 3, autoClassees: 1, aTrier: 2, doublons: 2 });
+
+  // De bout en bout : le même fichier choisi deux fois dans le même lot.
+  const db = openMemoryDb();
+  await R.installSeed(db, JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8')));
+  const { readBankFile } = await import('../app/src/core/import.js');
+  const data = await readFile(new URL('./fixtures/swisscard-transactions-invente.csv', import.meta.url));
+  const parsed = await readBankFile(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  let p1 = await prepareImport(db, parsed);
+  if (p1.needsMapping) { for (const e of p1.needsMapping) await R.assignBankRef(db, 'mastercard', e.ref); p1 = await prepareImport(db, parsed); }
+  const p2 = await prepareImport(db, parsed);
+  const [a, b] = dedupeBatch([p1, p2]);
+  assert.equal(b.counts.nouvelles, 0);
+  await commitImport(db, a);
+  const n = (await db.getAll('transactions')).length;
+  assert.equal(n, a.transactions.length);
 });

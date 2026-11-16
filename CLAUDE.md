@@ -1,6 +1,6 @@
 # CLAUDE.md — Brief de l'agent : « Mon Budget »
 
-- Version du brief : 1.11.0
+- Version du brief : 1.12.0
 - Auteur : FRE (Fidag)
 - Date : 2026-11-16
 
@@ -17,6 +17,7 @@ Historique du brief :
 - 1.9.0 — FRE (Fidag) — Vrai relevé camt.053 BCVs reçu (v0.15.0, utilisé hors dépôt) : pour un paiement par carte de débit, la BCVs met la **titulaire du compte** comme créancier ; le commerçant est lu dans le texte (« Paiement JJ.MM.AAAA HH:MM Commerce Numéro de carte… »). Retraits bancomat regroupés, « NOTPROVIDED » ignoré. Réimporter corrige les opérations déjà importées.
 - 1.10.0 — FRE (Fidag) — Décision de l'utilisateur (v0.18.0) : **chaque fichier de carte importé (CSV Swisscard) correspond à une facture.** Vérifié sur ses vrais fichiers : 45 achats du 17.02 au 16.03 = LSV du 23.03 (CHF 3’469.55).
 - 1.11.0 — FRE (Fidag) — v0.24.0 : réparation automatique des rattachements de factures de carte faux (juillet/août non réconciliés chez l'utilisateur alors que chaque fichier fait exactement son LSV).
+- 1.12.0 — FRE (Fidag) — v0.25.0 : import de plusieurs fichiers en une fois (questions une à une, résumé par fichier, un seul bouton Importer).
 
 Lis ce fichier en entier avant de commencer. Il fait foi sur tout le reste du dépôt.
 
@@ -134,7 +135,7 @@ Couleurs : fond `#F3F6F4`, surfaces `#FFFFFF`, texte `#1C2826`, texte secondaire
 | camt.053 (toutes banques) | XML ISO 20022, versions .04 et .08 — voir `docs/specs/camt053.md`. | **Fait** (v0.8.0, `importers/camt053.js`) ; **confirmé sur un vrai relevé BCVs** (.04) en v0.15.0 : paiements par carte (titulaire comme créancier → commerçant lu dans le texte), bancomat, NOTPROVIDED. |
 | Mastercard (Swisscard) | CSV : `Date transaction, Description, Commerçant, Numéro de carte, Monnaie, Montant, Monnaie étrangère, Montant étranger, Débit/Crédit, Statut, Catégorie de commerçant, Catégorie enregistrée` ; « , », guillemets, montants positifs + Débit/Crédit ; plusieurs cartes. | **Fait** (v0.7.0, `importers/swisscard.js`, alias EN/DE). « En suspens » non importées. |
 
-Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT_LABEL`, `detect(rows|text)`, `parse(...)` → `{ transactions, warnings, period, accounts }`. L'écran d'import détecte le format automatiquement et vérifie qu'il correspond au compte choisi.
+L'écran d'import accepte plusieurs fichiers à la fois (v0.25.0). Chaque importateur expose la même interface que `ubs.js` : `FORMAT_ID`, `FORMAT_LABEL`, `detect(rows|text)`, `parse(...)` → `{ transactions, warnings, period, accounts }`. L'écran d'import détecte le format automatiquement et vérifie qu'il correspond au compte choisi.
 
 ## 7. Étapes de livraison
 

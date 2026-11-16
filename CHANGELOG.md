@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.25.0 — 2026-11-16 — FRE (Fidag)
+- **Importer plusieurs fichiers en une fois** : dans Fichiers, « Sélectionner », toucher chaque fichier, puis « Ouvrir » (relevés de banque et fichiers de carte mélangés).
+  - Les questions (« De quelle carte s'agit-il ? ») viennent une à une, avec « Fichier 2 sur 10 ».
+  - Résumé avant l'import : chaque fichier (banque, période, nouvelles opérations, à trier) et le total ; un seul bouton « Importer N opérations de K fichiers ».
+  - Un fichier illisible n'arrête pas les autres : il est signalé dans la liste avec la marche à suivre.
+  - Une opération présente dans deux fichiers du même lot n'est importée qu'une fois.
+  - Les factures de carte sont rattachées après chaque fichier : sur les vrais fichiers (relevé BCVs + 8 fichiers Swisscard en une fois), les 8 factures de février à septembre tombent juste toutes seules.
+- 164 tests automatiques.
+
 ## 0.24.0 — 2026-11-16 — FRE (Fidag)
 - **Factures de carte : réparation automatique des rattachements faux.** Une facture pas juste (ou vide) reprend le fichier de carte qui fait **exactement** son montant, même si des achats de ce fichier étaient restés sur une autre facture pas juste (rattachements d'anciennes versions ou cochés à la main avec un écart). Jamais aux dépens d'une facture juste ou vérifiée. Se fait tout seul à la mise à jour, à l'import et en ouvrant « Factures de carte ».
 - Un fichier de carte **réimporté en plusieurs fois** (même période) compte comme un seul fichier.

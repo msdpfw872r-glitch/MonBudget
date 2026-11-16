@@ -1,9 +1,9 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.22.0
+ * Version : 0.25.0
  * Auteur  : FRE (Fidag)
- * Date    : 2026-11-08
+ * Date    : 2026-11-16
  *
  * Étapes :
  *   1. readBankFile()   : reconnaît le format (UBS…) et lit les opérations ;
@@ -17,6 +17,8 @@
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
  *   0.8.0  FRE (Fidag)  camt.053 (toutes banques) : importable dans n'importe quel compte bancaire (IBAN),
  *                       contrepartie, référence, contrôles affichés (notes) ; détection des fichiers XML.
+ *   0.25.0 FRE (Fidag)  Plusieurs fichiers en une fois : dedupeBatch (une opération présente dans deux fichiers
+ *                       du même lot n'est importée qu'une fois), sumCounts.
  *   0.22.0 FRE (Fidag)  Règles « titulaire de la carte ».
  *   0.21.0 FRE (Fidag)  accountRef gardé sur chaque opération (relancer le classement sans réimporter).
  *   0.15.0 FRE (Fidag)  Réimporter corrige le nom des opérations déjà importées quand la lecture du fichier
@@ -229,6 +231,40 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     ruleHits: [...ruleHits.entries()],
     newRefs,
   };
+}
+
+/**
+ * Plusieurs fichiers importés ensemble : une opération déjà présente dans un fichier précédent du lot
+ * (fichiers qui se chevauchent) n'est importée qu'une fois ; les chiffres de chaque fichier sont corrigés.
+ * @param {object[]} plans  plans de prepareImport (dans l'ordre d'import)
+ * @returns {object[]}
+ */
+export function dedupeBatch(plans) {
+  const seen = new Set();
+  return plans.map((p) => {
+    const counts = { ...p.counts };
+    const transactions = [];
+    for (const t of p.transactions) {
+      if (seen.has(t.id)) {
+        counts.nouvelles--;
+        counts.doublons++;
+        if (t.status === 'classee') counts.autoClassees--; else counts.aTrier--;
+        continue;
+      }
+      seen.add(t.id);
+      transactions.push(t);
+    }
+    const hits = new Map();
+    for (const t of transactions) if (t.ruleId) hits.set(t.ruleId, (hits.get(t.ruleId) ?? 0) + 1);
+    return { ...p, transactions, counts, ruleHits: [...hits.entries()] };
+  });
+}
+
+/** Additionne les chiffres de plusieurs imports (résumé d'un lot de fichiers). */
+export function sumCounts(list) {
+  const out = {};
+  for (const c of list) for (const [k, v] of Object.entries(c ?? {})) if (typeof v === 'number') out[k] = (out[k] ?? 0) + v;
+  return out;
 }
 
 /** Enregistre un import préparé. */
