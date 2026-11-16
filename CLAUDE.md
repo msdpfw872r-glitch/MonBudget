@@ -84,7 +84,7 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 1. À l'import, pour chaque nouvelle opération : règle dont `merchantKey` est identique → classée automatiquement (`status: classee`).
 2. Sinon, règle dont la clé est contenue dans celle de l'opération (la plus longue gagne).
 3. Sinon → `a-trier`. La catégorie bancaire (`bankCategory`) n'est qu'un indice affiché, jamais appliquée seule (les catégories UBS sont peu fiables : un loyer y apparaît en « Transferts entre comptes »).
-4. Dans « À trier », la case « Toujours classer *X* comme ça » (cochée par défaut) crée ou met à jour la règle.
+4. Dans « À trier », la case « Toujours classer *X* comme ça » (cochée par défaut) crée ou met à jour la règle. Pour un achat par carte, une 2ᵉ case « … et pour la titulaire de la carte utilisée » crée une règle dont « pour qui » est la titulaire de la carte (v0.22.0).
 5. Corriger une opération déjà classée par une règle propose : « Changer aussi la règle ? ».
 6. Les paiements de facture de carte (`isCardBillPayment`) et les virements entre ses propres comptes vont dans une catégorie `excludeFromTotals` : les achats de la carte ne doivent pas être comptés deux fois.
 7. Une règle peut être modifiée ou supprimée dans Réglages.

@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.17.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -18,6 +18,7 @@
  *   0.13.0 FRE (Fidag)  Règle modifiée : reclasser (au choix) les opérations déjà classées par elle.
  *   0.17.0 FRE (Fidag)  reclassifyPreview / reclassifyMatching : aussi les opérations triées à la main (au choix) et
  *                       celles à trier ; filterRules / sortRules (recherche, pour qui, catégorie, ordre).
+ *   0.22.0 FRE (Fidag)  « Pour qui : la titulaire de la carte » (CARD_HOLDER) : la personne vient de la carte utilisée.
  */
 
 import { merchantKey, fold } from './text.js';
@@ -38,12 +39,30 @@ export function findRule(rules, key) {
 }
 
 /** Applique une règle à une opération (sans enregistrer). */
-export function applyRule(tx, rule) {
-  return { ...tx, personId: rule.personId, categoryId: rule.categoryId, ruleId: rule.id, status: 'classee', classifiedAt: new Date().toISOString() };
+/** Valeur de `personId` d'une règle : « la titulaire de la carte utilisée ». */
+export const CARD_HOLDER = '__titulaire';
+export const CARD_HOLDER_LABEL = 'Titulaire de la carte';
+
+/** Personne donnée par la règle pour une opération de ce compte (null si la règle ne peut pas décider). */
+export function personFor(rule, account) {
+  if (rule.personId !== CARD_HOLDER) return rule.personId;
+  return account?.kind === 'carte' && account.personId ? account.personId : null;
 }
 
-async function checkChoice(db, personId, categoryId) {
-  if (!personId || !(await db.get('people', personId))) throw new ReglageError('Choisissez pour qui.');
+/** La règle peut-elle classer une opération de ce compte ? (« titulaire » : seulement une carte qui a une titulaire). */
+export const canApply = (rule, account) => Boolean(personFor(rule, account));
+
+export function applyRule(tx, rule, account = null) {
+  return { ...tx, personId: personFor(rule, account), categoryId: rule.categoryId, ruleId: rule.id, status: 'classee', classifiedAt: new Date().toISOString() };
+}
+
+/** Comptes par identifiant (pour les règles « titulaire de la carte »). */
+export async function accountsById(db) {
+  return new Map((await db.getAll('accounts')).map((a) => [a.id, a]));
+}
+
+async function checkChoice(db, personId, categoryId, { allowHolder = false } = {}) {
+  if (!personId || (!(allowHolder && personId === CARD_HOLDER) && !(await db.get('people', personId)))) throw new ReglageError('Choisissez pour qui.');
   const cat = categoryId && await db.get('categories', categoryId);
   if (!cat) throw new ReglageError('Choisissez une catégorie.');
   return cat;
@@ -60,10 +79,12 @@ function newRuleId() {
 export async function applyRuleToPending(db, rule) {
   const pending = await db.getAllWhere('transactions', 'status', 'a-trier');
   const rules = await db.getAll('rules');
+  const acc = await accountsById(db);
   let n = 0;
   for (const tx of pending) {
     if (findRule(rules, tx.merchantKey)?.id !== rule.id) continue;
-    await db.put('transactions', applyRule(tx, rule));
+    if (!canApply(rule, acc.get(tx.accountId))) continue;
+    await db.put('transactions', applyRule(tx, rule, acc.get(tx.accountId)));
     n++;
   }
   if (n) await db.put('rules', { ...rule, hits: (rule.hits ?? 0) + n, lastUsedAt: new Date().toISOString() });
@@ -87,7 +108,7 @@ export async function upsertRule(db, { merchantKey: key, personId, categoryId },
  * @param {boolean} [opts.updateRule] correction d'une opération classée par une règle : changer aussi la règle.
  * @returns {Promise<{tx: object, rule: object|null, alsoClassified: number}>}
  */
-export async function classify(db, txId, { personId, categoryId, remember = false, updateRule = false }) {
+export async function classify(db, txId, { personId, categoryId, remember = false, updateRule = false, holderRule = false }) {
   const tx = await db.get('transactions', txId);
   if (!tx) throw new ReglageError('Cette opération n’existe plus.');
   const cat = await checkChoice(db, personId, categoryId);
@@ -101,7 +122,8 @@ export async function classify(db, txId, { personId, categoryId, remember = fals
       await db.put('rules', rule);
     }
   } else if (remember) {
-    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId, categoryId });
+    // « … pour la titulaire de la carte » : la règle retient la carte, pas la personne.
+    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId: holderRule ? CARD_HOLDER : personId, categoryId });
   }
 
   const updated = {
@@ -128,7 +150,7 @@ export async function saveRule(db, id, { merchantKey: key, personId, categoryId 
   if (!rule) throw new ReglageError('Cette règle n’existe plus.');
   const k = merchantKey(key);
   if (k.length < 2) throw new ReglageError('Écrivez au moins un mot du nom du commerce.');
-  await checkChoice(db, personId, categoryId);
+  await checkChoice(db, personId, categoryId, { allowHolder: true });
   const twin = (await db.getAllWhere('rules', 'merchantKey', k)).find((r) => r.id !== id);
   if (twin) throw new ReglageError(`Une autre règle reconnaît déjà « ${k} ».`);
   const updated = { ...rule, merchantKey: k, personId, categoryId };
@@ -169,13 +191,14 @@ export async function reclassifyByRule(db, ruleId) {
  */
 export async function reclassifyPreview(db, rule, { exceptId = null } = {}) {
   const rules = await db.getAll('rules');
+  const acc = await accountsById(db);
   const out = { byRule: [], manual: [], pending: [] };
   for (const t of await db.getAll('transactions')) {
     if (t.id === exceptId || t.isCardBillPayment) continue;
     const mine = t.ruleId === rule.id || findRule(rules, t.merchantKey)?.id === rule.id;
-    if (!mine) continue;
+    if (!mine || !canApply(rule, acc.get(t.accountId))) continue;
     if (t.status !== 'classee') out.pending.push(t);
-    else if (t.personId === rule.personId && t.categoryId === rule.categoryId) continue;
+    else if (t.personId === personFor(rule, acc.get(t.accountId)) && t.categoryId === rule.categoryId) continue;
     else if (t.ruleId === rule.id) out.byRule.push(t);
     else out.manual.push(t);
   }
@@ -192,7 +215,8 @@ export async function reclassifyMatching(db, ruleId, { includeManual = false, ex
   if (!rule) throw new ReglageError('Cette règle n’existe plus.');
   const p = await reclassifyPreview(db, rule, { exceptId });
   const list = [...p.byRule, ...p.pending, ...(includeManual ? p.manual : [])];
-  for (const t of list) await db.put('transactions', applyRule(t, rule));
+  const acc = await accountsById(db);
+  for (const t of list) await db.put('transactions', applyRule(t, rule, acc.get(t.accountId)));
   if (p.pending.length) await db.put('rules', { ...rule, hits: (rule.hits ?? 0) + p.pending.length, lastUsedAt: new Date().toISOString() });
   return list.length;
 }
@@ -215,7 +239,7 @@ export function filterRules(rules, { query = '', personId = null, categoryId = n
     if (personId && r.personId !== personId) return false;
     if (categoryId && r.categoryId !== categoryId) return false;
     if (!words.length) return true;
-    const hay = fold([r.merchantKey, ctx.categoriesById?.get(r.categoryId)?.name, ctx.peopleById?.get(r.personId)?.name].filter(Boolean).join(' | '));
+    const hay = fold([r.merchantKey, ctx.categoriesById?.get(r.categoryId)?.name, (r.personId === CARD_HOLDER ? CARD_HOLDER_LABEL : ctx.peopleById?.get(r.personId)?.name)].filter(Boolean).join(' | '));
     return words.every((w) => hay.includes(w));
   });
 }

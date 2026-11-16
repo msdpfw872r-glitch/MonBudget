@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.21.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -27,13 +27,14 @@
  *   0.17.0 FRE (Fidag)  Règles retenues : recherche, filtres Pour qui / Catégorie, ordre ; question « Reclasser … ? »
  *                       commune (aussi les opérations triées à la main, au choix).
  *   0.21.0 FRE (Fidag)  « Relancer le classement » (#/reglages/relancer).
+ *   0.22.0 FRE (Fidag)  Règle « pour qui : la titulaire de la carte utilisée ».
  */
 
 import { APP_VERSION } from './version.js';
 import { icon, esc, confirmer } from './ui.js';
 import { getDb } from './store.js';
 import * as R from '../src/core/reglages.js';
-import { saveRule, deleteRule, filterRules, sortRules, RULE_ORDERS } from '../src/core/regles.js';
+import { saveRule, deleteRule, filterRules, sortRules, RULE_ORDERS, CARD_HOLDER, CARD_HOLDER_LABEL } from '../src/core/regles.js';
 import { askReclassify } from './reclasser.js';
 import { chooseOption } from './choix.js';
 import { filterChip } from './mois.js';
@@ -160,12 +161,12 @@ function regles() {
           ${list.length ? `<section class="card list">${list.map((r) => {
             const p = P.get(r.personId);
             return row({ href: `#/reglages/regles/${encodeURIComponent(r.id)}`, title: esc(r.merchantKey),
-              sub: `${esc(C.get(r.categoryId)?.name ?? 'Catégorie supprimée')} · ${p ? personTag(p) : 'Personne supprimée'} · utilisée ${r.hits ?? 0} fois` });
+              sub: `${esc(C.get(r.categoryId)?.name ?? 'Catégorie supprimée')} · ${r.personId === CARD_HOLDER ? `<span class="tag">${CARD_HOLDER_LABEL}</span>` : p ? personTag(p) : 'Personne supprimée'} · utilisée ${r.hits ?? 0} fois` });
           }).join('')}</section>` : '<section class="card"><p class="note">Aucune règle ne correspond. Essayez un autre mot ou touchez « Effacer les filtres ».</p></section>'}`;
         paintTags(root);
       };
       const draw = () => {
-        const who = P.get(ruleFilters.personId);
+        const who = ruleFilters.personId === CARD_HOLDER ? { name: CARD_HOLDER_LABEL } : P.get(ruleFilters.personId);
         const cat = C.get(ruleFilters.categoryId);
         root.innerHTML = `<div class="filter-bar">
             <div class="filter-search">
@@ -194,7 +195,8 @@ function regles() {
         if (!b) return;
         if ('filtreQui' in b.dataset) {
           const id = await chooseOption({ title: 'Pour qui ?', selected: ruleFilters.personId ?? '__tous',
-            options: [{ id: '__tous', name: 'Tout le monde' }, ...people.map((p) => ({ id: p.id, name: p.name, color: p.color }))] });
+            options: [{ id: '__tous', name: 'Tout le monde' }, ...people.map((p) => ({ id: p.id, name: p.name, color: p.color })),
+              { id: CARD_HOLDER, name: CARD_HOLDER_LABEL }] });
           if (id) { ruleFilters.personId = id === '__tous' ? null : id; draw(); }
         } else if ('filtreCategorie' in b.dataset) {
           const used = cats.filter((c) => rules.some((r) => r.categoryId === c.id));
@@ -232,7 +234,10 @@ function regle(id) {
             <input name="merchantKey" value="${esc(r.merchantKey)}" maxlength="60" autocomplete="off" autocapitalize="characters" required>
             <span class="row-sub">Par exemple « MIGROS » reconnaît tous les magasins Migros.</span></label>
           <fieldset class="field"><legend>Pour qui ?</legend>
-            <div class="choices">${radios('personId', people.map((p) => ({ value: p.id, label: p.name, swatch: true, color: p.color })), r.personId)}</div>
+            <div class="choices">${radios('personId', people.map((p) => ({ value: p.id, label: p.name, swatch: true, color: p.color }))
+              .concat([{ value: CARD_HOLDER, label: 'La titulaire de la carte utilisée' }]), r.personId)}</div>
+            <span class="row-sub">« Titulaire de la carte » : avec la carte de Maman → Maman, avec celle de Papa → Papa
+              (les paiements depuis un compte bancaire restent à trier).</span>
           </fieldset>
           <label class="field"><span>C’est quoi ?</span>
             <select name="categoryId" required>

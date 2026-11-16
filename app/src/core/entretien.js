@@ -2,7 +2,7 @@
  * entretien.js — Après une mise à jour de l'app : les opérations encore « à trier » sont relues
  * avec la lecture améliorée des fichiers de banque, puis passées aux règles retenues.
  *
- * Version : 0.21.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-15
  *
@@ -13,10 +13,11 @@
  *   0.16.0 FRE (Fidag)  Première version.
  *   0.21.0 FRE (Fidag)  Relancer le classement sans réimporter : numéros sans compte, opérations remises sur la bonne
  *                       carte (pour qui = titulaire), règles, factures de carte.
+ *   0.22.0 FRE (Fidag)  Règles « titulaire de la carte ».
  */
 
 import { merchantKey } from './text.js';
-import { findRule, applyRule } from './regles.js';
+import { findRule, applyRule, canApply, accountsById } from './regles.js';
 import { cardText } from '../importers/camt053.js';
 import { normRef } from './reglages.js';
 import { autoLinkAll } from './cartes.js';
@@ -42,6 +43,7 @@ export function betterMerchant(t) {
 export async function refreshPending(db) {
   const pending = await db.getAllWhere('transactions', 'status', 'a-trier');
   const rules = await db.getAll('rules');
+  const acc = await accountsById(db);
   const hits = new Map();
   let corrigees = 0;
   let classees = 0;
@@ -54,8 +56,8 @@ export async function refreshPending(db) {
       corrigees++;
     }
     const rule = findRule(rules, tx.merchantKey);
-    if (rule) {
-      tx = applyRule(tx, rule);
+    if (rule && canApply(rule, acc.get(tx.accountId))) {
+      tx = applyRule(tx, rule, acc.get(tx.accountId));
       hits.set(rule.id, (hits.get(rule.id) ?? 0) + 1);
       classees++;
     }

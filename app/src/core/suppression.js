@@ -68,7 +68,7 @@ export async function listGroup(db, group, { seed = null } = {}) {
       const C = new Map(cats.map((c) => [c.id, c.name]));
       const P = new Map(people.map((p) => [p.id, p.name]));
       return rules.sort((a, b) => a.merchantKey.localeCompare(b.merchantKey, 'fr')).map((r) => ({
-        id: r.id, label: r.merchantKey, sub: `${C.get(r.categoryId) ?? 'Catégorie supprimée'} · ${P.get(r.personId) ?? 'Personne supprimée'}`,
+        id: r.id, label: r.merchantKey, sub: `${C.get(r.categoryId) ?? 'Catégorie supprimée'} · ${r.personId === '__titulaire' ? 'Titulaire de la carte' : P.get(r.personId) ?? 'Personne supprimée'}`,
       }));
     }
     case 'rattachements': {

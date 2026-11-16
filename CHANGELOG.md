@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.22.0 — 2026-11-16 — FRE (Fidag)
+- **Règle « Pour qui : la titulaire de la carte utilisée »** : un même commerce (ex. Coop) payé avec la carte de Maman va à Maman, avec celle de Papa à Papa. Les paiements depuis un compte bancaire restent à trier.
+  - Dans Réglages › Règles retenues › modifier une règle : choix « La titulaire de la carte utilisée » (avec la question « Reclasser les opérations … ? »).
+  - Dans « À trier », pour un achat par carte : case « … et pour la titulaire de la carte utilisée » sous « Toujours classer ».
+  - Filtre « Pour qui » des règles : « Titulaire de la carte ».
+- 156 tests automatiques.
+
 ## 0.21.0 — 2026-11-16 — FRE (Fidag)
 - **Relancer le classement sans réimporter** (Réglages › Relancer le classement) :
   - **Numéros sans compte** : les numéros de carte ou de compte présents dans les opérations mais portés par aucun compte (par exemple après « Oublier » un numéro attribué à la mauvaise carte) ; « À quel compte ? » pour chacun.

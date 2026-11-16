@@ -1,7 +1,7 @@
 /**
  * sw.js — Service worker : met toute l'app en cache pour qu'elle marche hors ligne.
  *
- * Version : 0.21.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -53,9 +53,10 @@
  *   0.19.0 FRE (Fidag)  Version 0.19.0.
  *   0.20.0 FRE (Fidag)  Version 0.20.0.
  *   0.21.0 FRE (Fidag)  Relancer le classement (ecran-relancer.js).
+ *   0.22.0 FRE (Fidag)  Version 0.22.0.
  */
 
-const VERSION = '0.21.0';
+const VERSION = '0.22.0';
 const CACHE = `mon-budget-${VERSION}`;
 
 /** Tous les fichiers de l'app (vérifié par tests/app.test.mjs). */

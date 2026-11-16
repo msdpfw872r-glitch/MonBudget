@@ -1,7 +1,7 @@
 /**
  * reclasser.js — Question commune après qu'une règle a changé : reclasser les opérations existantes ou non.
  *
- * Version : 0.17.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-15
  *
@@ -12,10 +12,11 @@
  *
  * Historique :
  *   0.17.0 FRE (Fidag)  Première version.
+ *   0.22.0 FRE (Fidag)  Règle « titulaire de la carte ».
  */
 
 import { chooseOption } from './choix.js';
-import { reclassifyPreview, reclassifyMatching } from '../src/core/regles.js';
+import { reclassifyPreview, reclassifyMatching, CARD_HOLDER, CARD_HOLDER_LABEL } from '../src/core/regles.js';
 
 const n = (k, one, many) => `${k} ${k > 1 ? many : one}`;
 
@@ -30,7 +31,7 @@ export async function askReclassify(db, ruleId, { exceptId = null } = {}) {
   const manual = p.manual.length;
   if (!auto && !manual) return 0;
   const [cat, who] = await Promise.all([db.get('categories', rule.categoryId), db.get('people', rule.personId)]);
-  const target = `→ ${cat?.name ?? '?'}, pour ${who?.name ?? '?'}`;
+  const target = `→ ${cat?.name ?? '?'}, pour ${rule.personId === CARD_HOLDER ? CARD_HOLDER_LABEL.toLowerCase() : who?.name ?? '?'}`;
   const options = [];
   if (auto) {
     options.push({ id: 'auto', name: `Oui, reclasser ${n(auto, 'opération', 'opérations')}`,

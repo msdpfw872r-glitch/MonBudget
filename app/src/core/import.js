@@ -1,7 +1,7 @@
 /**
  * import.js — Import d'un fichier de banque de bout en bout (sans dépendre du navigateur).
  *
- * Version : 0.21.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -17,6 +17,7 @@
  *   0.4.1  FRE (Fidag)  Fichiers CSV acceptés (UBS) ; règlement reçu sur une carte classé « facture ».
  *   0.8.0  FRE (Fidag)  camt.053 (toutes banques) : importable dans n'importe quel compte bancaire (IBAN),
  *                       contrepartie, référence, contrôles affichés (notes) ; détection des fichiers XML.
+ *   0.22.0 FRE (Fidag)  Règles « titulaire de la carte ».
  *   0.21.0 FRE (Fidag)  accountRef gardé sur chaque opération (relancer le classement sans réimporter).
  *   0.15.0 FRE (Fidag)  Réimporter corrige le nom des opérations déjà importées quand la lecture du fichier
  *                       s'est améliorée (ex. paiement par carte BCVs) ; celles classées par une règle sont reclassées.
@@ -28,7 +29,7 @@ import { readXlsx, looksLikeZip } from './xlsx.js';
 import { decodeText, looksLikeText, parseCsv } from './csv.js';
 import { merchantKey } from './text.js';
 import { ReglageError, normRef, assignBankRef } from './reglages.js';
-import { findRule, applyRule } from './regles.js';
+import { findRule, applyRule, canApply } from './regles.js';
 import { autoLinkAll, unlinkBill } from './cartes.js';
 import * as ubs from '../importers/ubs.js';
 import * as bcvs from '../importers/bcvs.js';
@@ -161,7 +162,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
         if (fixed.status === 'a-trier' || fixed.ruleId) {
           fixed = { ...fixed, status: 'a-trier', personId: null, categoryId: null, ruleId: null };
           const rule = findRule(rules, key);
-          if (rule) fixed = applyRule(fixed, rule);
+          const oldAcc = accounts.find((a) => a.id === fixed.accountId);
+          if (rule && canApply(rule, oldAcc)) fixed = applyRule(fixed, rule, oldAcc);
         }
         corrections.push(fixed);
         counts.corrigees++;
@@ -201,8 +203,8 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
     } else {
       tx.isCardBillPayment = false;
       const rule = findRule(rules, tx.merchantKey);
-      if (rule) {
-        tx = applyRule(tx, rule);
+      if (rule && canApply(rule, acc)) {
+        tx = applyRule(tx, rule, acc);
         ruleHits.set(rule.id, (ruleHits.get(rule.id) ?? 0) + 1);
       }
     }

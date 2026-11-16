@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.17.0
+ * Version : 0.22.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -23,6 +23,7 @@
  *   0.14.2 FRE (Fidag)  iPad : choisir une opération dans la liste ne fait plus disparaître celles d'avant
  *                       (liste par blocs fixes de 100).
  *   0.17.0 FRE (Fidag)  « Toujours classer » qui change une règle : « Reclasser les opérations … ? ».
+ *   0.22.0 FRE (Fidag)  Achat par carte : « … et pour la titulaire de la carte utilisée ».
  */
 
 import { icon, esc } from './ui.js';
@@ -45,12 +46,13 @@ const LIST_MAX = 100;
 const OP_ORDERS = [{ id: 'frequent', label: 'Fréquents d’abord' }, { id: 'date', label: 'Par date' }];
 const OP_ORDER_KEY = 'mon-budget.ordre-operations';
 
-const state = { currentId: null, personId: null, categoryId: null, remember: true, message: '', order: savedOrder(OP_ORDER_KEY, OP_ORDERS) };
+const state = { currentId: null, personId: null, categoryId: null, remember: true, holder: false, message: '', order: savedOrder(OP_ORDER_KEY, OP_ORDERS) };
 
 function resetChoice() {
   state.personId = null;
   state.categoryId = null;
   state.remember = null; // décidé selon l'opération (décoché pour un texte générique)
+  state.holder = false;   // règle « pour la titulaire de la carte »
 }
 
 async function load(db) {
@@ -127,6 +129,11 @@ function detail(tx, data) {
           ? '<br><span class="row-sub">Ce texte de la banque ne dit pas qui a été payé : mieux vaut trier ces opérations une par une.</span>' : ''}${same > 1
           ? `<br><span class="row-sub">${same > 2 ? `Les ${same - 1} autres opérations de ce commerce en attente seront classées aussi.` : 'L’autre opération de ce commerce en attente sera classée aussi.'}</span>` : ''}</span>
       </label>
+      ${acc?.kind === 'carte' && acc.personId && state.remember ? `<label class="choice choice-check remember">
+        <input type="checkbox" data-titulaire${state.holder ? ' checked' : ''}>
+        <span>… et pour <strong>la titulaire de la carte utilisée</strong> (et non toujours ${esc(data.people.find((p) => p.id === state.personId)?.name ?? 'la même personne')})
+          <br><span class="row-sub">Avec la carte de Maman : Maman ; avec celle de Papa : Papa.</span></span>
+      </label>` : ''}
       <p class="form-error" role="alert" tabindex="-1" hidden></p>
       <div class="sort-buttons">
         <button type="button" class="btn btn-secondary" data-passer>Passer</button>
@@ -246,8 +253,11 @@ export function trierView() {
         return tx;
       };
 
+      // La case « titulaire » n'apparaît que si « Toujours classer » est cochée : on redessine.
+      const redrawLater = () => setTimeout(() => redraw(), 0);
       const bindSearch = () => {
-        root.querySelector('[data-remember]')?.addEventListener('change', (e) => { state.remember = e.target.checked; });
+        root.querySelector('[data-remember]')?.addEventListener('change', (e) => { state.remember = e.target.checked; redrawLater(); });
+        root.querySelector('[data-titulaire]')?.addEventListener('change', (e) => { state.holder = e.target.checked; });
       };
 
       let tx = paint();
@@ -304,7 +314,8 @@ export function trierView() {
           const err = root.querySelector('.form-error');
           try {
             const i = data.pending.indexOf(tx);
-            const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: Boolean(state.remember) });
+            const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: Boolean(state.remember),
+              holderRule: Boolean(state.remember && state.holder && data.accounts.get(tx.accountId)?.kind === 'carte') });
             // Règle existante modifiée, ou opérations de ce commerce triées autrement : proposer de reclasser.
             if (res.rule) await askReclassify(db, res.rule.id, { exceptId: tx.id });
             const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i))
