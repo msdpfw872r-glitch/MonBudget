@@ -1,7 +1,7 @@
 /*
  * app.css — Styles de Mon Budget (iPad paysage d'abord, puis iPad portrait et iPhone).
  *
- * Version : 0.20.0
+ * Version : 0.23.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -37,6 +37,7 @@
  *   0.18.0 FRE (Fidag)  « Cocher le fichier » (factures de carte).
  *   0.18.1 FRE (Fidag)  Barre « Enregistrer » collée en bas (factures de carte).
  *   0.20.0 FRE (Fidag)  Proposition de l'app (factures de carte).
+ *   0.23.0 FRE (Fidag)  Contrats détectés (règles).
  */
 
 @font-face {
@@ -1013,3 +1014,10 @@ body.masque .shell, body.masque dialog { visibility: hidden; }
 .smart-card h2 { display: flex; align-items: center; gap: 8px; color: var(--accent-fonce); }
 .smart-card h2 svg { width: 24px; height: 24px; }
 .smart-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
+
+/* ---------- 0.23.0 Contrats détectés ---------- */
+
+.contract-card { border: 2px solid var(--accent); }
+.contract-card .list .row { padding: 10px 0; gap: 12px; }
+.contract-card .row-sub svg { width: 18px; height: 18px; vertical-align: -3px; color: var(--accent); }
+.contract-tag { font-weight: 700; color: var(--accent-fonce); }

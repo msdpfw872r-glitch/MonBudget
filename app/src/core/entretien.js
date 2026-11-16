@@ -2,7 +2,7 @@
  * entretien.js — Après une mise à jour de l'app : les opérations encore « à trier » sont relues
  * avec la lecture améliorée des fichiers de banque, puis passées aux règles retenues.
  *
- * Version : 0.22.0
+ * Version : 0.23.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-15
  *
@@ -14,6 +14,7 @@
  *   0.21.0 FRE (Fidag)  Relancer le classement sans réimporter : numéros sans compte, opérations remises sur la bonne
  *                       carte (pour qui = titulaire), règles, factures de carte.
  *   0.22.0 FRE (Fidag)  Règles « titulaire de la carte ».
+ *   0.23.0 FRE (Fidag)  « Ordre e-Bill » sans nom : créancier retrouvé par la référence (contrats.js).
  */
 
 import { merchantKey } from './text.js';
@@ -21,6 +22,7 @@ import { findRule, applyRule, canApply, accountsById } from './regles.js';
 import { cardText } from '../importers/camt053.js';
 import { normRef } from './reglages.js';
 import { autoLinkAll } from './cartes.js';
+import { nameFromReferences } from './contrats.js';
 
 const NO_NAME = /^(NOT ?PROVIDED|N\/?A|NONE|-)$/i;
 
@@ -41,6 +43,8 @@ export function betterMerchant(t) {
  * @returns {Promise<{relues: number, corrigees: number, classees: number}>}
  */
 export async function refreshPending(db) {
+  // « Ordre e-Bill » sans nom : le créancier est retrouvé par la référence.
+  const nommees = await nameFromReferences(db, { onlyPending: true });
   const pending = await db.getAllWhere('transactions', 'status', 'a-trier');
   const rules = await db.getAll('rules');
   const acc = await accountsById(db);
@@ -55,7 +59,7 @@ export async function refreshPending(db) {
       tx = { ...tx, ...better, merchantKey: merchantKey(better.merchant) };
       corrigees++;
     }
-    const rule = findRule(rules, tx.merchantKey);
+    const rule = findRule(rules, tx.merchantKey, tx.reference);
     if (rule && canApply(rule, acc.get(tx.accountId))) {
       tx = applyRule(tx, rule, acc.get(tx.accountId));
       hits.set(rule.id, (hits.get(rule.id) ?? 0) + 1);
@@ -68,7 +72,7 @@ export async function refreshPending(db) {
     const r = rules.find((x) => x.id === id);
     await db.put('rules', { ...r, hits: (r.hits ?? 0) + n, lastUsedAt: new Date().toISOString() });
   }
-  return { relues: pending.length, corrigees, classees };
+  return { relues: pending.length, corrigees: corrigees + nommees, classees };
 }
 
 /**
@@ -135,6 +139,7 @@ export async function relocateByRefs(db) {
  */
 export async function reprocessAll(db) {
   const moved = await relocateByRefs(db);
+  await nameFromReferences(db, { onlyPending: false });
   const r = await refreshPending(db);
   const factures = await autoLinkAll(db);
   return { ...moved, corrigees: r.corrigees, classees: r.classees, factures };

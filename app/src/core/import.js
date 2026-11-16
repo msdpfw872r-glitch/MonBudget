@@ -31,6 +31,7 @@ import { merchantKey } from './text.js';
 import { ReglageError, normRef, assignBankRef } from './reglages.js';
 import { findRule, applyRule, canApply } from './regles.js';
 import { autoLinkAll, unlinkBill } from './cartes.js';
+import { refreshPending } from './entretien.js';
 import * as ubs from '../importers/ubs.js';
 import * as bcvs from '../importers/bcvs.js';
 import * as swisscard from '../importers/swisscard.js';
@@ -161,7 +162,7 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
         // Classée par une règle sur l'ancien nom : le classement ne tient plus, on refait avec les règles.
         if (fixed.status === 'a-trier' || fixed.ruleId) {
           fixed = { ...fixed, status: 'a-trier', personId: null, categoryId: null, ruleId: null };
-          const rule = findRule(rules, key);
+          const rule = findRule(rules, key, t.reference);
           const oldAcc = accounts.find((a) => a.id === fixed.accountId);
           if (rule && canApply(rule, oldAcc)) fixed = applyRule(fixed, rule, oldAcc);
         }
@@ -202,7 +203,7 @@ export async function prepareImport(db, parsed, { fileName = '' } = {}) {
       tx = { ...tx, isCardBillPayment: false, categoryId: billCategory.id, personId: null, status: 'classee' };
     } else {
       tx.isCardBillPayment = false;
-      const rule = findRule(rules, tx.merchantKey);
+      const rule = findRule(rules, tx.merchantKey, tx.reference);
       if (rule && canApply(rule, acc)) {
         tx = applyRule(tx, rule, acc);
         ruleHits.set(rule.id, (ruleHits.get(rule.id) ?? 0) + 1);
@@ -249,6 +250,8 @@ export async function commitImport(db, plan, now = new Date()) {
     const r = await db.get('rules', ruleId);
     if (r) await db.put('rules', { ...r, hits: (r.hits ?? 0) + n, lastUsedAt: now.toISOString() });
   }
+  // « Ordre e-Bill » sans nom : créancier retrouvé par la référence, puis règles (y compris par contrat).
+  record.counts.reconnues = (await refreshPending(db)).classees;
   record.counts.facturesRattachees = await autoLinkAll(db);
   // Seulement des corrections : pas de nouvel import dans la liste.
   if (plan.transactions.length) await db.put('imports', record);

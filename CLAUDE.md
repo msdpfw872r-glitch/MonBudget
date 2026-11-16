@@ -88,6 +88,7 @@ Structure cible : déplace `src/` sous `app/src/` (l'app publiée = le dossier `
 5. Corriger une opération déjà classée par une règle propose : « Changer aussi la règle ? ».
 6. Les paiements de facture de carte (`isCardBillPayment`) et les virements entre ses propres comptes vont dans une catégorie `excludeFromTotals` : les achats de la carte ne doivent pas être comptés deux fois.
 7. Une règle peut être modifiée ou supprimée dans Réglages.
+8. (v0.23.0) Règle **par contrat** : `refPrefix` = début de la référence de paiement (QR/RF). Proposée quand l'historique d'un créancier montre des groupes de références stables payés en parallèle les mêmes mois (ex. deux abonnements Wingo) ; passe avant la règle générale. Un « Ordre e-Bill » sans nom est rattaché à son créancier par la référence.
 
 ### Cartes et factures (v0.4.0)
 

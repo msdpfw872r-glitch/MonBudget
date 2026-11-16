@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.23.0 — 2026-11-16 — FRE (Fidag)
+- **Les règles tiennent compte de la référence quand c'est utile.** L'app analyse l'historique : pour chaque créancier, elle cherche si les références de paiement (QR / RF) forment des groupes stables **payés en parallèle les mêmes mois** — un groupe par contrat. Une série de factures numérotées qui se suivent (carte de crédit, caisse-maladie…) n'est pas prise pour des contrats. Sur le vrai relevé : seuls les **deux contrats Wingo** ressortent.
+  - Réglages › Règles retenues : **« Contrats détectés »** — pour chaque contrat (« Contrat 5080268302 · 10 paiements · en moyenne CHF … »), « Pour qui, quoi ? » crée une **règle par contrat**, qui passe avant la règle générale du créancier ; puis « Reclasser les opérations … ? ».
+  - « À trier » affiche « Contrat … » sous le nom ; « Toujours classer » met à jour la règle **de ce contrat**.
+- **« Ordre e-Bill » sans nom : créancier retrouvé grâce à la référence** (sur le vrai relevé : Commune de Bovernier, ALTIS, Sinergy), à l'import, après une mise à jour et avec « Relancer le classement ».
+- 159 tests automatiques (données inventées sur le modèle du vrai relevé).
+
 ## 0.22.0 — 2026-11-16 — FRE (Fidag)
 - **Règle « Pour qui : la titulaire de la carte utilisée »** : un même commerce (ex. Coop) payé avec la carte de Maman va à Maman, avec celle de Papa à Papa. Les paiements depuis un compte bancaire restent à trier.
   - Dans Réglages › Règles retenues › modifier une règle : choix « La titulaire de la carte utilisée » (avec la question « Reclasser les opérations … ? »).

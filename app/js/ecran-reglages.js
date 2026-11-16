@@ -1,7 +1,7 @@
 /**
  * ecran-reglages.js — Écrans Réglages : vue d'ensemble, Pour qui, Mes comptes, Mes catégories.
  *
- * Version : 0.22.0
+ * Version : 0.23.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -28,6 +28,7 @@
  *                       commune (aussi les opérations triées à la main, au choix).
  *   0.21.0 FRE (Fidag)  « Relancer le classement » (#/reglages/relancer).
  *   0.22.0 FRE (Fidag)  Règle « pour qui : la titulaire de la carte utilisée ».
+ *   0.23.0 FRE (Fidag)  Règles retenues : « Contrats détectés » (même créancier, références différentes) → une règle par contrat.
  */
 
 import { APP_VERSION } from './version.js';
@@ -43,6 +44,9 @@ import { restaurerView, raccourciView } from './ecran-sauvegarde.js';
 import { compteView, compteRow } from './ecran-compte.js';
 import { supprimerView, importsView, copieView, copieRow } from './ecran-supprimer.js';
 import { relancerView } from './ecran-relancer.js';
+import { contractsToSetUp, saveContractRule } from '../src/core/contrats.js';
+import { choose } from './choix.js';
+import { formatCHF, formatDateShort } from '../src/core/format.js';
 
 const go = (hash) => { location.hash = hash; };
 
@@ -147,8 +151,45 @@ function regles() {
       const [rules, people, cats] = await Promise.all([db.getAll('rules'), db.getAll('people'), db.getAll('categories')]);
       const P = new Map(people.map((p) => [p.id, p]));
       const C = new Map(cats.map((c) => [c.id, c]));
+      const contracts = await contractsToSetUp(db);
+      const contractsHtml = contracts.map((c, ci) => `<section class="card contract-card">
+          <h2>${esc(c.name)} : ${c.groups.length} contrats détectés</h2>
+          <p class="note">Même créancier, mais des paiements en parallèle avec des références différentes. Une règle par contrat permet
+          de les classer différemment${c.groups[0].general ? ` (aujourd’hui, la règle « ${esc(c.merchantKey)} » les classe tous pareil)` : ''}.</p>
+          <div class="list">${c.groups.map((g, gi) => {
+            const avg = g.items.reduce((x, t) => x + Math.abs(t.amount), 0) / g.items.length;
+            const last = g.items.map((t) => t.date).sort().at(-1);
+            const rr = g.rule;
+            return `<div class="row row-static">
+              <span class="row-text"><span class="row-title">Contrat ${esc(g.label)}</span>
+                <span class="row-sub">${g.items.length} paiements · en moyenne ${formatCHF(avg)} · dernier le ${esc(formatDateShort(last))}</span>
+                ${rr ? `<span class="row-sub">${icon('ok')} ${esc(C.get(rr.categoryId)?.name ?? '')} · ${rr.personId === CARD_HOLDER ? CARD_HOLDER_LABEL : esc(P.get(rr.personId)?.name ?? '')}</span>` : ''}</span>
+              <button type="button" class="btn btn-${rr ? 'secondary' : 'primary'} btn-small" data-contrat="${ci}:${gi}">${rr ? 'Changer' : 'Pour qui, quoi ?'}</button>
+            </div>`;
+          }).join('')}</div>
+        </section>`).join('');
+      // Contrat détecté : pour qui, quoi → règle du contrat, puis « Reclasser les opérations ? ».
+      const render = () => this.render(root);
+      const onContract = async (b) => {
+          const [ci, gi] = b.dataset.contrat.split(':').map(Number);
+          const c = contracts[ci];
+          const g = c.groups[gi];
+          const base = g.rule ?? g.general;
+          const personId = await chooseOption({ title: `Contrat ${g.label} : pour qui ?`, selected: base?.personId ?? null,
+            options: people.map((p) => ({ id: p.id, name: p.name, color: p.color })) });
+          if (!personId) return;
+          const categoryId = await choose({ title: `Contrat ${g.label} : c’est quoi ?`, searchLabel: 'Chercher une catégorie', orderKey: 'mon-budget.ordre-categories',
+            items: cats.filter((x) => !x.archived), selected: base?.categoryId ?? null,
+            groups: [{ title: 'Dépenses', filter: (x) => x.type === 'depense' }, { title: 'Rentrées', filter: (x) => x.type === 'recette' }],
+            emptyText: 'Aucune catégorie ne correspond. Essayez un autre mot.' });
+          if (!categoryId) return;
+          const rule = await saveContractRule(db, { merchantKey: c.merchantKey, prefix: g.prefix, label: g.label, personId, categoryId });
+          await askReclassify(db, rule.id);
+          await render();
+      };
       if (!rules.length) {
-        root.innerHTML = `<section class="card"><p class="note">Quand vous trierez une opération, l’app retiendra votre choix pour ce commerce.
+        root.onclick = async (e) => { const b = e.target.closest('[data-contrat]'); if (b) await onContract(b); };
+        root.innerHTML = `${contractsHtml}<section class="card"><p class="note">Quand vous trierez une opération, l’app retiendra votre choix pour ce commerce.
             Les règles apparaîtront ici, et vous pourrez les modifier ou les supprimer.</p></section>`;
         return;
       }
@@ -160,7 +201,7 @@ function regles() {
             : `${list.length} règle${list.length > 1 ? 's' : ''} sur ${rules.length}.`}</p>
           ${list.length ? `<section class="card list">${list.map((r) => {
             const p = P.get(r.personId);
-            return row({ href: `#/reglages/regles/${encodeURIComponent(r.id)}`, title: esc(r.merchantKey),
+            return row({ href: `#/reglages/regles/${encodeURIComponent(r.id)}`, title: `${esc(r.merchantKey)}${r.refPrefix ? ` · contrat ${esc(r.contractLabel ?? '')}` : ''}`,
               sub: `${esc(C.get(r.categoryId)?.name ?? 'Catégorie supprimée')} · ${r.personId === CARD_HOLDER ? `<span class="tag">${CARD_HOLDER_LABEL}</span>` : p ? personTag(p) : 'Personne supprimée'} · utilisée ${r.hits ?? 0} fois` });
           }).join('')}</section>` : '<section class="card"><p class="note">Aucune règle ne correspond. Essayez un autre mot ou touchez « Effacer les filtres ».</p></section>'}`;
         paintTags(root);
@@ -168,7 +209,7 @@ function regles() {
       const draw = () => {
         const who = ruleFilters.personId === CARD_HOLDER ? { name: CARD_HOLDER_LABEL } : P.get(ruleFilters.personId);
         const cat = C.get(ruleFilters.categoryId);
-        root.innerHTML = `<div class="filter-bar">
+        root.innerHTML = `${contractsHtml}<div class="filter-bar">
             <div class="filter-search">
               <label class="search">${icon('loupe')}<span class="visually-hidden">Chercher une règle</span>
                 <input type="search" data-chercher-regle value="${esc(ruleFilters.query)}" placeholder="Chercher un commerce, une catégorie…" autocomplete="off" enterkeyhint="search"></label>
@@ -193,6 +234,7 @@ function regles() {
       root.onclick = async (e) => {
         const b = e.target.closest('button');
         if (!b) return;
+        if (b.dataset.contrat) { await onContract(b); return; }
         if ('filtreQui' in b.dataset) {
           const id = await chooseOption({ title: 'Pour qui ?', selected: ruleFilters.personId ?? '__tous',
             options: [{ id: '__tous', name: 'Tout le monde' }, ...people.map((p) => ({ id: p.id, name: p.name, color: p.color })),
@@ -244,6 +286,7 @@ function regle(id) {
               <optgroup label="Dépenses">${options('depense')}</optgroup>
               <optgroup label="Rentrées">${options('recette')}</optgroup>
             </select></label>
+          ${r.refPrefix ? `<p class="note">Règle du <strong>contrat ${esc(r.contractLabel ?? '')}</strong> : seulement les paiements dont la référence commence par ${esc(r.refPrefix)}.</p>` : ''}
           <p class="row-sub">Utilisée ${r.hits ?? 0} fois.</p>
           ${errorBox}
           <button class="btn btn-primary btn-wide" type="submit">Enregistrer</button>

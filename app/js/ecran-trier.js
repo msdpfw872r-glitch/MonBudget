@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.22.0
+ * Version : 0.23.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -24,6 +24,7 @@
  *                       (liste par blocs fixes de 100).
  *   0.17.0 FRE (Fidag)  « Toujours classer » qui change une règle : « Reclasser les opérations … ? ».
  *   0.22.0 FRE (Fidag)  Achat par carte : « … et pour la titulaire de la carte utilisée ».
+ *   0.23.0 FRE (Fidag)  « Contrat … » affiché pour un créancier à plusieurs contrats (même nom, références différentes).
  */
 
 import { icon, esc } from './ui.js';
@@ -32,6 +33,7 @@ import { formatAmount, formatDateLong, formatDateShort, displayName, opName } fr
 import { listPeople, listCategories, ReglageError } from '../src/core/reglages.js';
 import { classify, isGenericKey } from '../src/core/regles.js';
 import { askReclassify } from './reclasser.js';
+import { analyzeReferences } from '../src/core/contrats.js';
 import { orderPending, countByMerchant, lastUsedByCategory, lastUsedBy } from '../src/core/tri.js';
 import { chooseCategory, choosePerson, choose, savedOrder } from './choix.js';
 
@@ -70,7 +72,12 @@ async function load(db) {
   for (const t of classified) usage.set(t.categoryId, (usage.get(t.categoryId) ?? 0) + 1);
   const lastUsed = lastUsedByCategory(classified, rules);
   const lastUsedPerson = lastUsedBy(classified, rules, 'personId');
-  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed, lastUsedPerson };
+  // Contrats détectés (même créancier, références différentes) : « Contrat … » affiché sous le nom.
+  const contractById = new Map();
+  for (const c of analyzeReferences(pending.concat(classified)).contracts) {
+    for (const g of c.groups) for (const t of g.items) contractById.set(t.id, g.label);
+  }
+  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed, lastUsedPerson, contractById };
 }
 
 /** Étiquette « Pour qui ? » (beaucoup de personnes) : ouvre la fenêtre de choix. */
@@ -108,6 +115,7 @@ function detail(tx, data) {
         <div class="row-text">
           <span class="row-sub">${esc(formatDateLong(tx.date, { capital: true }))} · ${esc(acc?.name ?? 'Compte inconnu')}</span>
           <span class="sort-name" id="op-nom">${esc(name)}</span>
+          ${data.contractById.get(tx.id) ? `<span class="row-sub contract-tag">Contrat ${esc(data.contractById.get(tx.id))}</span>` : ''}
         </div>
         <span class="sort-amount ${tx.amount < 0 ? '' : 'positive'}">${formatAmount(tx.amount)}</span>
       </div>
@@ -158,7 +166,7 @@ function listPane(data, current) {
         <span class="row-sub">Toucher pour les voir</span></span></button>` : ''}
     ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
         <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
-        <span class="row-sub">${esc(formatDateShort(t.date))}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
+        <span class="row-sub">${esc(formatDateShort(t.date))}${data.contractById.get(t.id) ? ` · contrat ${esc(data.contractById.get(t.id))}` : ''}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
         <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
     ${rest > 0 ? `<button type="button" class="sort-item sort-more" data-select="${esc(data.pending[start + shown.length].id)}">

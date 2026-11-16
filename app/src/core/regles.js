@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.22.0
+ * Version : 0.23.0
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -19,6 +19,7 @@
  *   0.17.0 FRE (Fidag)  reclassifyPreview / reclassifyMatching : aussi les opérations triées à la main (au choix) et
  *                       celles à trier ; filterRules / sortRules (recherche, pour qui, catégorie, ordre).
  *   0.22.0 FRE (Fidag)  « Pour qui : la titulaire de la carte » (CARD_HOLDER) : la personne vient de la carte utilisée.
+ *   0.23.0 FRE (Fidag)  Règles par contrat : `refPrefix` (début de la référence de paiement) ; findRule(rules, clé, référence).
  */
 
 import { merchantKey, fold } from './text.js';
@@ -26,14 +27,19 @@ import { ReglageError } from './reglages.js';
 import { unlinkBill } from './cartes.js';
 
 /** Trouve la règle qui s'applique à une clé commerçant, ou null. */
-export function findRule(rules, key) {
+export function findRule(rules, key, reference = null) {
   if (!key) return null;
-  let best = null;
+  const ref = String(reference ?? '').replace(/\s+/g, '').toUpperCase();
   const padded = ` ${key} `;
+  // Une règle « par contrat » (refPrefix) ne vaut que pour les références qui commencent ainsi, et passe
+  // avant la règle générale du même créancier.
+  const fits = (r) => !r.refPrefix || (ref && ref.startsWith(r.refPrefix));
+  const rank = (r) => (r.merchantKey === key ? 2 : 0) + (r.refPrefix ? 1 : 0);
+  let best = null;
   for (const r of rules) {
-    if (!r.merchantKey) continue;
-    if (r.merchantKey === key) return r;
-    if (padded.includes(` ${r.merchantKey} `) && (!best || r.merchantKey.length > best.merchantKey.length)) best = r;
+    if (!r.merchantKey || !fits(r)) continue;
+    if (r.merchantKey !== key && !padded.includes(` ${r.merchantKey} `)) continue;
+    if (!best || rank(r) > rank(best) || (rank(r) === rank(best) && r.merchantKey.length > best.merchantKey.length)) best = r;
   }
   return best;
 }
@@ -82,7 +88,7 @@ export async function applyRuleToPending(db, rule) {
   const acc = await accountsById(db);
   let n = 0;
   for (const tx of pending) {
-    if (findRule(rules, tx.merchantKey)?.id !== rule.id) continue;
+    if (findRule(rules, tx.merchantKey, tx.reference)?.id !== rule.id) continue;
     if (!canApply(rule, acc.get(tx.accountId))) continue;
     await db.put('transactions', applyRule(tx, rule, acc.get(tx.accountId)));
     n++;
@@ -92,8 +98,11 @@ export async function applyRuleToPending(db, rule) {
 }
 
 /** Crée ou met à jour la règle d'une clé commerçant. */
-export async function upsertRule(db, { merchantKey: key, personId, categoryId }, now = new Date()) {
-  const existing = (await db.getAllWhere('rules', 'merchantKey', key))[0];
+export async function upsertRule(db, { merchantKey: key, personId, categoryId, reference = null }, now = new Date()) {
+  // Même créancier : la règle du contrat de cette référence si elle existe, sinon la règle générale.
+  const same = await db.getAllWhere('rules', 'merchantKey', key);
+  const ref = String(reference ?? '').replace(/\s+/g, '').toUpperCase();
+  const existing = same.find((r) => r.refPrefix && ref.startsWith(r.refPrefix)) ?? same.find((r) => !r.refPrefix);
   const rule = existing
     ? { ...existing, personId, categoryId }
     : { id: newRuleId(), merchantKey: key, personId, categoryId, createdAt: now.toISOString(), lastUsedAt: now.toISOString(), hits: 0 };
@@ -123,7 +132,7 @@ export async function classify(db, txId, { personId, categoryId, remember = fals
     }
   } else if (remember) {
     // « … pour la titulaire de la carte » : la règle retient la carte, pas la personne.
-    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId: holderRule ? CARD_HOLDER : personId, categoryId });
+    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId: holderRule ? CARD_HOLDER : personId, categoryId, reference: tx.reference });
   }
 
   const updated = {
@@ -151,7 +160,7 @@ export async function saveRule(db, id, { merchantKey: key, personId, categoryId 
   const k = merchantKey(key);
   if (k.length < 2) throw new ReglageError('Écrivez au moins un mot du nom du commerce.');
   await checkChoice(db, personId, categoryId, { allowHolder: true });
-  const twin = (await db.getAllWhere('rules', 'merchantKey', k)).find((r) => r.id !== id);
+  const twin = (await db.getAllWhere('rules', 'merchantKey', k)).find((r) => r.id !== id && (r.refPrefix ?? null) === (rule.refPrefix ?? null));
   if (twin) throw new ReglageError(`Une autre règle reconnaît déjà « ${k} ».`);
   const updated = { ...rule, merchantKey: k, personId, categoryId };
   await db.put('rules', updated);
@@ -195,11 +204,13 @@ export async function reclassifyPreview(db, rule, { exceptId = null } = {}) {
   const out = { byRule: [], manual: [], pending: [] };
   for (const t of await db.getAll('transactions')) {
     if (t.id === exceptId || t.isCardBillPayment) continue;
-    const mine = t.ruleId === rule.id || findRule(rules, t.merchantKey)?.id === rule.id;
+    const found = findRule(rules, t.merchantKey, t.reference);
+    const mine = found?.id === rule.id || (t.ruleId === rule.id && !found);
     if (!mine || !canApply(rule, acc.get(t.accountId))) continue;
     if (t.status !== 'classee') out.pending.push(t);
     else if (t.personId === personFor(rule, acc.get(t.accountId)) && t.categoryId === rule.categoryId) continue;
-    else if (t.ruleId === rule.id) out.byRule.push(t);
+    // Classée par une règle (celle-ci, ou la règle générale qu'une règle de contrat remplace) : pas « à la main ».
+    else if (t.ruleId) out.byRule.push(t);
     else out.manual.push(t);
   }
   return out;
