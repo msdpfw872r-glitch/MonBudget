@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 0.23.1 — 2026-11-16 — FRE (Fidag)
+- À trier : les **contrats détectés sont groupés à part** (« Fréquents d'abord » : les 10 paiements d'un contrat Wingo, puis les 10 de l'autre ; « 10 fois » par contrat), et « contrat … » s'affiche aussi dans la **liste des opérations sur iPhone**.
+- « Toujours classer **Wingo · contrat …** comme ça » crée la **règle de ce contrat** : seuls les autres paiements du même contrat sont classés, l'autre contrat reste à trier.
+- 160 tests automatiques.
+
 ## 0.23.0 — 2026-11-16 — FRE (Fidag)
 - **Les règles tiennent compte de la référence quand c'est utile.** L'app analyse l'historique : pour chaque créancier, elle cherche si les références de paiement (QR / RF) forment des groupes stables **payés en parallèle les mêmes mois** — un groupe par contrat. Une série de factures numérotées qui se suivent (carte de crédit, caisse-maladie…) n'est pas prise pour des contrats. Sur le vrai relevé : seuls les **deux contrats Wingo** ressortent.
   - Réglages › Règles retenues : **« Contrats détectés »** — pour chaque contrat (« Contrat 5080268302 · 10 paiements · en moyenne CHF … »), « Pour qui, quoi ? » crée une **règle par contrat**, qui passe avant la règle générale du créancier ; puis « Reclasser les opérations … ? ».

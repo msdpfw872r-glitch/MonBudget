@@ -1,7 +1,7 @@
 /**
  * ecran-trier.js — Écran « À trier » : une opération à la fois, « Pour qui ? » puis « C'est quoi ? ».
  *
- * Version : 0.23.0
+ * Version : 0.23.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -25,6 +25,8 @@
  *   0.17.0 FRE (Fidag)  « Toujours classer » qui change une règle : « Reclasser les opérations … ? ».
  *   0.22.0 FRE (Fidag)  Achat par carte : « … et pour la titulaire de la carte utilisée ».
  *   0.23.0 FRE (Fidag)  « Contrat … » affiché pour un créancier à plusieurs contrats (même nom, références différentes).
+ *   0.23.1 FRE (Fidag)  Contrats groupés à part (« Fréquents d'abord », « N fois » par contrat), aussi dans la liste iPhone ;
+ *                       « Toujours classer » crée la règle du contrat.
  */
 
 import { icon, esc } from './ui.js';
@@ -66,18 +68,19 @@ async function load(db) {
     db.getAllWhere('transactions', 'status', 'classee'),
     db.getAll('rules'),
   ]);
-  const sorted = orderPending(pending, state.order);
-  const counts = countByMerchant(pending);
+  // Contrats détectés (même créancier, références différentes) : groupés à part, « Contrat … » affiché.
+  const contractById = new Map();
+  for (const c of analyzeReferences(pending.concat(classified)).contracts) {
+    for (const g of c.groups) for (const t of g.items) contractById.set(t.id, { prefix: g.prefix, label: g.label });
+  }
+  const groupOf = (t) => (contractById.has(t.id) ? `${t.merchantKey}|${contractById.get(t.id).prefix}` : t.merchantKey);
+  const sorted = orderPending(pending, state.order, groupOf);
+  const counts = countByMerchant(pending, groupOf);
   const usage = new Map();
   for (const t of classified) usage.set(t.categoryId, (usage.get(t.categoryId) ?? 0) + 1);
   const lastUsed = lastUsedByCategory(classified, rules);
   const lastUsedPerson = lastUsedBy(classified, rules, 'personId');
-  // Contrats détectés (même créancier, références différentes) : « Contrat … » affiché sous le nom.
-  const contractById = new Map();
-  for (const c of analyzeReferences(pending.concat(classified)).contracts) {
-    for (const g of c.groups) for (const t of g.items) contractById.set(t.id, g.label);
-  }
-  return { pending: sorted, counts, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed, lastUsedPerson, contractById };
+  return { pending: sorted, counts, groupOf, people, categories, accounts: new Map(accounts.map((a) => [a.id, a])), usage, lastUsed, lastUsedPerson, contractById };
 }
 
 /** Étiquette « Pour qui ? » (beaucoup de personnes) : ouvre la fenêtre de choix. */
@@ -99,7 +102,7 @@ function detail(tx, data) {
   const name = opName(tx);
   const chosen = data.categories.find((c) => c.id === state.categoryId);
   const position = data.pending.indexOf(tx) + 1;
-  const same = data.counts.get(tx.merchantKey) ?? 1;
+  const same = data.counts.get(data.groupOf(tx)) ?? 1;
   return `<section class="card sort-card" aria-labelledby="op-nom">
       ${data.pending.length > 1 ? `<div class="narrow-nav">
         <div class="narrow-nav-top">
@@ -115,7 +118,7 @@ function detail(tx, data) {
         <div class="row-text">
           <span class="row-sub">${esc(formatDateLong(tx.date, { capital: true }))} · ${esc(acc?.name ?? 'Compte inconnu')}</span>
           <span class="sort-name" id="op-nom">${esc(name)}</span>
-          ${data.contractById.get(tx.id) ? `<span class="row-sub contract-tag">Contrat ${esc(data.contractById.get(tx.id))}</span>` : ''}
+          ${data.contractById.get(tx.id) ? `<span class="row-sub contract-tag">Contrat ${esc(data.contractById.get(tx.id).label)}</span>` : ''}
         </div>
         <span class="sort-amount ${tx.amount < 0 ? '' : 'positive'}">${formatAmount(tx.amount)}</span>
       </div>
@@ -133,7 +136,7 @@ function detail(tx, data) {
 
       <label class="choice choice-check remember">
         <input type="checkbox" data-remember${state.remember ? ' checked' : ''}>
-        <span>Toujours classer <strong>${esc(name)}</strong> comme ça${isGenericKey(tx.merchantKey)
+        <span>Toujours classer <strong>${esc(name)}${data.contractById.get(tx.id) ? ` · contrat ${esc(data.contractById.get(tx.id).label)}` : ''}</strong> comme ça${isGenericKey(tx.merchantKey)
           ? '<br><span class="row-sub">Ce texte de la banque ne dit pas qui a été payé : mieux vaut trier ces opérations une par une.</span>' : ''}${same > 1
           ? `<br><span class="row-sub">${same > 2 ? `Les ${same - 1} autres opérations de ce commerce en attente seront classées aussi.` : 'L’autre opération de ce commerce en attente sera classée aussi.'}</span>` : ''}</span>
       </label>
@@ -166,7 +169,7 @@ function listPane(data, current) {
         <span class="row-sub">Toucher pour les voir</span></span></button>` : ''}
     ${shown.map((t) => `<button type="button" class="sort-item" data-select="${esc(t.id)}" aria-pressed="${t.id === current.id}">
         <span class="row-text"><span class="row-title">${esc(opName(t))}</span>
-        <span class="row-sub">${esc(formatDateShort(t.date))}${data.contractById.get(t.id) ? ` · contrat ${esc(data.contractById.get(t.id))}` : ''}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}</span></span>
+        <span class="row-sub">${esc(formatDateShort(t.date))}${data.contractById.get(t.id) ? ` · contrat ${esc(data.contractById.get(t.id).label)}` : ''}${(data.counts.get(data.groupOf(t)) ?? 1) > 1 ? ` · ${data.counts.get(data.groupOf(t))} fois` : ''}</span></span>
         <span class="sort-item-amount">${formatAmount(t.amount)}</span>
       </button>`).join('')}
     ${rest > 0 ? `<button type="button" class="sort-item sort-more" data-select="${esc(data.pending[start + shown.length].id)}">
@@ -185,7 +188,7 @@ function openList(data, current) {
   const items = data.pending.map((t) => ({
     id: t.id,
     name: opName(t),
-    sub: `${formatDateShort(t.date)}${(data.counts.get(t.merchantKey) ?? 1) > 1 ? ` · ${data.counts.get(t.merchantKey)} fois` : ''}`,
+    sub: `${formatDateShort(t.date)}${data.contractById.get(t.id) ? ` · contrat ${data.contractById.get(t.id).label}` : ''}${(data.counts.get(data.groupOf(t)) ?? 1) > 1 ? ` · ${data.counts.get(data.groupOf(t))} fois` : ''}`,
     aside: formatAmount(t.amount),
     tx: t,
   }));
@@ -195,7 +198,7 @@ function openList(data, current) {
     searchLabel: 'Chercher un commerce',
     orderKey: OP_ORDER_KEY,
     orders: OP_ORDERS,
-    sortItems: (xs, order) => orderPending(xs.map((x) => x.tx), order).map((t) => byId.get(t.id)),
+    sortItems: (xs, order) => orderPending(xs.map((x) => x.tx), order, data.groupOf).map((t) => byId.get(t.id)),
     items,
     selected: current.id,
     emptyText: 'Aucune opération ne correspond. Essayez un autre mot.',
@@ -323,7 +326,8 @@ export function trierView() {
           try {
             const i = data.pending.indexOf(tx);
             const res = await classify(db, tx.id, { personId: state.personId, categoryId: state.categoryId, remember: Boolean(state.remember),
-              holderRule: Boolean(state.remember && state.holder && data.accounts.get(tx.accountId)?.kind === 'carte') });
+              holderRule: Boolean(state.remember && state.holder && data.accounts.get(tx.accountId)?.kind === 'carte'),
+              contract: data.contractById.get(tx.id) ?? null });
             // Règle existante modifiée, ou opérations de ce commerce triées autrement : proposer de reclasser.
             if (res.rule) await askReclassify(db, res.rule.id, { exceptId: tx.id });
             const next = data.pending.slice(i + 1).concat(data.pending.slice(0, i))

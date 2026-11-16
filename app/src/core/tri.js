@@ -1,7 +1,7 @@
 /**
  * tri.js — Aides pour l'écran « À trier » : ordre des opérations, recherche de catégorie.
  *
- * Version : 0.4.5
+ * Version : 0.23.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -11,14 +11,18 @@
  *   0.4.2  FRE (Fidag)  Première version : « commerces fréquents d'abord », recherche sans accents.
  *   0.4.4  FRE (Fidag)  Catégories par « derniers utilisés » ou « de A à Z ».
  *   0.4.5  FRE (Fidag)  Même chose pour les personnes (lastUsedBy, orderByUse).
+ *   0.23.1 FRE (Fidag)  « Fréquents d'abord » : groupe au choix (commerce + contrat).
  */
 
 import { fold } from './text.js';
 
 /** Nombre d'opérations en attente par clé commerçant. */
-export function countByMerchant(pending) {
+/** Groupe d'une opération pour « Fréquents d'abord » : le commerce (ou commerce + contrat, voir groupOf). */
+const byMerchant = (t) => t.merchantKey;
+
+export function countByMerchant(pending, groupOf = byMerchant) {
   const n = new Map();
-  for (const t of pending) n.set(t.merchantKey, (n.get(t.merchantKey) ?? 0) + 1);
+  for (const t of pending) n.set(groupOf(t), (n.get(groupOf(t)) ?? 0) + 1);
   return n;
 }
 
@@ -28,13 +32,14 @@ export function countByMerchant(pending) {
  * - 'frequent' : les commerces qui reviennent le plus souvent d'abord (une règle les classe tous),
  *   puis par date à l'intérieur d'un même commerce.
  */
-export function orderPending(pending, mode = 'frequent') {
+export function orderPending(pending, mode = 'frequent', groupOf = byMerchant) {
   const byDate = (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
   const list = [...pending];
   if (mode !== 'frequent') return list.sort(byDate);
-  const count = countByMerchant(list);
-  return list.sort((a, b) => (count.get(b.merchantKey) - count.get(a.merchantKey))
-    || String(a.merchantKey).localeCompare(String(b.merchantKey)) || byDate(a, b));
+  const count = countByMerchant(list, groupOf);
+  // Même commerce et même contrat ensemble (ex. les deux abonnements Wingo, chacun groupé).
+  return list.sort((a, b) => (count.get(groupOf(b)) - count.get(groupOf(a)))
+    || String(groupOf(a)).localeCompare(String(groupOf(b))) || byDate(a, b));
 }
 
 /**

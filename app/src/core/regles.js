@@ -1,7 +1,7 @@
 /**
  * regles.js — Règles retenues : l'app se souvient du « pour qui » et du « quoi » de chaque commerce.
  *
- * Version : 0.23.0
+ * Version : 0.23.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-08
  *
@@ -20,6 +20,7 @@
  *                       celles à trier ; filterRules / sortRules (recherche, pour qui, catégorie, ordre).
  *   0.22.0 FRE (Fidag)  « Pour qui : la titulaire de la carte » (CARD_HOLDER) : la personne vient de la carte utilisée.
  *   0.23.0 FRE (Fidag)  Règles par contrat : `refPrefix` (début de la référence de paiement) ; findRule(rules, clé, référence).
+ *   0.23.1 FRE (Fidag)  « Toujours classer » sur un contrat détecté : règle de ce contrat (classify(…, { contract })).
  */
 
 import { merchantKey, fold } from './text.js';
@@ -98,14 +99,18 @@ export async function applyRuleToPending(db, rule) {
 }
 
 /** Crée ou met à jour la règle d'une clé commerçant. */
-export async function upsertRule(db, { merchantKey: key, personId, categoryId, reference = null }, now = new Date()) {
+export async function upsertRule(db, { merchantKey: key, personId, categoryId, reference = null, contract = null }, now = new Date()) {
   // Même créancier : la règle du contrat de cette référence si elle existe, sinon la règle générale.
   const same = await db.getAllWhere('rules', 'merchantKey', key);
   const ref = String(reference ?? '').replace(/\s+/g, '').toUpperCase();
-  const existing = same.find((r) => r.refPrefix && ref.startsWith(r.refPrefix)) ?? same.find((r) => !r.refPrefix);
+  // Contrat détecté (contract = { prefix, label }) : la règle est celle de ce contrat (créée si besoin).
+  const existing = contract
+    ? same.find((r) => r.refPrefix === contract.prefix)
+    : same.find((r) => r.refPrefix && ref.startsWith(r.refPrefix)) ?? same.find((r) => !r.refPrefix);
   const rule = existing
     ? { ...existing, personId, categoryId }
-    : { id: newRuleId(), merchantKey: key, personId, categoryId, createdAt: now.toISOString(), lastUsedAt: now.toISOString(), hits: 0 };
+    : { id: newRuleId(), merchantKey: key, personId, categoryId, createdAt: now.toISOString(), lastUsedAt: now.toISOString(), hits: 0,
+      ...(contract ? { refPrefix: contract.prefix, contractLabel: contract.label } : {}) };
   await db.put('rules', rule);
   return rule;
 }
@@ -117,7 +122,7 @@ export async function upsertRule(db, { merchantKey: key, personId, categoryId, r
  * @param {boolean} [opts.updateRule] correction d'une opération classée par une règle : changer aussi la règle.
  * @returns {Promise<{tx: object, rule: object|null, alsoClassified: number}>}
  */
-export async function classify(db, txId, { personId, categoryId, remember = false, updateRule = false, holderRule = false }) {
+export async function classify(db, txId, { personId, categoryId, remember = false, updateRule = false, holderRule = false, contract = null }) {
   const tx = await db.get('transactions', txId);
   if (!tx) throw new ReglageError('Cette opération n’existe plus.');
   const cat = await checkChoice(db, personId, categoryId);
@@ -132,7 +137,7 @@ export async function classify(db, txId, { personId, categoryId, remember = fals
     }
   } else if (remember) {
     // « … pour la titulaire de la carte » : la règle retient la carte, pas la personne.
-    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId: holderRule ? CARD_HOLDER : personId, categoryId, reference: tx.reference });
+    rule = await upsertRule(db, { merchantKey: tx.merchantKey, personId: holderRule ? CARD_HOLDER : personId, categoryId, reference: tx.reference, contract });
   }
 
   const updated = {

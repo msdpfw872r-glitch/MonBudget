@@ -3,12 +3,13 @@
  * « Ordre e-Bill » sans nom retrouvé. Données INVENTÉES sur le modèle d'un vrai relevé.
  * Lancer : npm test
  *
- * Version : 0.23.0
+ * Version : 0.23.1
  * Auteur  : FRE (Fidag)
  * Date    : 2026-11-16
  *
  * Historique :
  *   0.23.0 FRE (Fidag)  Première version.
+ *   0.23.1 FRE (Fidag)  À trier : contrats groupés ; « Toujours classer » crée la règle du contrat.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,6 +19,7 @@ import * as R from '../app/src/core/reglages.js';
 import * as G from '../app/src/core/regles.js';
 import * as K from '../app/src/core/contrats.js';
 import * as E from '../app/src/core/entretien.js';
+import { orderPending, countByMerchant } from '../app/src/core/tri.js';
 
 const seed = JSON.parse(await readFile(new URL('../app/src/data/seed.json', import.meta.url), 'utf8'));
 const pay = (id, date, amount, name, reference, status = 'a-trier') => ({ id, accountId: 'bcvs', date, amount, merchant: name,
@@ -93,4 +95,23 @@ test('« Toujours classer » sur une opération d’un contrat met à jour la r�
   assert.equal(res.rule.id, ra.id);
   assert.equal((await db.get('rules', ra.id)).personId, 'papa');
   assert.equal((await db.getAll('rules')).length, 1, 'pas de règle générale créée en plus');
+});
+
+test('À trier : chaque contrat groupé à part ; « Toujours classer » crée la règle de CE contrat', async () => {
+  const db = openMemoryDb();
+  await R.installSeed(db, seed);
+  const list = data().filter((t) => t.merchant === 'Telco Exemple');
+  await db.putMany('transactions', list);
+  const [c] = K.analyzeReferences(list).contracts;
+  const of = new Map();
+  for (const g of c.groups) for (const t of g.items) of.set(t.id, g);
+  const groupOf = (t) => (of.has(t.id) ? `${t.merchantKey}|${of.get(t.id).prefix}` : t.merchantKey);
+  const ordered = orderPending(list, 'frequent', groupOf).map((t) => t.id[0]);
+  assert.deepEqual(ordered.join(''), ordered[0].repeat(6) + (ordered[0] === 'a' ? 'b' : 'a').repeat(6), 'les 6 paiements d’un contrat, puis les 6 de l’autre');
+  assert.deepEqual([...countByMerchant(list, groupOf).values()], [6, 6]);
+  const g = of.get('a1');
+  const res = await G.classify(db, 'a1', { personId: 'maman', categoryId: 'divers', remember: true, contract: { prefix: g.prefix, label: g.label } });
+  assert.deepEqual([res.rule.refPrefix, res.rule.contractLabel], [g.prefix, g.label]);
+  assert.equal(res.alsoClassified, 5, 'seulement les autres paiements de ce contrat');
+  assert.equal((await db.get('transactions', 'b1')).status, 'a-trier', 'l’autre contrat reste à trier');
 });
